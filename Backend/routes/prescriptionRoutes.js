@@ -136,7 +136,7 @@ const { body, param } = require('express-validator');
 router.post(
   '/',
   authenticateToken,
-  authorizeRoles(['Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']),
+  authorizeRoles(['Faculty', 'Resident', 'Admin']),
   [
     body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
     body('medicine').notEmpty().trim().withMessage('Medicine name is required'),
@@ -195,7 +195,7 @@ router.post(
 router.post(
   '/bulk',
   authenticateToken,
-  authorizeRoles(['Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']),
+  authorizeRoles(['Faculty', 'Resident', 'Admin']),
   [
     body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
     body('prescriptions').isArray({ min: 1 }).withMessage('Prescriptions must be a non-empty array'),
@@ -335,7 +335,7 @@ router.get(
 router.put(
   '/:id',
   authenticateToken,
-  authorizeRoles(['Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']),
+  authorizeRoles(['Faculty', 'Resident', 'Admin']),
   [
     param('id').isInt().withMessage('Prescription ID must be an integer'),
     body('medicine').optional().trim(),
@@ -376,7 +376,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateToken,
-  authorizeRoles(['Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']),
+  authorizeRoles(['Faculty', 'Resident', 'Admin']),
   [
     param('id').isInt().withMessage('Prescription ID must be an integer')
   ],
@@ -407,7 +407,7 @@ router.delete(
 router.delete(
   '/proforma/:proforma_id',
   authenticateToken,
-  authorizeRoles(['Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']),
+  authorizeRoles(['Faculty', 'Resident', 'Admin']),
   [
     param('proforma_id').isInt().withMessage('Proforma ID must be an integer')
   ],

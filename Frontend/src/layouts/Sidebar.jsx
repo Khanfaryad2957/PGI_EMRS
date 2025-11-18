@@ -168,33 +168,33 @@ const Sidebar = ({ isOpen, onClose, isMinimized, onToggleMinimize }) => {
       name: 'Dashboard', 
       to: '/', 
       icon: FiHome, 
-      roles: ['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'Psychiatric Welfare Officer'] 
+      roles: ['Admin', 'Faculty', 'Resident', 'Psychiatric Welfare Officer'] 
     },
     { 
       name: 'Patients', 
       to: '/patients', 
       icon: FiUsers, 
-      roles: ['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'Psychiatric Welfare Officer'] 
+      roles: ['Admin', 'Faculty', 'Resident', 'Psychiatric Welfare Officer'] 
     },
     { 
       name: "Today's Patients", 
       to: '/clinical-today-patients', 
       icon: FiCalendar, 
-      roles: ['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))'] 
+      roles: ['Admin', 'Faculty', 'Resident'] 
     },
-    // { name: 'Outpatient Records', to: '/outpatient', icon: FiClipboard, roles: ['System Administrator', 'Psychiatric Welfare Officer'] },
-    // { name: 'Clinical Proforma', to: '/clinical', icon: FiFileText, roles: ['System Administrator'] },
+    // { name: 'Outpatient Records', to: '/outpatient', icon: FiClipboard, roles: ['Admin', 'Psychiatric Welfare Officer'] },
+    // { name: 'Clinical Proforma', to: '/clinical', icon: FiFileText, roles: ['Admin'] },
     { 
       name: 'Detailed Work-Up File', 
       to: '/adl-files', 
       icon: FiFolder, 
-      roles: ['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))'] 
+      roles: ['Admin', 'Faculty', 'Resident'] 
     },
     { 
       name: 'Users', 
       to: '/users', 
       icon: FiSettings, 
-      roles: ['System Administrator'] 
+      roles: ['Admin'] 
     },
   ];
 

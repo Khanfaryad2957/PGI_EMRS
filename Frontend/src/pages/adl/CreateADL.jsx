@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
+import { useCreateADLFileMutation, useUpdateADLFileMutation, useGetADLFileByIdQuery } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
+import { useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
 import { ADL_FILE_FORM } from '../../utils/constants';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
@@ -12,13 +13,71 @@ import Button from '../../components/Button';
 import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText } from 'react-icons/fi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
-const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls, setAdls, addAdlRow, updateAdlCell, removeAdlRow, clearAllAdls, handleSave, handlePrint, formatDateFull, formatDate }  ) => {
+const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) => {
   const navigate = useNavigate();
   // const [searchParams] = useSearchParams();
 
   const [createADLFile, { isLoading: isCreating }] = useCreateADLFileMutation();
+  const [updateADLFile, { isLoading: isUpdating }] = useUpdateADLFileMutation();
   const { data: patientData, isLoading: isLoadingPatient } = useGetPatientByIdQuery(patientId, { skip: !patientId });
   const patient = patientData?.data?.patient;
+  
+  // Check if ADL file already exists for this clinical proforma
+  const { 
+    data: existingProformaData, 
+    isLoading: isLoadingProforma,
+    refetch: refetchProforma 
+  } = useGetClinicalProformaByIdQuery(clinicalProformaId, { 
+    skip: !clinicalProformaId,
+    refetchOnMountOrArgChange: true // Always refetch to get latest adl_file_id
+  });
+  const existingProforma = existingProformaData?.data?.proforma || existingProformaData?.data?.clinical_proforma;
+  const existingAdlFileId = existingProforma?.adl_file_id;
+  
+  // Fetch existing ADL file data if it exists
+  const { 
+    data: existingAdlData, 
+    isLoading: isLoadingAdl,
+    refetch: refetchAdl 
+  } = useGetADLFileByIdQuery(existingAdlFileId, { 
+    skip: !existingAdlFileId,
+    refetchOnMountOrArgChange: true
+  });
+  // Handle different possible API response structures
+  // Backend returns: { success: true, data: { adlFile: ... } }
+  const existingAdlFile = existingAdlData?.data?.adlFile || existingAdlData?.data?.adl_file || existingAdlData?.data?.file || existingAdlData?.data;
+  
+  // Force refetch proforma when clinicalProformaId changes (e.g., after update)
+  useEffect(() => {
+    if (clinicalProformaId && refetchProforma) {
+      console.log('[CreateADL] Refetching proforma to get latest adl_file_id...');
+      refetchProforma();
+    }
+  }, [clinicalProformaId, refetchProforma]);
+  
+  // Refetch ADL file data when existingAdlFileId changes (but not on every render)
+  const prevAdlFileIdRef = useRef(null);
+  useEffect(() => {
+    if (existingAdlFileId && existingAdlFileId !== prevAdlFileIdRef.current && refetchAdl) {
+      console.log('[CreateADL] ADL file ID changed, refetching ADL file data for ID:', existingAdlFileId);
+      prevAdlFileIdRef.current = existingAdlFileId;
+      refetchAdl();
+      // Reset lastPopulatedAdlFileId to allow form to repopulate with new data
+      setLastPopulatedAdlFileId(null);
+    }
+  }, [existingAdlFileId, refetchAdl]);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('[CreateADL] Component state:', {
+      clinicalProformaId,
+      existingProforma,
+      existingAdlFileId,
+      existingAdlFile,
+      isLoadingProforma,
+      isLoadingAdl
+    });
+  }, [clinicalProformaId, existingProforma, existingAdlFileId, existingAdlFile, isLoadingProforma, isLoadingAdl]);
 
   // Card expand/collapse state
   const [expandedCards, setExpandedCards] = useState({
@@ -43,6 +102,9 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls
   const toggleCard = (cardName) => {
     setExpandedCards(prev => ({ ...prev, [cardName]: !prev[cardName] }));
   };
+
+  // Track last populated ADL file ID to prevent unnecessary repopulation
+  const [lastPopulatedAdlFileId, setLastPopulatedAdlFileId] = useState(null);
 
   // Initialize form data with all ADL_FILE_FORM fields
   const [formData, setFormData] = useState({
@@ -235,6 +297,144 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls
     consultant_comments: '',
   });
 
+  // Populate form with existing ADL file data when it's loaded
+  useEffect(() => {
+    // Only populate if we have data and haven't populated this specific ADL file yet
+    if (existingAdlFile && existingAdlFile.id && Object.keys(existingAdlFile).length > 0 && 
+        existingAdlFile.id !== lastPopulatedAdlFileId) {
+      console.log('[CreateADL] Populating form with existing ADL file data. ADL File ID:', existingAdlFile.id);
+      console.log('[CreateADL] Existing ADL file keys:', Object.keys(existingAdlFile));
+      
+      // Helper function to format date fields from ISO string to yyyy-MM-dd
+      const formatDateField = (value) => {
+        if (!value || value === null || value === undefined) return '';
+        if (typeof value === 'string') {
+          // If it's already in yyyy-MM-dd format, return as is
+          if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return value;
+          }
+          // If it's an ISO datetime string, extract the date part
+          if (value.includes('T')) {
+            return value.split('T')[0];
+          }
+          // Try to parse and format
+          try {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+              return date.toISOString().split('T')[0];
+            }
+          } catch {
+            return '';
+          }
+        }
+        if (value instanceof Date) {
+          return value.toISOString().split('T')[0];
+        }
+        return '';
+      };
+      
+      // Date fields that need formatting
+      const dateFields = [
+        'history_treatment_dates', 'past_history_psychiatric_dates',
+        'family_history_father_death_date', 'family_history_mother_death_date',
+        'sexual_marriage_date', 'personal_birth_date'
+      ];
+      
+      // Populate form with existing ADL file data
+      setFormData(prev => {
+        const updated = { ...prev };
+        
+        // Update all fields from existing ADL file
+        Object.keys(existingAdlFile).forEach(key => {
+          // Skip metadata fields
+          if (key !== 'id' && key !== 'created_at' && key !== 'updated_at' &&
+              key !== 'patient_id' && key !== 'adl_no' && key !== 'created_by' &&
+              key !== 'clinical_proforma_id' && key !== 'file_status' &&
+              key !== 'file_created_date' && key !== 'total_visits' && key !== 'is_active' &&
+              key !== 'last_accessed_date' && key !== 'last_accessed_by' &&
+              key !== 'physical_file_location' && key !== 'notes') {
+            
+            const value = existingAdlFile[key];
+            
+            // Handle JSONB array fields
+            if (['informants', 'complaints_patient', 'complaints_informant', 
+                 'family_history_siblings', 'premorbid_personality_traits', 
+                 'occupation_jobs', 'sexual_children', 'living_residents', 'living_inlaws'].includes(key)) {
+              if (value === null || value === undefined) {
+                // Keep default empty array structure
+                updated[key] = prev[key];
+              } else if (typeof value === 'string') {
+                try {
+                  const parsed = JSON.parse(value);
+                  // Ensure it's an array and has at least one item
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    updated[key] = parsed;
+                  } else if (Array.isArray(parsed)) {
+                    // Empty array - use default structure
+                    updated[key] = prev[key];
+                  } else {
+                    updated[key] = prev[key];
+                  }
+                } catch {
+                  updated[key] = prev[key];
+                }
+              } else if (Array.isArray(value)) {
+                // Already an array
+                if (value.length > 0) {
+                  updated[key] = value;
+                } else {
+                  updated[key] = prev[key];
+                }
+              } else {
+                updated[key] = prev[key];
+              }
+            } 
+            // Handle date fields
+            else if (dateFields.includes(key)) {
+              updated[key] = formatDateField(value);
+            }
+            // Handle boolean fields
+            else if (key.includes('deceased') || key.includes('pallor') || key.includes('icterus') || 
+                     key.includes('oedema') || key.includes('lymphadenopathy')) {
+              updated[key] = value === true || value === 'true' || value === 1;
+            }
+            // Handle numeric fields (age, etc.)
+            else if (key.includes('_age') || key.includes('start_age') || key.includes('weaning_age') ||
+                     key.includes('menarche_age') || key.includes('spouse_age')) {
+              updated[key] = value !== null && value !== undefined ? String(value) : '';
+            }
+            // Handle all other fields
+            else {
+              // Only update if value is not null/undefined, otherwise keep previous value
+              if (value !== null && value !== undefined && value !== '') {
+                updated[key] = value;
+              }
+              // If value is empty string, keep it (user might want to clear it)
+              else if (value === '') {
+                updated[key] = '';
+              }
+              // Otherwise keep previous value
+            }
+          }
+        });
+        
+        console.log('[CreateADL] Form data updated with existing ADL file. Sample fields:', {
+          history_narrative: updated.history_narrative,
+          provisional_diagnosis: updated.provisional_diagnosis,
+          treatment_plan: updated.treatment_plan,
+          consultant_comments: updated.consultant_comments,
+          informants: updated.informants?.length,
+          complaints_patient: updated.complaints_patient?.length
+        });
+        
+        // Mark this ADL file as populated
+        setLastPopulatedAdlFileId(existingAdlFile.id);
+        
+        return updated;
+      });
+    }
+  }, [existingAdlFile, lastPopulatedAdlFileId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -245,16 +445,160 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // CRITICAL: Prevent event from bubbling to parent form
+    
+    // Add debugging
+    console.log('[CreateADL.handleSubmit] Starting submission...');
+    console.log('[CreateADL.handleSubmit] clinicalProformaId:', clinicalProformaId);
+    console.log('[CreateADL.handleSubmit] existingProforma:', existingProforma);
+    console.log('[CreateADL.handleSubmit] existingAdlFileId:', existingAdlFileId);
+    console.log('[CreateADL.handleSubmit] existingAdlFile:', existingAdlFile);
+    console.log('[CreateADL.handleSubmit] patientId:', patientId);
+    
     try {
-      const result = await createADLFile(formData).unwrap();
-      toast.success('ADL File created successfully!');
-      if (patientId) {
-        navigate(`/patients/${patientId}?tab=adl`);
+      // Prepare data for submission - convert arrays to JSON strings
+      const prepareDataForSubmission = (data) => {
+        const prepared = { ...data };
+        const arrayFields = [
+          'informants', 'complaints_patient', 'complaints_informant',
+          'family_history_siblings', 'premorbid_personality_traits', 'occupation_jobs',
+          'sexual_children', 'living_residents', 'living_inlaws'
+        ];
+        
+        arrayFields.forEach(field => {
+          if (Array.isArray(prepared[field])) {
+            prepared[field] = JSON.stringify(prepared[field]);
+          }
+        });
+        
+        return prepared;
+      };
+
+      const submissionData = prepareDataForSubmission(formData);
+      console.log('[CreateADL.handleSubmit] Prepared submission data keys:', Object.keys(submissionData));
+      
+      // CRITICAL: Refetch proforma to ensure we have the latest adl_file_id
+      // This handles the case where the clinical proforma was just updated and adl_file_id was created
+      let latestAdlFileId = existingAdlFileId;
+      if (clinicalProformaId && refetchProforma) {
+        try {
+          console.log('[CreateADL.handleSubmit] Refetching proforma to get latest adl_file_id...');
+          const refetchedProformaData = await refetchProforma();
+          const refetchedProforma = refetchedProformaData?.data?.proforma || refetchedProformaData?.data?.clinical_proforma;
+          if (refetchedProforma?.adl_file_id) {
+            latestAdlFileId = refetchedProforma.adl_file_id;
+            console.log('[CreateADL.handleSubmit] Found adl_file_id from refetch:', latestAdlFileId);
+          }
+        } catch (refetchError) {
+          console.warn('[CreateADL.handleSubmit] Could not refetch proforma:', refetchError);
+        }
+      }
+      
+      // If ADL file ID exists (even if the full file object isn't loaded yet), update it
+      // The backend will handle the update even if we don't have the full existingAdlFile object
+      if (latestAdlFileId) {
+        console.log('[CreateADL.handleSubmit] Updating existing ADL file with ID:', latestAdlFileId);
+        // Update existing ADL file
+        const updateData = {
+          id: latestAdlFileId,
+          ...submissionData
+        };
+        // Remove fields that shouldn't be in update payload
+        delete updateData.patient_id;
+        delete updateData.clinical_proforma_id;
+        
+        console.log('[CreateADL.handleSubmit] Update payload keys:', Object.keys(updateData));
+        console.log('[CreateADL.handleSubmit] Update payload sample:', JSON.stringify(updateData).substring(0, 500));
+        const result = await updateADLFile(updateData).unwrap();
+        console.log('[CreateADL.handleSubmit] Update successful:', result);
+        toast.success('ADL File updated successfully!');
+        
+        // Refetch ADL file data to show updated values
+        if (refetchAdl) {
+          const refetchedAdlData = await refetchAdl();
+          console.log('[CreateADL.handleSubmit] Refetched ADL file data:', refetchedAdlData);
+          // Reset lastPopulatedAdlFileId so form can be repopulated with latest data
+          if (latestAdlFileId) {
+            setLastPopulatedAdlFileId(null); // Reset to allow repopulation
+          }
+        }
+        
+        // Refetch proforma to get latest data
+        if (refetchProforma) {
+          await refetchProforma();
+        }
+        
+        // Call onSuccess callback if provided (for parent component to handle)
+        if (onSuccess) {
+          onSuccess(result);
+        }
+        
+        // CRITICAL: Don't navigate if embedded (returnTab is set) - keep form open
+        if (!returnTab) {
+          if (patientId) {
+            navigate(`/patients/${patientId}?tab=adl`);
+          } else {
+            navigate('/adl-files');
+          }
+        } else {
+          // If embedded, just show success message and keep form open
+          console.log('[CreateADL.handleSubmit] Form is embedded, keeping it open');
+          // Don't do anything - form stays open
+        }
+      } else if (clinicalProformaId) {
+        console.log('[CreateADL.handleSubmit] Creating new ADL file for clinical proforma:', clinicalProformaId);
+        // Create new ADL file
+        const createData = {
+          patient_id: patientId,
+          clinical_proforma_id: clinicalProformaId,
+          ...submissionData
+        };
+        console.log('[CreateADL.handleSubmit] Create payload:', createData);
+        const result = await createADLFile(createData).unwrap();
+        console.log('[CreateADL.handleSubmit] Create successful:', result);
+        toast.success('ADL File created successfully!');
+        
+        // Refetch proforma to get the new adl_file_id
+        if (refetchProforma) {
+          await refetchProforma();
+        }
+        
+        // Call onSuccess callback if provided (for parent component to handle)
+        if (onSuccess) {
+          onSuccess(result);
+        }
+        
+        // CRITICAL: Don't navigate if embedded (returnTab is set) - keep form open
+        if (!returnTab) {
+          if (patientId) {
+            navigate(`/patients/${patientId}?tab=adl`);
+          } else {
+            navigate('/adl-files');
+          }
+        } else {
+          // If embedded, just show success message and keep form open
+          console.log('[CreateADL.handleSubmit] Form is embedded, keeping it open');
+          // Don't do anything - form stays open
+        }
       } else {
-        navigate('/adl-files');
+        console.error('[CreateADL.handleSubmit] Cannot save: Missing clinicalProformaId and existingAdlFileId');
+        toast.error('Cannot save ADL file: Missing required information (clinical proforma ID)');
+        return;
       }
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to create ADL file');
+      console.error('[CreateADL.handleSubmit] Error:', err);
+      console.error('[CreateADL.handleSubmit] Error details:', {
+        message: err?.data?.message || err?.message,
+        status: err?.status,
+        data: err?.data
+      });
+      toast.error(err?.data?.message || err?.message || 'Failed to save ADL file');
+      
+      // CRITICAL: Don't navigate on error if embedded - keep form open so user can fix and retry
+      if (!returnTab) {
+        // Only navigate away on error if not embedded
+        console.log('[CreateADL.handleSubmit] Error occurred, but form is embedded so keeping it open');
+      }
     }
   };
 
@@ -284,7 +628,11 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls
           </Button> */}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation(); // Prevent bubbling to parent forms when embedded
+          handleSubmit(e);
+        }} action="#" method="post">
           {/* History of Present Illness */}
           <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <div
@@ -2205,13 +2553,21 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, currentUser, adls
               Cancel
             </Button>
             <Button
-              type="submit"
+              type="button"
               variant="primary"
-              disabled={isCreating}
+              disabled={isCreating || isUpdating}
               className="flex items-center gap-2"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSubmit(e);
+              }}
             >
               <FiSave className="w-4 h-4" />
-              {isCreating ? 'Creating...' : 'Create ADL File'}
+              {isCreating || isUpdating 
+                ? (existingAdlFileId ? 'Updating...' : 'Creating...') 
+                : (existingAdlFileId ? 'Update ADL Files' : 'Create ADL File')}
+                {/* {console.log('existingAdlFileId', isCreating,isUpdating)} */}
             </Button>
           </div>
         </form>

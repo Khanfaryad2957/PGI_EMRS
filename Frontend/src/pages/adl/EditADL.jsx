@@ -21,7 +21,33 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   const id = adlFileId || urlId;
 
   const { data: adlData, isLoading: isLoadingADL } = useGetADLFileByIdQuery(id, { skip: !id });
-  const adlFile = adlData?.data?.adl_file;
+  // Handle different possible API response structures
+  // Backend returns: { success: true, data: { adlFile: ... } }
+  const adlFile = adlData?.data?.adlFile || adlData?.data?.adl_file || adlData?.data?.file || adlData?.data;
+  
+  // Debug logging to help troubleshoot
+  useEffect(() => {
+    if (id && adlData) {
+      console.log('[EditADL] ADL Data:', {
+        id,
+        adlData,
+        adlFile,
+        hasAdlFile: !!adlFile,
+        dataStructure: adlData?.data ? Object.keys(adlData.data) : 'no data',
+        historyNarrative: adlFile?.history_narrative,
+        historySpecificEnquiry: adlFile?.history_specific_enquiry,
+        historyDrugIntake: adlFile?.history_drug_intake,
+        allHistoryFields: adlFile ? {
+          history_narrative: adlFile.history_narrative,
+          history_specific_enquiry: adlFile.history_specific_enquiry,
+          history_drug_intake: adlFile.history_drug_intake,
+          history_treatment_place: adlFile.history_treatment_place,
+          history_treatment_drugs: adlFile.history_treatment_drugs,
+          history_treatment_response: adlFile.history_treatment_response
+        } : 'no adlFile'
+      });
+    }
+  }, [id, adlData, adlFile]);
 
   const [updateADLFile, { isLoading: isUpdating }] = useUpdateADLFileMutation();
   const [createADLFile, { isLoading: isCreating }] = useCreateADLFileMutation();
@@ -58,7 +84,17 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
   // Prepare initial form data from existing ADL file
   const initialFormData = useMemo(() => {
-    if (!adlFile) return null;
+    if (!adlFile) {
+      console.log('[EditADL] initialFormData: adlFile is null/undefined');
+      return null;
+    }
+    
+    console.log('[EditADL] Creating initialFormData from adlFile:', {
+      hasAdlFile: !!adlFile,
+      historyNarrative: adlFile.history_narrative,
+      historySpecificEnquiry: adlFile.history_specific_enquiry,
+      adlFileKeys: Object.keys(adlFile).slice(0, 10)
+    });
 
     // Helper function to parse JSON array fields
     const parseArray = (field) => {
@@ -70,6 +106,34 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       }
     };
 
+    // Helper function to format date fields from ISO string to yyyy-MM-dd
+    const formatDateField = (value) => {
+      if (!value || value === null || value === undefined) return '';
+      if (typeof value === 'string') {
+        // If it's already in yyyy-MM-dd format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return value;
+        }
+        // If it's an ISO datetime string, extract the date part
+        if (value.includes('T')) {
+          return value.split('T')[0];
+        }
+        // Try to parse and format
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+          }
+        } catch {
+          return '';
+        }
+      }
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      return '';
+    };
+
     return {
       patient_id: adlFile.patient_id || '',
       clinical_proforma_id: adlFile.clinical_proforma_id || '',
@@ -78,7 +142,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       history_specific_enquiry: adlFile.history_specific_enquiry || '',
       history_drug_intake: adlFile.history_drug_intake || '',
       history_treatment_place: adlFile.history_treatment_place || '',
-      history_treatment_dates: adlFile.history_treatment_dates || '',
+      history_treatment_dates: formatDateField(adlFile.history_treatment_dates),
       history_treatment_drugs: adlFile.history_treatment_drugs || '',
       history_treatment_response: adlFile.history_treatment_response || '',
       // Informants
@@ -88,7 +152,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       complaints_informant: parseArray(adlFile.complaints_informant).length > 0 ? parseArray(adlFile.complaints_informant) : [{ complaint: '', duration: '' }],
       // Past History
       past_history_medical: adlFile.past_history_medical || '',
-      past_history_psychiatric_dates: adlFile.past_history_psychiatric_dates || '',
+      past_history_psychiatric_dates: formatDateField(adlFile.past_history_psychiatric_dates),
       past_history_psychiatric_diagnosis: adlFile.past_history_psychiatric_diagnosis || '',
       past_history_psychiatric_treatment: adlFile.past_history_psychiatric_treatment || '',
       past_history_psychiatric_interim: adlFile.past_history_psychiatric_interim || '',
@@ -100,7 +164,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       family_history_father_personality: adlFile.family_history_father_personality || '',
       family_history_father_deceased: adlFile.family_history_father_deceased || false,
       family_history_father_death_age: adlFile.family_history_father_death_age || '',
-      family_history_father_death_date: adlFile.family_history_father_death_date || '',
+      family_history_father_death_date: formatDateField(adlFile.family_history_father_death_date),
       family_history_father_death_cause: adlFile.family_history_father_death_cause || '',
       // Family History - Mother
       family_history_mother_age: adlFile.family_history_mother_age || '',
@@ -109,7 +173,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       family_history_mother_personality: adlFile.family_history_mother_personality || '',
       family_history_mother_deceased: adlFile.family_history_mother_deceased || false,
       family_history_mother_death_age: adlFile.family_history_mother_death_age || '',
-      family_history_mother_death_date: adlFile.family_history_mother_death_date || '',
+      family_history_mother_death_date: formatDateField(adlFile.family_history_mother_death_date),
       family_history_mother_death_cause: adlFile.family_history_mother_death_cause || '',
       // Family History - Siblings
       family_history_siblings: parseArray(adlFile.family_history_siblings).length > 0 ? parseArray(adlFile.family_history_siblings) : [{ age: '', sex: '', education: '', occupation: '', marital_status: '' }],
@@ -213,7 +277,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       sexual_contact: adlFile.sexual_contact || '',
       sexual_premarital_extramarital: adlFile.sexual_premarital_extramarital || '',
       sexual_marriage_arranged: adlFile.sexual_marriage_arranged || '',
-      sexual_marriage_date: adlFile.sexual_marriage_date || '',
+      sexual_marriage_date: formatDateField(adlFile.sexual_marriage_date),
       sexual_spouse_age: adlFile.sexual_spouse_age || '',
       sexual_spouse_occupation: adlFile.sexual_spouse_occupation || '',
       sexual_adjustment_general: adlFile.sexual_adjustment_general || '',
@@ -238,7 +302,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       home_situation_socioeconomic: adlFile.home_situation_socioeconomic || '',
       home_situation_interpersonal: adlFile.home_situation_interpersonal || '',
       // Personal History
-      personal_birth_date: adlFile.personal_birth_date || '',
+      personal_birth_date: formatDateField(adlFile.personal_birth_date),
       personal_birth_place: adlFile.personal_birth_place || '',
       personal_delivery_type: adlFile.personal_delivery_type || '',
       personal_complications_prenatal: adlFile.personal_complications_prenatal || '',
@@ -428,14 +492,44 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
     consultant_comments: '',
   };
 
-  const [formData, setFormData] = useState(initialFormData || defaultFormData);
+  const [formData, setFormData] = useState(defaultFormData);
 
   // Update formData when ADL file is loaded
   useEffect(() => {
     if (initialFormData) {
+      console.log('[EditADL] Populating form with ADL file data:', {
+        id,
+        hasInitialData: !!initialFormData,
+        historyNarrative: initialFormData.history_narrative,
+        historySpecificEnquiry: initialFormData.history_specific_enquiry,
+        historyDrugIntake: initialFormData.history_drug_intake,
+        formDataKeys: Object.keys(initialFormData).slice(0, 10)
+      });
       setFormData(initialFormData);
+    } else if (!id) {
+      // Reset to defaults if no ADL file ID
+      setFormData(defaultFormData);
+    } else if (id && !adlFile && !isLoadingADL) {
+      console.warn('[EditADL] ADL file ID provided but no data found:', id);
     }
-  }, [initialFormData]);
+  }, [initialFormData, id, adlFile, isLoadingADL]);
+
+  // Also directly update formData when adlFile loads (backup mechanism)
+  useEffect(() => {
+    if (adlFile && id && initialFormData) {
+      // Check if formData still has default empty values but adlFile has data
+      const hasData = adlFile.history_narrative || adlFile.history_specific_enquiry || adlFile.history_drug_intake;
+      const formIsEmpty = !formData.history_narrative && !formData.history_specific_enquiry && !formData.history_drug_intake;
+      
+      if (hasData && formIsEmpty) {
+        console.log('[EditADL] Direct population - form was empty but adlFile has data, repopulating...', {
+          adlFileHistoryNarrative: adlFile.history_narrative,
+          initialFormDataHistoryNarrative: initialFormData.history_narrative
+        });
+        setFormData(initialFormData);
+      }
+    }
+  }, [adlFile, id, formData.history_narrative, formData.history_specific_enquiry, formData.history_drug_intake, initialFormData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -446,6 +540,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   };
 
   const handleSubmit = async (e) => {
+    debugger
     e.preventDefault();
     try {
       // Convert array fields to JSON strings for storage

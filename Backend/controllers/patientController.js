@@ -102,11 +102,20 @@ class PatientController {
       });
 
       // Create patient record with all information
-      // Pass req.body directly to Patient.create() - it handles all field mapping
-      const patient = await Patient.create({
+      // Map frontend field names to database field names
+      const patientData = {
         ...req.body,
+        // Map mobile_no to contact_number if provided
+        contact_number: req.body.contact_number || req.body.mobile_no,
         filled_by: req.user.id
-      });
+      };
+      
+      // Remove mobile_no if it exists (to avoid duplicate)
+      if (patientData.mobile_no && patientData.contact_number) {
+        delete patientData.mobile_no;
+      }
+      
+      const patient = await Patient.create(patientData);
 
       // Fetch related data to populate joined fields in response
       let assignedDoctorName = null;
@@ -165,10 +174,35 @@ class PatientController {
       });
     } catch (error) {
       console.error('Comprehensive patient registration error:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        constraint: error.constraint,
+        table: error.table,
+        column: error.column
+      });
+      
+      // Check if it's a column size error (encryption-related)
+      let errorMessage = 'Failed to register patient with details';
+      if (error.code === '22001' || error.message.includes('too long') || error.message.includes('character varying')) {
+        errorMessage = 'Data too long for database column. Please run the encryption migration: npm run migrate:encryption';
+        console.error('⚠️ ENCRYPTION MIGRATION REQUIRED: Column size too small for encrypted data');
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'Failed to register patient with details',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? {
+          code: error.code,
+          detail: error.detail,
+          constraint: error.constraint,
+          table: error.table,
+          column: error.column,
+          hint: error.code === '22001' ? 'Run: npm run migrate:encryption' : undefined
+        } : undefined
       });
     }
   }
@@ -200,69 +234,43 @@ class PatientController {
 
       // Enrich with latest assignment info
       try {
-        const { createClient } = require('@supabase/supabase-js');
-        require('dotenv').config();
-        
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-        
+        const db = require('../config/database');
         const patientIds = (result.patients || []).map(p => p.id);
         if (patientIds.length > 0) {
           const today = new Date().toISOString().slice(0, 10);
           
           console.log(`[getAllPatients] Fetching visits for ${patientIds.length} patients (sample IDs: ${patientIds.slice(0, 3).join(', ')})`);
           
-          // Fetch visits with assigned_doctor info
-          // Try with original IDs first (Supabase handles type conversion)
+          // Fetch visits with assigned_doctor info using PostgreSQL
           let visits = [];
           let visitsToday = [];
-          let visitsError = null;
-          let visitsTodayError = null;
           
           try {
-            const visitsResult = await supabaseAdmin
-              .from('patient_visits')
-              .select('patient_id, visit_date, assigned_doctor_id')
-              .in('patient_id', patientIds)
-              .order('visit_date', { ascending: false });
+            const visitsResult = await db.query(
+              `SELECT patient_id, visit_date, assigned_doctor_id
+               FROM patient_visits
+               WHERE patient_id = ANY($1)
+               ORDER BY visit_date DESC`,
+              [patientIds]
+            );
             
-            visits = visitsResult.data || [];
-            visitsError = visitsResult.error;
+            visits = visitsResult.rows || [];
             
-            const visitsTodayResult = await supabaseAdmin
-              .from('patient_visits')
-              .select('patient_id, visit_date, assigned_doctor_id')
-              .in('patient_id', patientIds)
-              .eq('visit_date', today);
+            const visitsTodayResult = await db.query(
+              `SELECT patient_id, visit_date, assigned_doctor_id
+               FROM patient_visits
+               WHERE patient_id = ANY($1) AND visit_date = $2`,
+              [patientIds, today]
+            );
             
-            visitsToday = visitsTodayResult.data || [];
-            visitsTodayError = visitsTodayResult.error;
+            visitsToday = visitsTodayResult.rows || [];
           } catch (queryErr) {
-            console.error('[getAllPatients] Error in Supabase query:', queryErr);
-            // If query fails, try with text comparison as fallback
-            try {
-              const patientIdStrings = patientIds.map(id => String(id));
-              const visitsResult = await supabaseAdmin
-                .from('patient_visits')
-                .select('patient_id, visit_date, assigned_doctor_id')
-                .in('patient_id', patientIdStrings)
-                .order('visit_date', { ascending: false });
-              
-              visits = visitsResult.data || [];
-              visitsError = visitsResult.error;
-            } catch (fallbackErr) {
-              console.error('[getAllPatients] Fallback query also failed:', fallbackErr);
-            }
+            console.error('[getAllPatients] Error in PostgreSQL query:', queryErr);
           }
           
           console.log(`[getAllPatients] Found ${visits?.length || 0} visits, ${visitsToday?.length || 0} visits today`);
 
-          if (visitsError) {
-            console.error('[getAllPatients] Error fetching visits:', visitsError);
-          }
-
-          if (!visitsError && Array.isArray(visits)) {
+          if (Array.isArray(visits) && visits.length > 0) {
             // Get unique assigned_doctor IDs
             const assignedDoctorIds = [...new Set(
               visits
@@ -273,18 +281,18 @@ class PatientController {
             // Fetch doctor information
             let doctorsMap = {};
             if (assignedDoctorIds.length > 0) {
-              const { data: doctors, error: doctorsError } = await supabaseAdmin
-                .from('users')
-                .select('id, name, role')
-                .in('id', assignedDoctorIds);
+              const doctorsResult = await db.query(
+                `SELECT id, name, role
+                 FROM users
+                 WHERE id = ANY($1)`,
+                [assignedDoctorIds]
+              );
 
-              if (!doctorsError && doctors) {
-                doctorsMap = doctors.reduce((acc, doc) => {
+              if (doctorsResult.rows) {
+                doctorsMap = doctorsResult.rows.reduce((acc, doc) => {
                   acc[doc.id] = doc;
                   return acc;
                 }, {});
-              } else if (doctorsError) {
-                console.error('[getAllPatients] Error fetching doctors:', doctorsError);
               }
             }
 
@@ -311,25 +319,28 @@ class PatientController {
                 ? visitsToday.find(v => String(v.patient_id) === patientIdStr)
                 : latest;
               
-              const doctorId = visitInfo?.assigned_doctor_id || latest?.assigned_doctor_id;
+              // Use doctor from visit if available, otherwise use from patient record
+              const doctorId = visitInfo?.assigned_doctor_id || latest?.assigned_doctor_id || p.assigned_doctor_id;
               const doctor = doctorId ? doctorsMap[doctorId] : null;
               
               return {
                 ...p,
-                assigned_doctor_id: doctorId || null,
-                assigned_doctor_name: doctor?.name || null,
-                assigned_doctor_role: doctor?.role || null,
+                assigned_doctor_id: doctorId || p.assigned_doctor_id || null,
+                // Use doctor from visits if available, otherwise use from patient record (already fetched in findAll)
+                // Filter out "Unknown Doctor" - treat it as null
+                assigned_doctor_name: doctor?.name || (p.assigned_doctor_name && p.assigned_doctor_name !== 'Unknown Doctor' ? p.assigned_doctor_name : null) || null,
+                assigned_doctor_role: doctor?.role || p.assigned_doctor_role || null,
                 last_assigned_date: latest?.visit_date || null,
                 visit_date: visitInfo?.visit_date || null,
                 has_visit_today: hasVisitToday,
               };
             });
           } else {
-            // If no visits found, ensure assigned_doctor fields are null
+            // If no visits found, ensure assigned_doctor fields are null (filter out "Unknown Doctor")
             result.patients = result.patients.map(p => ({
               ...p,
               assigned_doctor_id: p.assigned_doctor_id || null,
-              assigned_doctor_name: p.assigned_doctor_name || null,
+              assigned_doctor_name: (p.assigned_doctor_name && p.assigned_doctor_name !== 'Unknown Doctor') ? p.assigned_doctor_name : null,
               assigned_doctor_role: p.assigned_doctor_role || null,
               has_visit_today: false,
             }));
@@ -1008,254 +1019,144 @@ class PatientController {
       }
   
       console.log(`[deletePatient] Attempting to delete patient ID: ${id}`);
-  
-      const { supabaseAdmin } = require('../config/database');
+
+      const db = require('../config/database');
+      const client = await db.getClient();
       
-      // 1️⃣ Check if patient exists in registered_patient table
-      const { data: patientData, error: patientCheckError } = await supabaseAdmin
-        .from('registered_patient')
-        .select('id')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (patientCheckError) {
-        console.error(`[deletePatient] Error checking patient: ${patientCheckError.message}`);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to check patient existence",
-          error: process.env.NODE_ENV === 'development' ? patientCheckError.message : 'Internal server error'
-        });
-      }
-      
-      if (!patientData) {
-        console.log(`[deletePatient] Patient with ID ${id} not found in registered_patient`);
-        return res.status(404).json({
-          success: false,
-          message: "Patient not found",
-        });
-      }
-      
-      console.log(`[deletePatient] Patient found in registered_patient table`);
-      
-      // 2️⃣ Check if patient_id exists in clinical_proforma table
-      // Handle both UUID and INT types by trying UUID first, then text comparison
-      let clinicalProformas = [];
-      let clinicalCheckError = null;
-      
-      // Try direct UUID comparison first
-      const { data: clinicalData1, error: clinicalError1 } = await supabaseAdmin
-        .from('clinical_proforma')
-        .select('id')
-        .eq('patient_id', id);
-      
-      if (!clinicalError1 && clinicalData1) {
-        clinicalProformas = clinicalData1;
-      } else {
-        // If UUID comparison fails, try text comparison (handles INT columns)
-        const { data: clinicalData2, error: clinicalError2 } = await supabaseAdmin
-          .from('clinical_proforma')
-          .select('id, patient_id');
+      try {
+        await client.query('BEGIN');
         
-        if (!clinicalError2 && clinicalData2) {
-          // Filter by comparing as strings
-          clinicalProformas = clinicalData2.filter(cp => String(cp.patient_id) === String(id));
-          clinicalProformas = clinicalProformas.map(cp => ({ id: cp.id }));
-        } else {
-          clinicalCheckError = clinicalError2 || clinicalError1;
+        // 1️⃣ Check if patient exists in registered_patient table
+        const patientCheckResult = await client.query(
+          'SELECT id FROM registered_patient WHERE id = $1',
+          [id]
+        );
+        
+        if (!patientCheckResult.rows || patientCheckResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          console.log(`[deletePatient] Patient with ID ${id} not found in registered_patient`);
+          return res.status(404).json({
+            success: false,
+            message: "Patient not found",
+          });
         }
-      }
-      
-      if (clinicalCheckError) {
-        console.warn(`[deletePatient] Error checking clinical_proforma: ${clinicalCheckError.message}`);
-      } else {
-        console.log(`[deletePatient] Found ${clinicalProformas?.length || 0} clinical proforma record(s) for patient ${id}`);
-      }
-      
-      // 3️⃣ Check if patient_id exists in adl_files table
-      // Handle both UUID and INT types
-      let adlFiles = [];
-      let adlCheckError = null;
-      
-      // Try direct UUID comparison first
-      const { data: adlData1, error: adlError1 } = await supabaseAdmin
-        .from('adl_files')
-        .select('id')
-        .eq('patient_id', id);
-      
-      if (!adlError1 && adlData1) {
-        adlFiles = adlData1;
-      } else {
-        // If UUID comparison fails, try text comparison (handles INT columns)
-        const { data: adlData2, error: adlError2 } = await supabaseAdmin
-          .from('adl_files')
-          .select('id, patient_id');
         
-        if (!adlError2 && adlData2) {
-          // Filter by comparing as strings
-          adlFiles = adlData2.filter(af => String(af.patient_id) === String(id));
-          adlFiles = adlFiles.map(af => ({ id: af.id }));
-        } else {
-          adlCheckError = adlError2 || adlError1;
-        }
-      }
-      
-      if (adlCheckError) {
-        console.warn(`[deletePatient] Error checking adl_files: ${adlCheckError.message}`);
-      } else {
-        console.log(`[deletePatient] Found ${adlFiles?.length || 0} ADL file record(s) for patient ${id}`);
-      }
-      
-      // 4️⃣ Delete related records first (in correct order to avoid foreign key constraints)
-      
-      // Step 4a: Delete prescriptions linked to clinical proformas
-      if (clinicalProformas && clinicalProformas.length > 0) {
-        const clinicalProformaIds = clinicalProformas.map(cp => cp.id);
-        const { error: prescriptionsError } = await supabaseAdmin
-          .from('prescriptions')
-          .delete()
-          .in('clinical_proforma_id', clinicalProformaIds);
+        console.log(`[deletePatient] Patient found in registered_patient table`);
         
-        if (prescriptionsError) {
-          console.warn(`[deletePatient] Error deleting prescriptions: ${prescriptionsError.message}`);
-        } else {
+        // 2️⃣ Check if patient_id exists in clinical_proforma table
+        const clinicalResult = await client.query(
+          'SELECT id FROM clinical_proforma WHERE patient_id = $1',
+          [id]
+        );
+        const clinicalProformas = clinicalResult.rows || [];
+        console.log(`[deletePatient] Found ${clinicalProformas.length} clinical proforma record(s) for patient ${id}`);
+        
+        // 3️⃣ Check if patient_id exists in adl_files table
+        const adlResult = await client.query(
+          'SELECT id FROM adl_files WHERE patient_id = $1',
+          [id]
+        );
+        const adlFiles = adlResult.rows || [];
+        console.log(`[deletePatient] Found ${adlFiles.length} ADL file record(s) for patient ${id}`);
+        
+        // 4️⃣ Delete related records first (in correct order to avoid foreign key constraints)
+        
+        // Step 4a: Delete prescriptions linked to clinical proformas
+        if (clinicalProformas.length > 0) {
+          const clinicalProformaIds = clinicalProformas.map(cp => cp.id);
+          await client.query(
+            'DELETE FROM prescriptions WHERE clinical_proforma_id = ANY($1)',
+            [clinicalProformaIds]
+          );
           console.log(`[deletePatient] Deleted prescriptions for clinical proformas`);
         }
-      }
-      
-      // Step 4b: Delete file movements linked to ADL files
-      if (adlFiles && adlFiles.length > 0) {
-        const adlFileIds = adlFiles.map(af => af.id);
         
-        // Delete file movements by adl_file_id
-        const { error: fileMovementsError1 } = await supabaseAdmin
-          .from('file_movements')
-          .delete()
-          .in('adl_file_id', adlFileIds);
-        
-        if (fileMovementsError1) {
-          console.warn(`[deletePatient] Error deleting file movements by adl_file_id: ${fileMovementsError1.message}`);
-        }
-        
-        // Delete file movements by patient_id
-        const { error: fileMovementsError2 } = await supabaseAdmin
-          .from('file_movements')
-          .delete()
-          .eq('patient_id', id);
-        
-        if (fileMovementsError2) {
-          console.warn(`[deletePatient] Error deleting file movements by patient_id: ${fileMovementsError2.message}`);
-        } else {
+        // Step 4b: Delete file movements linked to ADL files
+        if (adlFiles.length > 0) {
+          const adlFileIds = adlFiles.map(af => af.id);
+          
+          // Delete file movements by adl_file_id
+          await client.query(
+            'DELETE FROM file_movements WHERE adl_file_id = ANY($1)',
+            [adlFileIds]
+          );
+          
+          // Delete file movements by patient_id
+          await client.query(
+            'DELETE FROM file_movements WHERE patient_id = $1',
+            [id]
+          );
+          
           console.log(`[deletePatient] Deleted file movements`);
         }
-      }
-      
-      // Step 4c: Delete ADL files
-      if (adlFiles && adlFiles.length > 0) {
-        // Delete by IDs if direct patient_id comparison fails
-        const adlFileIds = adlFiles.map(af => af.id);
-        const { error: adlDeleteError } = await supabaseAdmin
-          .from('adl_files')
-          .delete()
-          .in('id', adlFileIds);
         
-        if (adlDeleteError) {
-          // Fallback: try deleting by patient_id directly
-          const { error: adlDeleteError2 } = await supabaseAdmin
-            .from('adl_files')
-            .delete()
-            .eq('patient_id', id);
-          
-          if (adlDeleteError2) {
-            console.error(`[deletePatient] Error deleting ADL files: ${adlDeleteError2.message}`);
-            return res.status(500).json({
-              success: false,
-              message: "Failed to delete ADL files",
-              error: process.env.NODE_ENV === 'development' ? adlDeleteError2.message : 'Internal server error'
-            });
-          }
+        // Step 4c: Delete ADL files
+        if (adlFiles.length > 0) {
+          await client.query(
+            'DELETE FROM adl_files WHERE patient_id = $1',
+            [id]
+          );
+          console.log(`[deletePatient] Deleted ${adlFiles.length} ADL file(s)`);
         }
-        console.log(`[deletePatient] Deleted ${adlFiles.length} ADL file(s)`);
-      }
-      
-      // Step 4d: Delete clinical proformas
-      if (clinicalProformas && clinicalProformas.length > 0) {
-        // Delete by IDs if direct patient_id comparison fails
-        const clinicalProformaIds = clinicalProformas.map(cp => cp.id);
-        const { error: clinicalDeleteError } = await supabaseAdmin
-          .from('clinical_proforma')
-          .delete()
-          .in('id', clinicalProformaIds);
         
-        if (clinicalDeleteError) {
-          // Fallback: try deleting by patient_id directly
-          const { error: clinicalDeleteError2 } = await supabaseAdmin
-            .from('clinical_proforma')
-            .delete()
-            .eq('patient_id', id);
-          
-          if (clinicalDeleteError2) {
-            console.error(`[deletePatient] Error deleting clinical proformas: ${clinicalDeleteError2.message}`);
-            return res.status(500).json({
-              success: false,
-              message: "Failed to delete clinical proformas",
-              error: process.env.NODE_ENV === 'development' ? clinicalDeleteError2.message : 'Internal server error'
-            });
-          }
+        // Step 4d: Delete clinical proformas
+        if (clinicalProformas.length > 0) {
+          await client.query(
+            'DELETE FROM clinical_proforma WHERE patient_id = $1',
+            [id]
+          );
+          console.log(`[deletePatient] Deleted ${clinicalProformas.length} clinical proforma(s)`);
         }
-        console.log(`[deletePatient] Deleted ${clinicalProformas.length} clinical proforma(s)`);
-      }
+        
+        // Step 4e: Delete patient visits
+        try {
+          await client.query(
+            'DELETE FROM patient_visits WHERE patient_id = $1',
+            [id]
+          );
+          console.log(`[deletePatient] Deleted patient visits`);
+        } catch (visitsErr) {
+          console.warn(`[deletePatient] Error deleting patient visits: ${visitsErr.message}`);
+        }
+        
+        // Step 4f: Delete outpatient records
+        try {
+          await client.query(
+            'DELETE FROM outpatient_record WHERE patient_id = $1',
+            [id]
+          );
+          console.log(`[deletePatient] Deleted outpatient records`);
+        } catch (outpatientErr) {
+          console.warn(`[deletePatient] Error deleting outpatient records: ${outpatientErr.message}`);
+        }
+        
+        // Step 5: Finally, delete the patient record itself
+        await client.query(
+          'DELETE FROM registered_patient WHERE id = $1',
+          [id]
+        );
+        
+        await client.query('COMMIT');
       
-      // Step 4e: Delete patient visits
-      const { error: visitsError } = await supabaseAdmin
-        .from('patient_visits')
-        .delete()
-        .eq('patient_id', id);
-      
-      if (visitsError) {
-        console.warn(`[deletePatient] Error deleting patient visits: ${visitsError.message}`);
-      } else {
-        console.log(`[deletePatient] Deleted patient visits`);
-      }
-      
-      // Step 4f: Delete outpatient records
-      const { error: outpatientError } = await supabaseAdmin
-        .from('outpatient_record')
-        .delete()
-        .eq('patient_id', id);
-      
-      if (outpatientError) {
-        console.warn(`[deletePatient] Error deleting outpatient records: ${outpatientError.message}`);
-      } else {
-        console.log(`[deletePatient] Deleted outpatient records`);
-      }
-      
-      // Step 5: Finally, delete the patient record itself
-      const { error: patientDeleteError } = await supabaseAdmin
-        .from('registered_patient')
-        .delete()
-        .eq('id', id);
-      
-      if (patientDeleteError) {
-        console.error(`[deletePatient] Error deleting patient: ${patientDeleteError.message}`);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to delete patient record",
-          error: process.env.NODE_ENV === 'development' ? patientDeleteError.message : 'Internal server error'
+        console.log(`[deletePatient] Successfully deleted patient ID: ${id}`);
+        
+        return res.status(200).json({
+          success: true,
+          message: "Patient and all related records deleted successfully",
+          deletedPatientId: id,
+          deleted: {
+            patient: true,
+            clinicalProformas: clinicalProformas.length || 0,
+            adlFiles: adlFiles.length || 0
+          }
         });
+      } catch (dbError) {
+        await client.query('ROLLBACK');
+        console.error(`[deletePatient] Database error: ${dbError.message}`);
+        throw dbError;
+      } finally {
+        client.release();
       }
-      
-      console.log(`[deletePatient] Successfully deleted patient ID: ${id}`);
-      
-      return res.status(200).json({
-        success: true,
-        message: "Patient and all related records deleted successfully",
-        deletedPatientId: id,
-        deleted: {
-          patient: true,
-          clinicalProformas: clinicalProformas?.length || 0,
-          adlFiles: adlFiles?.length || 0
-        }
-      });
   
     } catch (error) {
       console.error("[deletePatient] Error:", error);
@@ -1368,7 +1269,7 @@ class PatientController {
             ? 'Database schema mismatch: The patient_visits.patient_id column is still INT type, but patient records use UUID. You MUST run the migration script to convert patient_visits.patient_id from INT to UUID.'
             : 'Database schema mismatch: Type mismatch between patient_visits table and patient records.',
           migration_required: isIntegerColumnError,
-          migration_instructions: isIntegerColumnError ? '1. Go to Supabase Dashboard → SQL Editor\n2. Copy and paste the contents of Backend/database/migrate_patient_visits_simple.sql\n3. If you have existing visit data you want to keep, use migrate_patient_visits_to_uuid.sql instead\n4. Execute the SQL script\n5. Verify the migration worked' : undefined,
+          migration_instructions: isIntegerColumnError ? '1. Connect to your PostgreSQL database\n2. Copy and paste the contents of Backend/database/migrate_patient_visits_simple.sql\n3. If you have existing visit data you want to keep, use migrate_patient_visits_to_uuid.sql instead\n4. Execute the SQL script using psql or your database client\n5. Verify the migration worked' : undefined,
           migration_file: isIntegerColumnError ? 'Backend/database/migrate_patient_visits_simple.sql' : undefined,
           error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
@@ -1413,8 +1314,8 @@ class PatientController {
       
       const params = [dateString];
 
-      // If JR/SR, restrict to assigned doctor (from patient_visits)
-      if (req.user?.role === 'JR' || req.user?.role === 'SR') {
+      // If Faculty/Resident, restrict to assigned doctor (from patient_visits)
+      if (req.user?.role === 'Resident' || req.user?.role === 'Faculty') {
         query += ` AND EXISTS (
           SELECT 1 FROM patient_visits pv 
           WHERE pv.patient_id = p.id 

@@ -33,7 +33,7 @@ const {
  *           description: User's email address
  *         role:
  *           type: string
- *           enum: ['Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']
+ *           enum: ['Psychiatric Welfare Officer', 'Faculty', 'Resident', 'Admin']
  *           description: User's role in the system
  *         two_factor_enabled:
  *           type: boolean
@@ -63,7 +63,7 @@ const {
  *           minLength: 6
  *         role:
  *           type: string
- *           enum: ['Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']
+ *           enum: ['Psychiatric Welfare Officer', 'Faculty', 'Resident', 'Admin']
  *     
  *     UserLogin:
  *       type: object
@@ -773,8 +773,8 @@ router.post('/disable-2fa', authenticateToken, UserController.disable2FA);
  * @swagger
  * /api/users/doctors:
  *   get:
- *     summary: Get all doctors (Faculty Residents)
- *     description: Get a list of all doctors (Faculty Residents) in the system. Accessible to all authenticated users.
+ *     summary: Get all doctors (Faculty/Resident)
+ *     description: Get a list of all doctors (Faculty/Resident) in the system. Accessible to all authenticated users.
  *     tags: [User Management]
  *     security:
  *       - bearerAuth: []
@@ -849,7 +849,7 @@ router.get('/doctors', authenticateToken, UserController.getDoctors);
  *         name: role
  *         schema:
  *           type: string
- *           enum: ['Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator']
+ *           enum: ['Psychiatric Welfare Officer', 'Faculty', 'Resident', 'Admin']
  *         description: Filter by user role
  *       - in: query
  *         name: is_active
@@ -886,7 +886,7 @@ router.get('/doctors', authenticateToken, UserController.getDoctors);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -957,7 +957,7 @@ router.get('/', authenticateToken, requireAdmin, validatePagination, UserControl
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -1013,7 +1013,7 @@ router.get('/stats', authenticateToken, requireAdmin, UserController.getUserStat
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -1079,7 +1079,7 @@ router.get('/stats', authenticateToken, requireAdmin, UserController.getUserStat
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -1147,7 +1147,7 @@ router.put('/:id/activate', authenticateToken, requireAdmin, validateId, UserCon
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -1240,7 +1240,7 @@ router.get('/:id', authenticateToken, requireAdmin, validateId, UserController.g
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:
@@ -1303,7 +1303,7 @@ router.put('/:id', authenticateToken, requireAdmin, validateId, UserController.u
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       403:
- *         description: System Administrator access required
+ *         description: Admin access required
  *         content:
  *           application/json:
  *             schema:

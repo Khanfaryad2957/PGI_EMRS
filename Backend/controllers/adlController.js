@@ -307,27 +307,59 @@ class ADLController {
   static async updateADLFile(req, res) {
     try {
       const { id } = req.params;
+      console.log('[ADLController.updateADLFile] Request received for ID:', id);
+      console.log('[ADLController.updateADLFile] Request body keys:', Object.keys(req.body));
+      console.log('[ADLController.updateADLFile] Request body sample:', JSON.stringify(req.body).substring(0, 500));
+      
       const adlFile = await ADLFile.findById(id);
 
       if (!adlFile) {
+        console.log('[ADLController.updateADLFile] ADL file not found for ID:', id);
         return res.status(404).json({
           success: false,
           message: 'ADL file not found'
         });
       }
 
-      const updateData = req.body;
+      console.log('[ADLController.updateADLFile] ADL file found, current ID:', adlFile.id);
+      
+      // Remove id from updateData if present (should not be updated)
+      const updateData = { ...req.body };
+      delete updateData.id;
+      delete updateData.patient_id; // Should not be updated
+      delete updateData.clinical_proforma_id; // Should not be updated
+      delete updateData.adl_no; // Should not be updated
+      delete updateData.created_by; // Should not be updated
+      delete updateData.created_at; // Should not be updated
+      
+      console.log('[ADLController.updateADLFile] Update data keys after cleanup:', Object.keys(updateData));
+      console.log('[ADLController.updateADLFile] Update data count:', Object.keys(updateData).length);
+      
+      if (Object.keys(updateData).length === 0) {
+        console.warn('[ADLController.updateADLFile] No fields to update after cleanup');
+        return res.status(400).json({
+          success: false,
+          message: 'No valid fields to update'
+        });
+      }
+      
       await adlFile.update(updateData);
+      
+      console.log('[ADLController.updateADLFile] Update successful, refreshing ADL file...');
+      
+      // Refresh the ADL file to get updated data
+      const updatedAdlFile = await ADLFile.findById(id);
 
       res.json({
         success: true,
         message: 'ADL file updated successfully',
         data: {
-          adlFile: adlFile.toJSON()
+          adlFile: updatedAdlFile ? updatedAdlFile.toJSON() : adlFile.toJSON()
         }
       });
     } catch (error) {
-      console.error('Update ADL file error:', error);
+      console.error('[ADLController.updateADLFile] Error:', error);
+      console.error('[ADLController.updateADLFile] Error stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'Failed to update ADL file',

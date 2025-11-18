@@ -466,7 +466,7 @@
 
 //       // Check if patient exists
 //       const patientCheck = await db.query(
-//         'SELECT id FROM patients WHERE id = $1',
+//         'SELECT id FROM registered_patient WHERE id = $1',
 //         [patient_id]
 //       );
 
@@ -1312,68 +1312,73 @@
 
 const db = require('../config/database');
 const ADLFile = require('./ADLFile');
+const { encrypt, decrypt, encryptObject, decryptObject } = require('../utils/encryption');
+const encryptionFields = require('../utils/encryptionFields');
 
 class ClinicalProforma {
   constructor(data) {
-    this.id = data.id;
-    this.patient_id = data.patient_id;
-    this.filled_by = data.filled_by;
-    this.visit_date = data.visit_date;
-    this.visit_type = data.visit_type;
-    this.room_no = data.room_no;
-    this.assigned_doctor = data.assigned_doctor;
-    this.informant_present = data.informant_present;
-    this.nature_of_information = data.nature_of_information;
-    this.onset_duration = data.onset_duration;
-    this.course = data.course;
-    this.precipitating_factor = data.precipitating_factor;
-    this.illness_duration = data.illness_duration;
-    this.current_episode_since = data.current_episode_since;
-    this.mood = data.mood;
-    this.behaviour = data.behaviour;
-    this.speech = data.speech;
-    this.thought = data.thought;
-    this.perception = data.perception;
-    this.somatic = data.somatic;
-    this.bio_functions = data.bio_functions;
-    this.adjustment = data.adjustment;
-    this.cognitive_function = data.cognitive_function;
-    this.fits = data.fits;
-    this.sexual_problem = data.sexual_problem;
-    this.substance_use = data.substance_use;
-    this.past_history = data.past_history;
-    this.family_history = data.family_history;
-    this.associated_medical_surgical = data.associated_medical_surgical;
-    this.mse_behaviour = data.mse_behaviour;
-    this.mse_affect = data.mse_affect;
-    this.mse_thought = data.mse_thought;
-    this.mse_delusions = data.mse_delusions;
-    this.mse_perception = data.mse_perception;
-    this.mse_cognitive_function = data.mse_cognitive_function;
-    this.gpe = data.gpe;
-    this.diagnosis = data.diagnosis;
-    this.icd_code = data.icd_code;
-    this.disposal = data.disposal;
-    this.workup_appointment = data.workup_appointment;
-    this.referred_to = data.referred_to;
-    this.treatment_prescribed = data.treatment_prescribed;
-    this.prescriptions = data.prescriptions ? (Array.isArray(data.prescriptions) ? data.prescriptions : JSON.parse(data.prescriptions || '[]')) : [];
-    this.doctor_decision = data.doctor_decision;
-    this.case_severity = data.case_severity;
-    this.requires_adl_file = data.requires_adl_file;
-    this.adl_reasoning = data.adl_reasoning;
+    // Decrypt sensitive fields after receiving from database
+    const decryptedData = decryptObject(data, encryptionFields.clinicalProforma);
+    
+    this.id = decryptedData.id;
+    this.patient_id = decryptedData.patient_id;
+    this.filled_by = decryptedData.filled_by;
+    this.visit_date = decryptedData.visit_date;
+    this.visit_type = decryptedData.visit_type;
+    this.room_no = decryptedData.room_no;
+    this.assigned_doctor = decryptedData.assigned_doctor;
+    this.informant_present = decryptedData.informant_present;
+    this.nature_of_information = decryptedData.nature_of_information;
+    this.onset_duration = decryptedData.onset_duration;
+    this.course = decryptedData.course;
+    this.precipitating_factor = decryptedData.precipitating_factor;
+    this.illness_duration = decryptedData.illness_duration;
+    this.current_episode_since = decryptedData.current_episode_since;
+    this.mood = decryptedData.mood;
+    this.behaviour = decryptedData.behaviour;
+    this.speech = decryptedData.speech;
+    this.thought = decryptedData.thought;
+    this.perception = decryptedData.perception;
+    this.somatic = decryptedData.somatic;
+    this.bio_functions = decryptedData.bio_functions;
+    this.adjustment = decryptedData.adjustment;
+    this.cognitive_function = decryptedData.cognitive_function;
+    this.fits = decryptedData.fits;
+    this.sexual_problem = decryptedData.sexual_problem;
+    this.substance_use = decryptedData.substance_use;
+    this.past_history = decryptedData.past_history;
+    this.family_history = decryptedData.family_history;
+    this.associated_medical_surgical = decryptedData.associated_medical_surgical;
+    this.mse_behaviour = decryptedData.mse_behaviour;
+    this.mse_affect = decryptedData.mse_affect;
+    this.mse_thought = decryptedData.mse_thought;
+    this.mse_delusions = decryptedData.mse_delusions;
+    this.mse_perception = decryptedData.mse_perception;
+    this.mse_cognitive_function = decryptedData.mse_cognitive_function;
+    this.gpe = decryptedData.gpe;
+    this.diagnosis = decryptedData.diagnosis;
+    this.icd_code = decryptedData.icd_code;
+    this.disposal = decryptedData.disposal;
+    this.workup_appointment = decryptedData.workup_appointment;
+    this.referred_to = decryptedData.referred_to;
+    this.treatment_prescribed = decryptedData.treatment_prescribed;
+    this.prescriptions = decryptedData.prescriptions ? (Array.isArray(decryptedData.prescriptions) ? decryptedData.prescriptions : JSON.parse(decryptedData.prescriptions || '[]')) : [];
+    this.doctor_decision = decryptedData.doctor_decision;
+    this.case_severity = decryptedData.case_severity;
+    this.requires_adl_file = decryptedData.requires_adl_file;
+    this.adl_reasoning = decryptedData.adl_reasoning;
     
     // ADL File Reference (only reference, no ADL data stored here)
-    this.adl_file_id = data.adl_file_id;
+    this.adl_file_id = decryptedData.adl_file_id;
     
     // Joined fields from related tables (for queries with JOINs)
-    this.patient_name = data.patient_name;
-    this.cr_no = data.cr_no;
-    this.psy_no = data.psy_no;
-    this.doctor_name = data.doctor_name;
-    this.doctor_role = data.doctor_role;
+    this.patient_name = decryptedData.patient_name;
+    this.cr_no = decryptedData.cr_no;
+    this.psy_no = decryptedData.psy_no;
+    this.doctor_name = decryptedData.doctor_name;
+    this.doctor_role = decryptedData.doctor_role;
     
-    this.created_at = data.created_at;
+    this.created_at = decryptedData.created_at;
   }
 
   // Create a new clinical proforma
@@ -1432,7 +1437,7 @@ class ClinicalProforma {
 
       // Check if patient exists
       const patientCheck = await db.query(
-        'SELECT id FROM patients WHERE id = $1',
+        'SELECT id FROM registered_patient WHERE id = $1',
         [patient_id]
       );
 
@@ -1449,6 +1454,21 @@ class ClinicalProforma {
       // This INSERT only contains basic clinical proforma fields and a reference (adl_file_id) if needed
       // ✅ adl_file_id is included in the INSERT to match the schema
       const adl_file_id = proformaData.adl_file_id || null;
+      // Encrypt sensitive fields before saving
+      const encryptedData = encryptObject({
+        precipitating_factor,
+        illness_duration,
+        past_history,
+        family_history,
+        mse_delusions,
+        gpe,
+        diagnosis,
+        disposal,
+        referred_to,
+        treatment_prescribed,
+        adl_reasoning
+      }, encryptionFields.clinicalProforma);
+
       const proformaResult = await db.query(
         `INSERT INTO clinical_proforma (
           patient_id, filled_by, visit_date, visit_type, room_no, assigned_doctor,
@@ -1470,14 +1490,29 @@ class ClinicalProforma {
         [
           patient_id, filled_by, visit_date, visit_type, room_no, assigned_doctor,
           informant_present, nature_of_information, onset_duration, course,
-          precipitating_factor, illness_duration, current_episode_since, mood,
+          encryptedData.precipitating_factor || precipitating_factor, 
+          encryptedData.illness_duration || illness_duration, 
+          current_episode_since, mood,
           behaviour, speech, thought, perception, somatic, bio_functions,
           adjustment, cognitive_function, fits, sexual_problem, substance_use,
-          past_history, family_history, associated_medical_surgical, mse_behaviour,
-          mse_affect, mse_thought, mse_delusions, mse_perception,
-          mse_cognitive_function, gpe, diagnosis, icd_code, disposal,
-          workup_appointment, referred_to, treatment_prescribed, doctor_decision,
-          case_severity, requires_adl_file, adl_reasoning, adl_file_id, prescriptionsJson
+          encryptedData.past_history || past_history, 
+          encryptedData.family_history || family_history, 
+          associated_medical_surgical, mse_behaviour,
+          mse_affect, mse_thought, 
+          encryptedData.mse_delusions || mse_delusions, 
+          mse_perception,
+          mse_cognitive_function, 
+          encryptedData.gpe || gpe, 
+          encryptedData.diagnosis || diagnosis, 
+          icd_code, 
+          encryptedData.disposal || disposal,
+          workup_appointment, 
+          encryptedData.referred_to || referred_to, 
+          encryptedData.treatment_prescribed || treatment_prescribed, 
+          doctor_decision,
+          case_severity, requires_adl_file, 
+          encryptedData.adl_reasoning || adl_reasoning, 
+          adl_file_id, prescriptionsJson
         ]
       );
 
@@ -1488,12 +1523,9 @@ class ClinicalProforma {
       // The clinical_proforma table should only store a reference (adl_file_id) to the ADL file
       if (doctor_decision === 'complex_case' && requires_adl_file === true && complexCaseData && Object.keys(complexCaseData).length > 0) {
         try {
-          // Generate ADL number
-          const adlNoResult = await db.query(
-            `SELECT COALESCE(MAX(CAST(SUBSTRING(adl_no FROM 5) AS INTEGER)), 0) + 1 as next_no 
-             FROM adl_files WHERE adl_no LIKE 'ADL-%'`
-          );
-          const nextAdlNo = `ADL-${String(adlNoResult.rows[0].next_no).padStart(6, '0')}`;
+          // Generate ADL number using PostgreSQL function (matches schema: ADL + year + 8-char random)
+          const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
+          const nextAdlNo = adlNoResult.rows[0].adl_no;
 
           // Create ADL file with complex case data
           const adlData = {
@@ -1653,7 +1685,7 @@ class ClinicalProforma {
         SELECT cp.*, p.name as patient_name, p.cr_no, p.psy_no, 
                u.name as doctor_name, u.role as doctor_role
         FROM clinical_proforma cp
-        LEFT JOIN patients p ON cp.patient_id = p.id
+        LEFT JOIN registered_patient p ON cp.patient_id = p.id
         LEFT JOIN users u ON cp.filled_by = u.id
         WHERE 1=1
       `;
@@ -1829,12 +1861,17 @@ class ClinicalProforma {
             }
             
             updates.push(`${key} = $${paramCount}`);
-            values.push(sanitizedValue);
+            // Encrypt sensitive fields before saving
+            if (encryptionFields.clinicalProforma.includes(key)) {
+              values.push(encrypt(sanitizedValue));
+            } else {
+              values.push(sanitizedValue);
+            }
           }
         }
       }
 
-      if (updates.length === 0 && !changingToComplexCase && !complexCaseData) {
+      if (updates.length === 0) {
         throw new Error('No valid fields to update');
       }
 
@@ -1855,75 +1892,9 @@ class ClinicalProforma {
         }
       }
 
-      // Handle ADL file for complex cases
-      // Only create/update ADL file if requires_adl_file is true
-      // All complex case data MUST be saved ONLY in adl_files table, NOT in clinical_proforma
-      const requiresADLFile = updateData.requires_adl_file !== undefined ? updateData.requires_adl_file : this.requires_adl_file;
-      const shouldHandleADL = (isComplexCase && requiresADLFile === true) || 
-                              (updateData.doctor_decision === 'complex_case' && updateData.requires_adl_file === true);
-      
-      if (shouldHandleADL && complexCaseData && Object.keys(complexCaseData).length > 0) {
-        let adlFile = null;
-        
-        try {
-          // If ADL file exists, update it
-          if (this.adl_file_id) {
-            adlFile = await ADLFile.findById(this.adl_file_id);
-            if (adlFile) {
-              console.log(`[ClinicalProforma.update] Updating existing ADL file ${adlFile.id} for proforma ${this.id}`);
-              await adlFile.update(complexCaseData);
-              console.log(`[ClinicalProforma.update] Successfully updated ADL file ${adlFile.id}`);
-            } else {
-              console.warn(`[ClinicalProforma.update] ADL file ID ${this.adl_file_id} not found, creating new one`);
-              // Fall through to create new ADL file
-              this.adl_file_id = null;
-            }
-          }
-          
-          // Create new ADL file if it doesn't exist
-          if (!this.adl_file_id || changingToComplexCase) {
-            // Generate ADL number
-            const adlNoResult = await db.query(
-              `SELECT COALESCE(MAX(CAST(SUBSTRING(adl_no FROM 5) AS INTEGER)), 0) + 1 as next_no 
-               FROM adl_files WHERE adl_no LIKE 'ADL-%'`
-            );
-            const nextAdlNo = `ADL-${String(adlNoResult.rows[0].next_no).padStart(6, '0')}`;
-
-            const adlData = {
-              patient_id: this.patient_id,
-              adl_no: nextAdlNo,
-              created_by: this.filled_by,
-              clinical_proforma_id: this.id,
-              file_status: 'created',
-              file_created_date: this.visit_date || new Date(),
-              total_visits: 1,
-              ...complexCaseData
-            };
-
-            console.log(`[ClinicalProforma.update] Creating new ADL file. ADL No: ${nextAdlNo}, Proforma ID: ${this.id}, Patient ID: ${this.patient_id}`);
-            console.log(`[ClinicalProforma.update] Complex case data keys:`, Object.keys(complexCaseData));
-
-            adlFile = await ADLFile.create(adlData);
-
-            if (!adlFile || !adlFile.id) {
-              throw new Error('Failed to create ADL file: No ID returned');
-            }
-
-            // Update clinical proforma with ADL file reference
-            await db.query(
-              'UPDATE clinical_proforma SET adl_file_id = $1 WHERE id = $2',
-              [adlFile.id, this.id]
-            );
-
-            this.adl_file_id = adlFile.id;
-            console.log(`[ClinicalProforma.update] Successfully created ADL file ${adlFile.id} and linked to proforma ${this.id}`);
-          }
-        } catch (adlError) {
-          console.error('[ClinicalProforma.update] Error handling ADL file:', adlError);
-          // Don't fail the entire update, but log the error
-          throw new Error(`Failed to handle ADL file for complex case: ${adlError.message}`);
-        }
-      }
+      // NOTE: ADL file handling is done in the controller (ClinicalController.updateClinicalProforma)
+      // to avoid duplicate creation/updates. The model's update method only handles clinical_proforma table updates.
+      // Complex case data (complexCaseData) is removed from updateData before calling this method.
 
       return this;
     } catch (error) {

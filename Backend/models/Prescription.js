@@ -1,21 +1,26 @@
 const db = require('../config/database');
+const { encrypt, decrypt, encryptObject, decryptObject } = require('../utils/encryption');
+const encryptionFields = require('../utils/encryptionFields');
 
 class Prescription {
   constructor(data) {
-    this.id = data.id;
-    this.clinical_proforma_id = data.clinical_proforma_id;
-    this.medicine = data.medicine;
-    this.dosage = data.dosage;
+    // Decrypt sensitive fields after receiving from database
+    const decryptedData = decryptObject(data, encryptionFields.prescription);
+    
+    this.id = decryptedData.id;
+    this.clinical_proforma_id = decryptedData.clinical_proforma_id;
+    this.medicine = decryptedData.medicine;
+    this.dosage = decryptedData.dosage;
     // Database column is 'when_to_take', but we support 'when' and 'when_taken' for API compatibility
-    this.when_taken = data.when_to_take || data.when_taken || data.when;
-    this.frequency = data.frequency;
-    this.duration = data.duration;
+    this.when_taken = decryptedData.when_to_take || decryptedData.when_taken || decryptedData.when;
+    this.frequency = decryptedData.frequency;
+    this.duration = decryptedData.duration;
     // Database column is 'quantity', but we support 'qty' for API compatibility
-    this.quantity = data.quantity || data.qty;
-    this.details = data.details;
-    this.notes = data.notes;
-    this.created_at = data.created_at;
-    this.updated_at = data.updated_at;
+    this.quantity = decryptedData.quantity || decryptedData.qty;
+    this.details = decryptedData.details;
+    this.notes = decryptedData.notes;
+    this.created_at = decryptedData.created_at;
+    this.updated_at = decryptedData.updated_at;
   }
 
   static async create(prescriptionData) {
@@ -43,6 +48,14 @@ class Prescription {
       const whenValue = when_taken || when || null;
       const quantityValue = quantity || qty || null;
 
+      // Encrypt sensitive fields before saving
+      const encryptedPrescription = encryptObject({
+        medicine,
+        dosage,
+        details,
+        notes
+      }, encryptionFields.prescription);
+
       const result = await db.query(
         `INSERT INTO prescriptions (
           clinical_proforma_id, medicine, dosage, when_to_take, frequency, 
@@ -51,14 +64,14 @@ class Prescription {
         RETURNING *`,
         [
           clinical_proforma_id,
-          medicine,
-          dosage || null,
+          encryptedPrescription.medicine || medicine,
+          encryptedPrescription.dosage || dosage || null,
           whenValue,
           frequency || null,
           duration || null,
           quantityValue,
-          details || null,
-          notes || null
+          encryptedPrescription.details || details || null,
+          encryptedPrescription.notes || notes || null
         ]
       );
 
@@ -74,7 +87,7 @@ class Prescription {
         return [];
       }
 
-      // Prepare data array for Supabase bulk insert
+      // Prepare data array for PostgreSQL bulk insert
       const insertData = [];
 
       for (const prescription of prescriptionsArray) {
@@ -99,16 +112,24 @@ class Prescription {
         const whenValue = when_taken || when || null;
         const quantityValue = quantity || qty || null;
 
+        // Encrypt sensitive fields before saving
+        const encryptedPrescription = encryptObject({
+          medicine,
+          dosage,
+          details,
+          notes
+        }, encryptionFields.prescription);
+
         insertData.push({
           clinical_proforma_id,
-          medicine,
-          dosage: dosage || null,
+          medicine: encryptedPrescription.medicine || medicine,
+          dosage: encryptedPrescription.dosage || dosage || null,
           when_to_take: whenValue, // Use correct database column name
           frequency: frequency || null,
           duration: duration || null,
           quantity: quantityValue, // Use correct database column name
-          details: details || null,
-          notes: notes || null
+          details: encryptedPrescription.details || details || null,
+          notes: encryptedPrescription.notes || notes || null
         });
       }
 
@@ -117,19 +138,49 @@ class Prescription {
       }
 
       try {
-        // Use Supabase client directly for bulk insert
-        const { supabaseAdmin } = require('../config/database');
-        const { data: result, error } = await supabaseAdmin
-          .from('prescriptions')
-          .insert(insertData)
-          .select();
+        // Use PostgreSQL for bulk insert
+        const values = [];
+        const placeholders = [];
+        let paramIndex = 1;
 
-        if (error) {
-          console.error('Supabase bulk insert error:', error);
-          throw error;
-        }
+        insertData.forEach((prescription, index) => {
+          const rowPlaceholders = [];
+          rowPlaceholders.push(`$${paramIndex++}`); // clinical_proforma_id
+          rowPlaceholders.push(`$${paramIndex++}`); // medicine
+          rowPlaceholders.push(`$${paramIndex++}`); // dosage
+          rowPlaceholders.push(`$${paramIndex++}`); // when_to_take
+          rowPlaceholders.push(`$${paramIndex++}`); // frequency
+          rowPlaceholders.push(`$${paramIndex++}`); // duration
+          rowPlaceholders.push(`$${paramIndex++}`); // quantity
+          rowPlaceholders.push(`$${paramIndex++}`); // details
+          rowPlaceholders.push(`$${paramIndex++}`); // notes
+          
+          placeholders.push(`(${rowPlaceholders.join(', ')})`);
+          
+          values.push(
+            prescription.clinical_proforma_id,
+            prescription.medicine,
+            prescription.dosage,
+            prescription.when_to_take,
+            prescription.frequency,
+            prescription.duration,
+            prescription.quantity,
+            prescription.details,
+            prescription.notes
+          );
+        });
 
-        return (result || []).map(row => new Prescription(row));
+        const query = `
+          INSERT INTO prescriptions (
+            clinical_proforma_id, medicine, dosage, when_to_take, 
+            frequency, duration, quantity, details, notes
+          )
+          VALUES ${placeholders.join(', ')}
+          RETURNING *
+        `;
+
+        const result = await db.query(query, values);
+        return result.rows.map(row => new Prescription(row));
       } catch (dbError) {
         console.error('Database error in createBulk:', dbError);
         console.error('Insert data count:', insertData.length);
@@ -205,7 +256,12 @@ class Prescription {
             values.push(value);
           } else {
             updates.push(`${key} = $${paramCount}`);
-            values.push(value);
+            // Encrypt sensitive fields before saving
+            if (encryptionFields.prescription.includes(key)) {
+              values.push(encrypt(value));
+            } else {
+              values.push(value);
+            }
           }
         }
       }

@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetClinicalProformaByPatientIdQuery } from '../../features/clinical/clinicalApiSlice';
-import { useCreateBulkPrescriptionsMutation } from '../../features/prescriptions/prescriptionApiSlice';
+import { useCreateBulkPrescriptionsMutation, useGetPrescriptionsByProformaIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { FiPackage, FiUser, FiSave, FiX, FiPlus, FiTrash2, FiHome, FiUserCheck, FiCalendar, FiFileText, FiClock, FiPrinter, FiSearch, FiDroplet, FiActivity } from 'react-icons/fi';
@@ -20,14 +20,37 @@ import {
   QUANTITY_OPTIONS
 } from '../../utils/constants';
 
-const CreatePrescription = () => {
+const CreatePrescription = ({ 
+  patientId: propPatientId, 
+  clinicalProformaId: propClinicalProformaId, 
+  returnTab: propReturnTab,
+  currentUser: propCurrentUser,
+  prescriptions: propPrescriptions,
+  setPrescriptions: propSetPrescriptions,
+  // Other optional props for embedded mode
+  addPrescriptionRow: propAddPrescriptionRow,
+  updatePrescriptionCell: propUpdatePrescriptionCell,
+  selectMedicine: propSelectMedicine,
+  handleMedicineKeyDown: propHandleMedicineKeyDown,
+  removePrescriptionRow: propRemovePrescriptionRow,
+  clearAllPrescriptions: propClearAllPrescriptions,
+  handleSave: propHandleSave,
+  handlePrint: propHandlePrint,
+  formatDateFull: propFormatDateFull,
+  formatDate: propFormatDate,
+} = {}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const patientId = searchParams.get('patient_id');
-  const clinicalProformaId = searchParams.get('clinical_proforma_id');
-  const returnTab = searchParams.get('returnTab');
-  const currentUser = useSelector(selectCurrentUser);
+  
+  // Use props if provided (embedded mode), otherwise use URL params (standalone mode)
+  const patientId = propPatientId || searchParams.get('patient_id');
+  const clinicalProformaId = propClinicalProformaId || searchParams.get('clinical_proforma_id');
+  const returnTab = propReturnTab || searchParams.get('returnTab');
+  const currentUser = propCurrentUser || useSelector(selectCurrentUser);
   const printRef = useRef(null);
+  
+  // Track if component is in embedded mode
+  const isEmbedded = !!propPatientId;
 
   const { data: patientData, isLoading: loadingPatient } = useGetPatientByIdQuery(
     patientId,
@@ -40,6 +63,18 @@ const CreatePrescription = () => {
   );
 
   const [createBulkPrescriptions, { isLoading: isSavingPrescriptions }] = useCreateBulkPrescriptionsMutation();
+
+  // Fetch existing prescriptions when clinicalProformaId is provided
+  const { 
+    data: existingPrescriptionsData, 
+    isLoading: isLoadingPrescriptions,
+    refetch: refetchPrescriptions
+  } = useGetPrescriptionsByProformaIdQuery(clinicalProformaId, {
+    skip: !clinicalProformaId,
+    refetchOnMountOrArgChange: true
+  });
+
+  const existingPrescriptions = existingPrescriptionsData?.data?.prescriptions || existingPrescriptionsData?.data || [];
 
   const patient = patientData?.data?.patient;
   const clinicalHistory = clinicalHistoryData?.data?.proformas || [];
@@ -83,10 +118,55 @@ const CreatePrescription = () => {
     }
   };
 
-  // Prescription table rows
-  const [prescriptions, setPrescriptions] = useState([
+  // Prescription table rows - use props if provided (embedded mode), otherwise use local state
+  const [localPrescriptions, setLocalPrescriptions] = useState([
     { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
   ]);
+  
+  // Use prop state if provided, otherwise use local state
+  const prescriptions = propPrescriptions || localPrescriptions;
+  const setPrescriptions = propSetPrescriptions || setLocalPrescriptions;
+
+  // Track if we've populated prescriptions to prevent overwriting
+  const [hasPopulatedPrescriptions, setHasPopulatedPrescriptions] = useState(false);
+  const [lastPopulatedProformaId, setLastPopulatedProformaId] = useState(null);
+
+  // Reset population flag when clinicalProformaId changes
+  useEffect(() => {
+    if (clinicalProformaId !== lastPopulatedProformaId) {
+      console.log('[CreatePrescription] Clinical proforma ID changed, resetting population flag');
+      setHasPopulatedPrescriptions(false);
+      setLastPopulatedProformaId(clinicalProformaId);
+    }
+  }, [clinicalProformaId, lastPopulatedProformaId]);
+
+  // Populate prescriptions when existing data is fetched
+  useEffect(() => {
+    if (existingPrescriptions && Array.isArray(existingPrescriptions) && existingPrescriptions.length > 0 && !hasPopulatedPrescriptions) {
+      console.log('[CreatePrescription] Populating prescriptions from API:', existingPrescriptions);
+      // Map prescription data to match the form structure
+      const mappedPrescriptions = existingPrescriptions.map(p => ({
+        medicine: p.medicine || '',
+        dosage: p.dosage || '',
+        when: p.when_to_take || p.when || '',
+        frequency: p.frequency || '',
+        duration: p.duration || '',
+        qty: p.quantity || p.qty || '',
+        details: p.details || '',
+        notes: p.notes || ''
+      }));
+      setPrescriptions(mappedPrescriptions);
+      setHasPopulatedPrescriptions(true);
+      if (clinicalProformaId) {
+        setLastPopulatedProformaId(clinicalProformaId);
+      }
+      console.log('[CreatePrescription] Prescriptions populated:', mappedPrescriptions);
+    } else if (existingPrescriptions && existingPrescriptions.length === 0 && clinicalProformaId && !hasPopulatedPrescriptions) {
+      // If prescriptions query returned empty array, keep default empty prescription
+      console.log('[CreatePrescription] No prescriptions found for proforma');
+      setHasPopulatedPrescriptions(true);
+    }
+  }, [existingPrescriptions, clinicalProformaId, hasPopulatedPrescriptions, setPrescriptions]);
 
   // Flatten medicines data for autocomplete
   const allMedicines = useMemo(() => {

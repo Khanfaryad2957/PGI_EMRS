@@ -87,10 +87,10 @@ const authorizeRoles = (...roles) => {
 };
 
 // Specific role middlewares
-const requireAdmin = authorizeRoles('System Administrator');
+const requireAdmin = authorizeRoles('Admin');
 const requireMWO = authorizeRoles('Psychiatric Welfare Officer');
-const requireDoctor = authorizeRoles('Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))');
-const requireMWOOrDoctor = authorizeRoles('Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))');
+const requireDoctor = authorizeRoles('Faculty', 'Resident');
+const requireMWOOrDoctor = authorizeRoles('Psychiatric Welfare Officer', 'Faculty', 'Resident');
 
 // Optional authentication (for public endpoints that can benefit from user context)
 const optionalAuth = async (req, res, next) => {

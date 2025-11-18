@@ -29,8 +29,8 @@ const validateUserRegistration = [
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   body('role')
-    .isIn(['Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))', 'System Administrator'])
-    .withMessage('Role must be one of: Psychiatric Welfare Officer, Faculty Residents (Junior Resident (JR)), Faculty Residents (Senior Resident (SR)), System Administrator'),
+    .isIn(['Admin', 'Faculty', 'Resident', 'Psychiatric Welfare Officer'])
+    .withMessage('Role must be one of: Admin, Faculty, Resident, Psychiatric Welfare Officer'),
   handleValidationErrors
 ];
 

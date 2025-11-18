@@ -882,7 +882,7 @@ const {
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: System Administrator or Faculty Residents access required
+ *         description: Admin or Faculty/Resident access required
  *       404:
  *         description: Patient not found
  *       500:
@@ -902,7 +902,7 @@ const {
  *                   type: string
  *                   description: Detailed error message
  */
-router.post('/', authenticateToken, authorizeRoles('System Administrator', 'Psychiatric Welfare Officer', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))'), validateClinicalProforma, ClinicalController.createClinicalProforma);
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateClinicalProforma, ClinicalController.createClinicalProforma);
 
 /**
  * @swagger

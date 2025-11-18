@@ -2,22 +2,52 @@ const ClinicalProforma = require('../models/ClinicalProforma');
 const Patient = require('../models/Patient');
 const ADLFile = require('../models/ADLFile');
 const Prescription = require('../models/Prescription');
-const { supabase, supabaseAdmin } = require('../config/database');
+const db = require('../config/database');
 
 
 class ClinicalController {
- 
-    static async createRecord(table, data) {
-      // Use supabaseAdmin for write operations to bypass RLS if needed
-      const { data: result, error } = await supabaseAdmin.from(table).insert(data).select();
-      if (error) {
-        console.error(`Error inserting into ${table}:`, error);
-        throw new Error(error.message || `Failed to create record in ${table}`);
+  // Helper function to validate and sanitize date fields
+  static sanitizeDateField(value) {
+    if (!value || value === '' || value === null || value === undefined) {
+      return null;
+    }
+    // If it's already a valid date string, return it
+    if (typeof value === 'string' && value.length >= 8) {
+      // Check if it's a valid date format (YYYY-MM-DD or similar)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}/;
+      if (dateRegex.test(value)) {
+        return value.split('T')[0]; // Extract just the date part if it includes time
       }
-      if (!result || result.length === 0) {
+    }
+    // If it's a number or short string that doesn't look like a date, return null
+    if (typeof value === 'number' || (typeof value === 'string' && value.length < 8)) {
+      return null;
+    }
+    // Try to parse as date
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    return date.toISOString().split('T')[0];
+  }
+
+    static async createRecord(table, data) {
+      // Use PostgreSQL for write operations
+      const columns = Object.keys(data);
+      const values = Object.values(data);
+      const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+      
+      const query = `
+        INSERT INTO ${table} (${columns.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
+      
+      const result = await db.query(query, values);
+      if (!result.rows || result.rows.length === 0) {
         throw new Error(`No data returned from ${table} insert`);
       }
-      return result[0];
+      return result.rows[0];
     }
   
     static async createClinicalProforma(req, res) {
@@ -89,9 +119,20 @@ class ClinicalController {
 
       // Extract complex case fields for ADL file
           const complexCaseData = {};
+          // List of date fields that need sanitization
+          const dateFields = [
+            'family_history_father_death_date', 'family_history_mother_death_date',
+            'past_history_psychiatric_dates', 'history_treatment_dates',
+            'personal_birth_date'
+          ];
           complexCaseFields.forEach(field => {
         if (data.hasOwnProperty(field) && data[field] !== undefined && data[field] !== null) {
-              complexCaseData[field] = data[field];
+              // Sanitize date fields
+              if (dateFields.includes(field)) {
+                complexCaseData[field] = ClinicalController.sanitizeDateField(data[field]);
+              } else {
+                complexCaseData[field] = data[field];
+              }
             }
           });
 
@@ -105,17 +146,17 @@ class ClinicalController {
           const clinicalData = {
             patient_id: data.patient_id,
           filled_by: req.user.id,
-            visit_date: data.visit_date,
+            visit_date: ClinicalController.sanitizeDateField(data.visit_date) || new Date().toISOString().split('T')[0],
           visit_type: data.visit_type || 'first_visit',
             room_no: data.room_no,
-            assigned_doctor: data.assigned_doctor,
+            assigned_doctor: data.assigned_doctor && data.assigned_doctor !== '' ? parseInt(data.assigned_doctor) : null,
             informant_present: data.informant_present,
             nature_of_information: data.nature_of_information,
             onset_duration: data.onset_duration,
             course: data.course,
             precipitating_factor: data.precipitating_factor,
             illness_duration: data.illness_duration,
-            current_episode_since: data.current_episode_since,
+            current_episode_since: ClinicalController.sanitizeDateField(data.current_episode_since),
             mood: data.mood,
             behaviour: data.behaviour,
             speech: data.speech,
@@ -141,7 +182,7 @@ class ClinicalController {
             diagnosis: data.diagnosis,
             icd_code: data.icd_code,
             disposal: data.disposal,
-            workup_appointment: data.workup_appointment,
+            workup_appointment: ClinicalController.sanitizeDateField(data.workup_appointment),
             referred_to: data.referred_to,
             treatment_prescribed: data.treatment_prescribed,
             doctor_decision: data.doctor_decision,
@@ -169,31 +210,20 @@ class ClinicalController {
         }
 
         if (!existingAdlFile) {
-          // Generate ADL number
-          const adlNoResult = await supabaseAdmin
-            .from('adl_files')
-            .select('adl_no')
-            .like('adl_no', 'ADL-%')
-            .order('adl_no', { ascending: false })
-            .limit(1);
-          
-          let nextAdlNo = 'ADL-000001';
-          if (adlNoResult.data && adlNoResult.data.length > 0) {
-            const lastNo = adlNoResult.data[0].adl_no;
-            const lastNum = parseInt(lastNo.replace('ADL-', '')) || 0;
-            nextAdlNo = `ADL-${String(lastNum + 1).padStart(6, '0')}`;
-          }
+          // Generate ADL number using PostgreSQL function (matches schema: ADL + year + 8-char random)
+          const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
+          const nextAdlNo = adlNoResult.rows[0].adl_no;
 
           // Prepare ADL data with complex case fields
+          // Note: is_active has a default value in the table, so we don't need to include it
           const adlData = {
             patient_id: data.patient_id,
             adl_no: nextAdlNo,
             created_by: req.user.id,
             clinical_proforma_id: clinicalRecord.id, // ✅ Link to clinical_proforma
             file_status: 'created',
-            file_created_date: data.visit_date || new Date().toISOString().split('T')[0],
+            file_created_date: ClinicalController.sanitizeDateField(data.visit_date) || new Date().toISOString().split('T')[0],
             total_visits: 1,
-            is_active: true,
             ...complexCaseData // All ADL-specific fields
           };
 
@@ -220,6 +250,9 @@ class ClinicalController {
             }
           });
 
+          console.log(`[createClinicalProforma] 📋 ADL data keys: ${Object.keys(adlData).length} fields`);
+          console.log(`[createClinicalProforma] 📋 ADL data sample fields:`, Object.keys(adlData).slice(0, 10));
+          
           adlFile = await ADLFile.create(adlData);
           if (!adlFile || !adlFile.id) {
             throw new Error('ADL file creation returned no ID');
@@ -231,15 +264,10 @@ class ClinicalController {
         }
 
         // STEP 3: Update clinical_proforma with adl_file_id (bidirectional link)
-        const { error: updateError } = await supabaseAdmin
-            .from('clinical_proforma')
-            .update({ adl_file_id: adlFile.id })
-            .eq('id', clinicalRecord.id);
-
-        if (updateError) {
-          console.error(`[createClinicalProforma] ❌ Step 3: Failed to update adl_file_id:`, updateError);
-          throw new Error(`Failed to link ADL file: ${updateError.message}`);
-        }
+        await db.query(
+          'UPDATE clinical_proforma SET adl_file_id = $1 WHERE id = $2',
+          [adlFile.id, clinicalRecord.id]
+        );
 
         console.log(`[createClinicalProforma] ✅ Step 3: Updated Clinical Proforma ${clinicalRecord.id} with adl_file_id: ${adlFile.id}`);
 
@@ -261,11 +289,11 @@ class ClinicalController {
         }
 
         // Refresh clinical record to get updated adl_file_id
-        const { data: updatedClinical } = await supabaseAdmin
-            .from('clinical_proforma')
-            .select('*')
-            .eq('id', clinicalRecord.id)
-            .single();
+        const updatedClinicalResult = await db.query(
+          'SELECT * FROM clinical_proforma WHERE id = $1',
+          [clinicalRecord.id]
+        );
+        const updatedClinical = updatedClinicalResult.rows[0];
 
           // Handle prescriptions if provided
           let createdPrescriptions = [];
@@ -301,10 +329,10 @@ class ClinicalController {
         // ✅ ROLLBACK: Delete clinical_proforma if it was created but ADL creation/linking failed
         if (clinicalRecord && clinicalRecord.id && !adlFile) {
           try {
-            await supabaseAdmin
-              .from('clinical_proforma')
-              .delete()
-              .eq('id', clinicalRecord.id);
+            await db.query(
+              'DELETE FROM clinical_proforma WHERE id = $1',
+              [clinicalRecord.id]
+            );
             console.log(`[createClinicalProforma] ✅ Rollback: Deleted Clinical Proforma ${clinicalRecord.id}`);
           } catch (rollbackError) {
             console.error('[createClinicalProforma] ❌ Rollback failed:', rollbackError);
@@ -322,10 +350,10 @@ class ClinicalController {
     // 🔹 Simple Case (no ADL)
         const clinicalData = {
           patient_id: data.patient_id,
-          visit_date: data.visit_date,
+          visit_date: ClinicalController.sanitizeDateField(data.visit_date) || new Date().toISOString().split('T')[0],
           visit_type: data.visit_type,
           room_no: data.room_no,
-          assigned_doctor: data.assigned_doctor,
+          assigned_doctor: data.assigned_doctor && data.assigned_doctor !== '' ? parseInt(data.assigned_doctor) : null,
           filled_by: req.user.id,
           informant_present: data.informant_present,
           nature_of_information: data.nature_of_information,
@@ -333,7 +361,7 @@ class ClinicalController {
           course: data.course,
           precipitating_factor: data.precipitating_factor,
           illness_duration: data.illness_duration,
-          current_episode_since: data.current_episode_since,
+          current_episode_since: ClinicalController.sanitizeDateField(data.current_episode_since),
           mood: data.mood,
           behaviour: data.behaviour,
           speech: data.speech,
@@ -359,7 +387,7 @@ class ClinicalController {
           diagnosis: data.diagnosis,
           icd_code: data.icd_code,
           disposal: data.disposal,
-          workup_appointment: data.workup_appointment,
+          workup_appointment: ClinicalController.sanitizeDateField(data.workup_appointment),
           referred_to: data.referred_to,
           treatment_prescribed: data.treatment_prescribed,
           doctor_decision: data.doctor_decision,
@@ -445,15 +473,21 @@ class ClinicalController {
   static async getClinicalProformaById(req, res) {
     try {
       const { id } = req.params;
+      console.log('[ClinicalController.getClinicalProformaById] Request received for ID:', id);
+      console.log('[ClinicalController.getClinicalProformaById] ID type:', typeof id);
+      
       const proforma = await ClinicalProforma.findById(id);
+      console.log('[ClinicalController.getClinicalProformaById] Proforma found:', !!proforma);
 
       if (!proforma) {
+        console.log('[ClinicalController.getClinicalProformaById] Proforma not found for ID:', id);
         return res.status(404).json({
           success: false,
           message: 'Clinical proforma not found'
         });
       }
 
+      console.log('[ClinicalController.getClinicalProformaById] Returning proforma data');
       res.json({
         success: true,
         data: {
@@ -461,7 +495,8 @@ class ClinicalController {
         }
       });
     } catch (error) {
-      console.error('Get clinical proforma by ID error:', error);
+      console.error('[ClinicalController.getClinicalProformaById] Error:', error);
+      console.error('[ClinicalController.getClinicalProformaById] Error stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'Failed to get clinical proforma',
@@ -525,16 +560,16 @@ class ClinicalController {
         });
       }
 
-      // Allow the doctor who created the proforma, System Administrator, or JR/SR roles to update
+      // Allow the doctor who created the proforma, Admin, or Faculty/Resident roles to update
       const isCreator = proforma.filled_by === req.user.id;
-      const isAdmin = req.user.role === 'System Administrator';
-      const isJR = req.user.role === 'Faculty Residents (Junior Resident (JR))';
-      const isSR = req.user.role === 'Faculty Residents (Senior Resident (SR))';
+      const isAdmin = req.user.role === 'Admin';
+      const isResident = req.user.role === 'Resident';
+      const isFaculty = req.user.role === 'Faculty';
       
-      if (!isCreator && !isAdmin && !isJR && !isSR) {
+      if (!isCreator && !isAdmin && !isResident && !isFaculty) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. You can only update proformas if you created them, or if you are a System Administrator, JR, or SR.'
+          message: 'Access denied. You can only update proformas if you created them, or if you are an Admin, Faculty, or Resident.'
         });
       }
 
@@ -593,12 +628,34 @@ class ClinicalController {
       // They will be saved ONLY in adl_files table (not in clinical_proforma)
       // The clinical_proforma table will only store a reference (adl_file_id) to the ADL file
       const complexCaseData = {};
+      // List of date fields that need sanitization
+      const dateFields = [
+        'family_history_father_death_date', 'family_history_mother_death_date',
+        'past_history_psychiatric_dates', 'history_treatment_dates',
+        'personal_birth_date'
+      ];
       complexCaseFields.forEach(field => {
         if (proformaUpdateData[field] !== undefined) {
-          complexCaseData[field] = proformaUpdateData[field];
+          // Sanitize date fields
+          if (dateFields.includes(field)) {
+            complexCaseData[field] = ClinicalController.sanitizeDateField(proformaUpdateData[field]);
+          } else {
+            complexCaseData[field] = proformaUpdateData[field];
+          }
           delete proformaUpdateData[field]; // Remove from basic proforma data to prevent duplication
         }
       });
+      
+      // Also sanitize date fields in proformaUpdateData
+      if (proformaUpdateData.visit_date) {
+        proformaUpdateData.visit_date = ClinicalController.sanitizeDateField(proformaUpdateData.visit_date);
+      }
+      if (proformaUpdateData.current_episode_since) {
+        proformaUpdateData.current_episode_since = ClinicalController.sanitizeDateField(proformaUpdateData.current_episode_since);
+      }
+      if (proformaUpdateData.workup_appointment) {
+        proformaUpdateData.workup_appointment = ClinicalController.sanitizeDateField(proformaUpdateData.workup_appointment);
+      }
 
       // Check if changing to complex case or already is complex case
       const changingToComplexCase = proformaUpdateData.doctor_decision === 'complex_case' && 
@@ -693,20 +750,9 @@ class ClinicalController {
           
           // Create new ADL file if it doesn't exist or changing to complex case
           if (!adlFile && (changingToComplexCase || !proforma.adl_file_id)) {
-            // Generate ADL number
-            const adlNoResult = await supabaseAdmin
-              .from('adl_files')
-              .select('adl_no')
-              .like('adl_no', 'ADL-%')
-              .order('adl_no', { ascending: false })
-              .limit(1);
-            
-            let nextAdlNo = 'ADL-000001';
-            if (adlNoResult.data && adlNoResult.data.length > 0) {
-              const lastNo = adlNoResult.data[0].adl_no;
-              const lastNum = parseInt(lastNo.replace('ADL-', '')) || 0;
-              nextAdlNo = `ADL-${String(lastNum + 1).padStart(6, '0')}`;
-            }
+            // Generate ADL number using PostgreSQL function (matches schema: ADL + year + 8-char random)
+            const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
+            const nextAdlNo = adlNoResult.rows[0].adl_no;
 
             // Prepare ADL data
             const adlData = {
@@ -715,9 +761,9 @@ class ClinicalController {
               created_by: proforma.filled_by,
               clinical_proforma_id: proforma.id, // ✅ Link to existing clinical_proforma
               file_status: 'created',
-              file_created_date: proformaUpdateData.visit_date || proforma.visit_date || new Date().toISOString().split('T')[0],
+              file_created_date: ClinicalController.sanitizeDateField(proformaUpdateData.visit_date) || ClinicalController.sanitizeDateField(proforma.visit_date) || new Date().toISOString().split('T')[0],
               total_visits: 1,
-              is_active: true,
+              // is_active has a default value in the table, so we don't need to include it
               ...complexCaseData // All ADL-specific fields
             };
             
@@ -750,15 +796,10 @@ class ClinicalController {
             }
 
             // ✅ Update clinical_proforma with adl_file_id (bidirectional link)
-            const { error: updateError } = await supabaseAdmin
-              .from('clinical_proforma')
-              .update({ adl_file_id: adlFile.id })
-              .eq('id', proforma.id);
-
-            if (updateError) {
-              console.error(`[updateClinicalProforma] ❌ Failed to update adl_file_id:`, updateError);
-              throw new Error(`Failed to link ADL file: ${updateError.message}`);
-            }
+            await db.query(
+              'UPDATE clinical_proforma SET adl_file_id = $1 WHERE id = $2',
+              [adlFile.id, proforma.id]
+            );
 
             adlFileUpdated = true;
             console.log(`[updateClinicalProforma] ✅ Created ADL file ${adlFile.id} and linked to clinical_proforma ${proforma.id}`);
@@ -860,16 +901,16 @@ class ClinicalController {
         });
       }
 
-      // Allow the doctor who created the proforma, System Administrator, or JR/SR roles to delete
+      // Allow the doctor who created the proforma, Admin, or Faculty/Resident roles to delete
       const isCreator = proforma.filled_by === req.user.id;
-      const isAdmin = req.user.role === 'System Administrator';
-      const isJR = req.user.role === 'Faculty Residents (Junior Resident (JR))';
-      const isSR = req.user.role === 'Faculty Residents (Senior Resident (SR))';
+      const isAdmin = req.user.role === 'Admin';
+      const isResident = req.user.role === 'Resident';
+      const isFaculty = req.user.role === 'Faculty';
       
-      if (!isCreator && !isAdmin && !isJR && !isSR) {
+      if (!isCreator && !isAdmin && !isResident && !isFaculty) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied. You can only delete proformas if you created them, or if you are a System Administrator, JR, or SR.'
+          message: 'Access denied. You can only delete proformas if you created them, or if you are an Admin, Faculty, or Resident.'
         });
       }
 

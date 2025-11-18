@@ -85,8 +85,8 @@ function App() {
               <Route path="/patients/:id" element={<PatientDetails />} />
 
 
-              {/* Clinical Proforma - Faculty Residents and System Administrator */}
-              <Route element={<ProtectedRoute allowedRoles={['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))']} />}>
+              {/* Clinical Proforma - Faculty, Resident and Admin */}
+              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/clinical" element={<ClinicalProformaPage />} />
                 <Route path="/clinical/new" element={<CreateClinicalProforma />} />
                 <Route path="/clinical-today-patients" element={<ClinicalTodayPatients />} />
@@ -94,21 +94,21 @@ function App() {
                 <Route path="/clinical/:id/edit" element={<EditClinicalProforma />} />
               </Route>
 
-              {/* Prescription Routes - Faculty Residents and System Administrator */}
-              <Route element={<ProtectedRoute allowedRoles={['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))']} />}>
+              {/* Prescription Routes - Faculty, Resident and Admin */}
+              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/prescriptions/create" element={<CreatePrescription />} />
                 <Route path="/prescriptions/edit/:id" element={<PrescriptionEdit />} />
                 <Route path="/prescriptions/view" element={<PrescriptionView />} />
               </Route>
 
-              {/* Additional Detail File - Faculty Residents and System Administrator */}
-              <Route element={<ProtectedRoute allowedRoles={['System Administrator', 'Faculty Residents (Junior Resident (JR))', 'Faculty Residents (Senior Resident (SR))']} />}>
+              {/* Additional Detail File - Faculty, Resident and Admin */}
+              <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/adl-files" element={<ADLFilesPage />} />
                 <Route path="/adl-files/:id" element={<ADLFileDetails />} />
               </Route>
 
-              {/* Users - System Administrator only */}
-              <Route element={<ProtectedRoute allowedRoles={['System Administrator']} />}>
+              {/* Users - Admin only */}
+              <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/users/new" element={<CreateUser />} />
                 <Route path="/users/:id/edit" element={<EditUser />} />

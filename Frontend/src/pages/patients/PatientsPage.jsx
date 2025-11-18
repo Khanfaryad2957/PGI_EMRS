@@ -81,11 +81,9 @@ const PatientsPage = () => {
       await deletePatient(id).unwrap();
       toast.success('Patient and all related records deleted successfully');
   
-      setTimeout(async () => {
-        try {
-          await refetch();
-        } catch (refetchError) {}
-      }, 100);
+      // RTK Query will automatically refetch when tags are invalidated
+      // But we can also explicitly refetch to ensure immediate update
+      refetch();
   
     } catch (err) {
       toast.error(err?.data?.message || err?.message || 'Failed to delete patient');

@@ -9,6 +9,7 @@
     "test": "jest",
     "migrate": "node database/supabaseMigrate.js migrate",
     "migrate:status": "node database/supabaseMigrate.js status",
+    "migrate:encryption": "node database/apply_encryption_migration.js",
     "seed": "node database/supabaseSeed.js seed",
     "seed:clear": "node database/supabaseSeed.js clear",
     "db:setup": "npm run migrate && npm run seed",
@@ -27,7 +28,6 @@
   "author": "PGIMER Team",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.58.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",

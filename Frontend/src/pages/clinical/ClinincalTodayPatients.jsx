@@ -139,7 +139,9 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             <div className="text-sm text-gray-500">
               <span className="font-medium text-gray-600">Registered by:</span>
               <span className="ml-2">{patient.filled_by_name}</span>
-              <span className="ml-1 text-gray-400">(MWO)</span>
+              {patient.filled_by_role && (
+                <span className="ml-1 text-gray-400">({patient.filled_by_role})</span>
+              )}
             </div>
           </div>
         </div>
@@ -183,7 +185,17 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/clinical/new?patient_id=${patient.id}&returnTab=${activeTab}`)}
+                onClick={() => {
+                  // If proforma exists, pass its ID to update it; otherwise create new
+                  const urlParams = new URLSearchParams({
+                    patient_id: patient.id,
+                    returnTab: activeTab || ''
+                  });
+                  if (latestProformaId) {
+                    urlParams.set('clinical_proforma_id', latestProformaId);
+                  }
+                  navigate(`/clinical/new?${urlParams.toString()}`);
+                }}
                 className="flex items-center justify-center gap-2 w-full lg:w-full px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md"
               >
                 <FiPlusCircle className="w-4 h-4 flex-shrink-0" />
@@ -352,6 +364,19 @@ const ClinicalTodayPatients = () => {
   const apiPatients = data?.data?.patients || data?.patients || [];
   const apiPagination = data?.data?.pagination || data?.pagination || undefined;
 
+  // Deduplicate patients by ID to prevent duplicates
+  // Use a Map to keep track of unique patients by their ID
+  const uniquePatientsMap = new Map();
+  apiPatients.forEach(patient => {
+    if (patient?.id) {
+      // If patient already exists, keep the first occurrence (or merge if needed)
+      if (!uniquePatientsMap.has(patient.id)) {
+        uniquePatientsMap.set(patient.id, patient);
+      }
+    }
+  });
+  const deduplicatedApiPatients = Array.from(uniquePatientsMap.values());
+
   // Helper function to determine if patient is new (created today) or existing (visit today)
   const isNewPatient = (patient) => {
     if (!patient?.created_at) return false;
@@ -375,7 +400,7 @@ const ClinicalTodayPatients = () => {
     return hasVisitToday && !createdToday;
   };
 
-  const todayPatients = filterTodayPatients(apiPatients).filter((p) => {
+  const todayPatients = filterTodayPatients(deduplicatedApiPatients).filter((p) => {
     if (!currentUser) return false;
     
     // Admin can see all patients

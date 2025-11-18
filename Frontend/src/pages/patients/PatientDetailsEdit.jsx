@@ -974,6 +974,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
 
 
+  // Card expand/collapse state - initialize with false, will auto-expand when data loads
   const [expandedCards, setExpandedCards] = useState({
     patient: true,
     clinical: false,
@@ -998,7 +999,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   const canViewPrescriptions = canViewAllSections;
 
   // ADL File: Show only if case is complex OR ADL file already exists
-  const patientAdlFiles = adlData?.data?.adlFiles || [];
+  // Handle different possible data structures from API
+  const patientAdlFiles = adlData?.data?.adlFiles || adlData?.data?.files || adlData?.data || [];
   const patientProformas = Array.isArray(clinicalData?.data?.proformas)
     ? clinicalData.data.proformas
     : [];
@@ -1022,6 +1024,25 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
   const selectedProforma = selectedProformaData?.data?.proforma;
 
+  // Debug logging to help troubleshoot ADL data (after all variables are defined)
+  useEffect(() => {
+    const hasAdlFilesCheck = patientAdlFiles.length > 0 || selectedProforma?.adl_file_id;
+    console.log('[PatientDetailsEdit] ADL Data:', {
+      adlData,
+      patientAdlFiles,
+      patientAdlFilesLength: patientAdlFiles.length,
+      selectedProformaAdlFileId: selectedProforma?.adl_file_id,
+      hasAdlFiles: hasAdlFilesCheck
+    });
+  }, [adlData, patientAdlFiles.length, selectedProforma?.adl_file_id]);
+
+  // Auto-expand clinical card when selected proforma loads
+  useEffect(() => {
+    if (selectedProforma) {
+      setExpandedCards(prev => ({ ...prev, clinical: true }));
+    }
+  }, [selectedProforma]);
+
   // Initialize currentDoctorDecision from existing proformas or default (only once)
   useEffect(() => {
     if (currentDoctorDecision === null) {
@@ -1044,8 +1065,27 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     selectedProforma?.doctor_decision === 'complex_case' ||
     currentDoctorDecision === 'complex_case';
 
-  const canViewADLFile = canViewAllSections && isComplexCase;
+  // Show ADL file section if:
+  // 1. User has permission (Admin, JR, or SR)
+  // 2. AND (ADL files exist OR case is complex OR selected proforma has ADL file ID)
+  // Always show if ADL files exist, even if case isn't marked as complex
+  const hasAdlFiles = patientAdlFiles.length > 0 || selectedProforma?.adl_file_id;
+  const canViewADLFile = canViewAllSections && (hasAdlFiles || isComplexCase || selectedProforma?.adl_file_id);
   const isSelectedComplexCase = selectedProforma?.doctor_decision === 'complex_case' && selectedProforma?.adl_file_id;
+
+  // Auto-expand ADL card when ADL files exist or complex case
+  useEffect(() => {
+    if (hasAdlFiles || isComplexCase) {
+      setExpandedCards(prev => ({ ...prev, adl: true }));
+    }
+  }, [hasAdlFiles, isComplexCase]);
+
+  // Auto-expand prescription card when proformas exist
+  useEffect(() => {
+    if (patientProformas.length > 0) {
+      setExpandedCards(prev => ({ ...prev, prescriptions: true }));
+    }
+  }, [patientProformas.length]);
 
   // Fetch ADL file data if this is a complex case
   const {
@@ -1634,7 +1674,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
             <form onSubmit={handleSubmit}>
               {/* Quick Entry Section with Glassmorphism */}
               <div className="relative mb-8">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl pointer-events-none"></div>
                 <Card
                   title={
                     <div className="flex items-center gap-3">
@@ -1891,7 +1931,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
               {/* Basic Information with Glassmorphism */}
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 rounded-3xl blur-xl pointer-events-none"></div>
                 <Card
                   title={
                     <div className="flex items-center gap-3">
@@ -2324,15 +2364,21 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       {/* Card 1: Clinical Proforma - Show only if current user is Admin, JR, or SR */}
       {canViewClinicalProforma && (
         <EditClinicalProforma
-          initialData={{
+          initialData={selectedProforma ? {
+            // Pass full existing proforma data if available
+            ...selectedProforma,
+            patient_id: selectedProforma.patient_id?.toString() || patient?.id?.toString() || '',
+            visit_date: selectedProforma.visit_date ? selectedProforma.visit_date.split('T')[0] : new Date().toISOString().split('T')[0],
+            assigned_doctor: selectedProforma.assigned_doctor?.toString() || patient?.assigned_doctor_id?.toString() || '',
+          } : {
+            // Default data for new proforma
             patient_id: patient?.id?.toString() || '',
             visit_date: new Date().toISOString().split('T')[0],
             visit_type: 'first_visit',
-            // Pre-fill at least 3 basic fields to make them visible
             room_no: patient?.room_no || '',
             assigned_doctor: patient?.assigned_doctor_id?.toString() || '',
             informant_present: true,
-            doctor_decision: 'simple_case', // Default to simple_case
+            doctor_decision: 'simple_case',
           }}
           onFormDataChange={(formData) => {
             // Track doctor_decision changes to show/hide ADL card
@@ -2359,6 +2405,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <p className="text-sm text-gray-500 mt-1">
                   {patientAdlFiles.length > 0
                     ? `${patientAdlFiles.length} file${patientAdlFiles.length > 1 ? 's' : ''} found`
+                    : selectedProforma?.adl_file_id
+                    ? 'ADL file linked to proforma'
                     : 'No ADL files'}
                 </p>
               </div>
@@ -2374,16 +2422,34 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
             <div className="p-6">
               {patientAdlFiles.length > 0 ? (
                 <div className="space-y-6">
-                  {patientAdlFiles.map((file, index) => (
-                    <EditADL
-                      key={file.id || index}
-                      adlFileId={file.id}
-                      isEmbedded={true}
-                      patientId={patient?.id?.toString()}
-                      clinicalProformaId={selectedProforma?.id?.toString()}
-                    />
-                  ))}
+                  {patientAdlFiles.map((file, index) => {
+                    // Debug logging for each file
+                    console.log('[PatientDetailsEdit] Rendering ADL file:', {
+                      file,
+                      fileId: file.id,
+                      fileIdType: typeof file.id,
+                      clinicalProformaId: file.clinical_proforma_id
+                    });
+                    
+                    return (
+                      <EditADL
+                        key={file.id || `adl-${index}`}
+                        adlFileId={file.id || file.adl_file_id || file.adlFileId}
+                        isEmbedded={true}
+                        patientId={patient?.id?.toString()}
+                        clinicalProformaId={file.clinical_proforma_id?.toString() || selectedProforma?.id?.toString()}
+                      />
+                    );
+                  })}
                 </div>
+              ) : selectedProforma?.adl_file_id ? (
+                // If selected proforma has ADL file ID but file not in patientAdlFiles, use the ID
+                <EditADL
+                  adlFileId={selectedProforma.adl_file_id}
+                  isEmbedded={true}
+                  patientId={patient?.id?.toString()}
+                  clinicalProformaId={selectedProforma?.id?.toString()}
+                />
               ) : (
                 <EditADL
                   isEmbedded={true}

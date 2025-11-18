@@ -1,7 +1,7 @@
 export const USER_ROLES = {
-  ADMIN: 'System Administrator',
-  SR: 'Faculty (Consultant)',
-  JR: 'Resident',
+  ADMIN: 'Admin',
+  FACULTY: 'Faculty',
+  RESIDENT: 'Resident',
   MWO: 'Psychiatric Welfare Officer',
 };
 
@@ -15,10 +15,18 @@ export const getRoleDisplayName = (role) => {
 export const normalizeRole = (role) => {
   if (!role) return null;
   const roleMap = {
-    'Admin': 'System Administrator',
+    // New role names (current)
+    'Admin': 'Admin',
+    'Faculty': 'Faculty',
+    'Resident': 'Resident',
+    'Psychiatric Welfare Officer': 'Psychiatric Welfare Officer',
+    // Legacy role names (for backward compatibility)
+    'System Administrator': 'Admin',
     'MWO': 'Psychiatric Welfare Officer',
-    'JR': 'Faculty Residents (Junior Resident (JR))',
-    'SR': 'Faculty Residents (Senior Resident (SR))',
+    'JR': 'Resident',
+    'SR': 'Faculty',
+    'Faculty Residents (Junior Resident (JR))': 'Resident',
+    'Faculty Residents (Senior Resident (SR))': 'Faculty',
   };
   return roleMap[role] || role;
 };
@@ -26,7 +34,7 @@ export const normalizeRole = (role) => {
 // Helper functions to check roles (handles both old and new names)
 export const isAdmin = (role) => {
   const normalized = normalizeRole(role);
-  return normalized === 'System Administrator';
+  return normalized === 'Admin';
 };
 
 export const isMWO = (role) => {
@@ -36,12 +44,12 @@ export const isMWO = (role) => {
 
 export const isJR = (role) => {
   const normalized = normalizeRole(role);
-  return normalized === 'Faculty Residents (Junior Resident (JR))';
+  return normalized === 'Resident';
 };
 
 export const isSR = (role) => {
   const normalized = normalizeRole(role);
-  return normalized === 'Faculty Residents (Senior Resident (SR))';
+  return normalized === 'Faculty';
 };
 
 export const isJrSr = (role) => {
