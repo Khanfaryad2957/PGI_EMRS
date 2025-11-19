@@ -395,6 +395,7 @@ const CreatePatient = () => {
   const [mobilityOther, setMobilityOther] = useState('');
   const [showReferredByOther, setShowReferredByOther] = useState(false);
   const [referredByOther, setReferredByOther] = useState('');
+  const [sameAsPermanent, setSameAsPermanent] = useState(false);
 
   // Restore step state from localStorage on mount
   useEffect(() => {
@@ -487,6 +488,46 @@ const CreatePatient = () => {
       setShowReferredByOther(false);
     }
   }, [formData.referred_by, formData.referred_by_other]);
+
+  // Auto-populate Permanent Address from Step 1 address when moving to Step 2
+  useEffect(() => {
+    if (currentStep === 2 && !formData.permanent_address_line_1) {
+      // Copy Step 1 address to Permanent Address if permanent address is empty
+      if (formData.address_line || formData.city || formData.district || formData.state || formData.pin_code || formData.country) {
+        dispatch(updatePatientRegistrationForm({
+          permanent_address_line_1: formData.address_line || '',
+          permanent_city_town_village: formData.city || '',
+          permanent_district: formData.district || '',
+          permanent_state: formData.state || '',
+          permanent_pin_code: formData.pin_code || '',
+          permanent_country: formData.country || ''
+        }));
+      }
+    }
+  }, [currentStep, formData.address_line, formData.city, formData.district, formData.state, formData.pin_code, formData.country, formData.permanent_address_line_1, dispatch]);
+
+  // Sync present address with permanent address when checkbox is checked
+  useEffect(() => {
+    if (sameAsPermanent) {
+      dispatch(updatePatientRegistrationForm({
+        present_address_line_1: formData.permanent_address_line_1 || '',
+        present_city_town_village: formData.permanent_city_town_village || '',
+        present_district: formData.permanent_district || '',
+        present_state: formData.permanent_state || '',
+        present_pin_code: formData.permanent_pin_code || '',
+        present_country: formData.permanent_country || ''
+      }));
+    }
+  }, [
+    sameAsPermanent,
+    formData.permanent_address_line_1,
+    formData.permanent_city_town_village,
+    formData.permanent_district,
+    formData.permanent_state,
+    formData.permanent_pin_code,
+    formData.permanent_country,
+    dispatch
+  ]);
 
   // Handle cancel - clear localStorage and navigate away
   const handleCancel = () => {
@@ -819,6 +860,25 @@ const CreatePatient = () => {
         district: formData.district || null,
         city: formData.city || null,
         pin_code: formData.pin_code || null,
+        
+        // Permanent Address fields
+        permanent_address_line_1: formData.permanent_address_line_1 || null,
+        permanent_city_town_village: formData.permanent_city_town_village || null,
+        permanent_district: formData.permanent_district || null,
+        permanent_state: formData.permanent_state || null,
+        permanent_pin_code: formData.permanent_pin_code || null,
+        permanent_country: formData.permanent_country || null,
+        
+        // Present Address fields
+        present_address_line_1: formData.present_address_line_1 || null,
+        present_city_town_village: formData.present_city_town_village || null,
+        present_district: formData.present_district || null,
+        present_state: formData.present_state || null,
+        present_pin_code: formData.present_pin_code || null,
+        present_country: formData.present_country || null,
+        
+        // Local Address field
+        local_address: formData.local_address || null,
 
         // Additional fields
         category: formData.category || null,
@@ -936,6 +996,25 @@ const CreatePatient = () => {
         referred_by: formData.referred_by === 'others'
           ? (formData.referred_by_other || referredByOther || null)
           : (formData.referred_by || null),
+
+        // Permanent Address fields
+        permanent_address_line_1: formData.permanent_address_line_1 || null,
+        permanent_city_town_village: formData.permanent_city_town_village || null,
+        permanent_district: formData.permanent_district || null,
+        permanent_state: formData.permanent_state || null,
+        permanent_pin_code: formData.permanent_pin_code || null,
+        permanent_country: formData.permanent_country || null,
+        
+        // Present Address fields
+        present_address_line_1: formData.present_address_line_1 || null,
+        present_city_town_village: formData.present_city_town_village || null,
+        present_district: formData.present_district || null,
+        present_state: formData.present_state || null,
+        present_pin_code: formData.present_pin_code || null,
+        present_country: formData.present_country || null,
+        
+        // Local Address field
+        local_address: formData.local_address || null,
 
         // Assignment
         assigned_room: formData.assigned_room || null,
@@ -1585,7 +1664,7 @@ const CreatePatient = () => {
                                 options={(usersData?.data?.users || [])
                                   .map(u => ({
                                     value: String(u.id),
-                                    label: `${u.name} (${isJR(u.role) ? 'JR' : isSR(u.role) ? 'SR' : u.role})`
+                                    label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
                                   }))}
                                 placeholder="Select doctor (optional)"
                                 searchable={true}
@@ -1724,6 +1803,211 @@ const CreatePatient = () => {
                                 inputLabel="Specify Referred By"
                               />
                             </div>
+
+                        {/* Permanent Address Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                              <FiHome className="w-5 h-5 text-green-600" />
+                            </div>
+                            Permanent Address
+                          </h4>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Address Line"
+                              name="permanent_address_line_1"
+                              value={formData.permanent_address_line_1 || ''}
+                              onChange={handleChange}
+                              placeholder="Enter house number, street, locality"
+                              className=""
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="City/Town/Village"
+                                name="permanent_city_town_village"
+                                value={formData.permanent_city_town_village || ''}
+                                onChange={handleChange}
+                                placeholder="Enter city, town or village"
+                                className=""
+                              />
+                              <IconInput
+                                icon={<FiLayers className="w-4 h-4" />}
+                                label="District"
+                                name="permanent_district"
+                                value={formData.permanent_district || ''}
+                                onChange={handleChange}
+                                placeholder="Enter district"
+                                className=""
+                              />
+                              <IconInput
+                                icon={<FiMapPin className="w-4 h-4" />}
+                                label="State"
+                                name="permanent_state"
+                                value={formData.permanent_state || ''}
+                                onChange={handleChange}
+                                placeholder="Enter state"
+                                className=""
+                              />
+                              <IconInput
+                                icon={<FiHash className="w-4 h-4" />}
+                                label="Pin Code"
+                                name="permanent_pin_code"
+                                value={formData.permanent_pin_code || ''}
+                                onChange={handleChange}
+                                placeholder="Enter pin code"
+                                type="number"
+                                className=""
+                              />
+                              <IconInput
+                                icon={<FiGlobe className="w-4 h-4" />}
+                                label="Country"
+                                name="permanent_country"
+                                value={formData.permanent_country || ''}
+                                onChange={handleChange}
+                                placeholder="Enter country"
+                                className=""
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Present Address Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                              <div className="p-2.5 bg-gradient-to-br from-orange-500/20 to-amber-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                                <FiMapPin className="w-5 h-5 text-orange-600" />
+                              </div>
+                              Present Address
+                            </h4>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={sameAsPermanent}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setSameAsPermanent(checked);
+                                  if (checked) {
+                                    // Copy permanent address to present address
+                                    dispatch(updatePatientRegistrationForm({
+                                      present_address_line_1: formData.permanent_address_line_1 || '',
+                                      present_city_town_village: formData.permanent_city_town_village || '',
+                                      present_district: formData.permanent_district || '',
+                                      present_state: formData.permanent_state || '',
+                                      present_pin_code: formData.permanent_pin_code || '',
+                                      present_country: formData.permanent_country || ''
+                                    }));
+                                  } else {
+                                    // Clear present address fields when unchecked
+                                    dispatch(updatePatientRegistrationForm({
+                                      present_address_line_1: '',
+                                      present_city_town_village: '',
+                                      present_district: '',
+                                      present_state: '',
+                                      present_pin_code: '',
+                                      present_country: ''
+                                    }));
+                                  }
+                                }}
+                                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">
+                                Same as Permanent Address
+                              </span>
+                            </label>
+                          </div>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Address Line"
+                              name="present_address_line_1"
+                              value={formData.present_address_line_1 || ''}
+                              onChange={handleChange}
+                              placeholder="Enter house number, street, locality"
+                              disabled={sameAsPermanent}
+                              className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="City/Town/Village"
+                                name="present_city_town_village"
+                                value={formData.present_city_town_village || ''}
+                                onChange={handleChange}
+                                placeholder="Enter city, town or village"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiLayers className="w-4 h-4" />}
+                                label="District"
+                                name="present_district"
+                                value={formData.present_district || ''}
+                                onChange={handleChange}
+                                placeholder="Enter district"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiMapPin className="w-4 h-4" />}
+                                label="State"
+                                name="present_state"
+                                value={formData.present_state || ''}
+                                onChange={handleChange}
+                                placeholder="Enter state"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiHash className="w-4 h-4" />}
+                                label="Pin Code"
+                                name="present_pin_code"
+                                value={formData.present_pin_code || ''}
+                                onChange={handleChange}
+                                placeholder="Enter pin code"
+                                type="number"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiGlobe className="w-4 h-4" />}
+                                label="Country"
+                                name="present_country"
+                                value={formData.present_country || ''}
+                                onChange={handleChange}
+                                placeholder="Enter country"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Local Address Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                              <FiNavigation className="w-5 h-5 text-purple-600" />
+                            </div>
+                            Local Address
+                          </h4>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Local Address"
+                              name="local_address"
+                              value={formData.local_address || ''}
+                              onChange={handleChange}
+                              placeholder="Enter local address"
+                              className=""
+                            />
+                          </div>
+                        </div>
 
                             <div className="flex flex-col sm:flex-row justify-end gap-4">
                               <Button

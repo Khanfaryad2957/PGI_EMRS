@@ -44,10 +44,24 @@ const authenticateToken = async (req, res, next) => {
         message: 'Token expired' 
       });
     }
+    // Handle database connection errors
+    if (error.message && (
+      error.message.includes('timeout') || 
+      error.message.includes('connection') ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ECONNREFUSED'
+    )) {
+      console.error('Database connection error during authentication:', error.message);
+      return res.status(503).json({ 
+        success: false, 
+        message: 'Database connection timeout. Please try again.' 
+      });
+    }
     console.error('Authentication error:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Authentication failed' 
+      message: 'Authentication failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

@@ -75,6 +75,25 @@ class Patient {
     this.city = decryptedData.city || null;
     this.pin_code = decryptedData.pin_code || null;
 
+    // 🔹 Permanent Address fields
+    this.permanent_address_line_1 = decryptedData.permanent_address_line_1 || null;
+    this.permanent_city_town_village = decryptedData.permanent_city_town_village || null;
+    this.permanent_district = decryptedData.permanent_district || null;
+    this.permanent_state = decryptedData.permanent_state || null;
+    this.permanent_pin_code = decryptedData.permanent_pin_code || null;
+    this.permanent_country = decryptedData.permanent_country || null;
+
+    // 🔹 Present Address fields
+    this.present_address_line_1 = decryptedData.present_address_line_1 || null;
+    this.present_city_town_village = decryptedData.present_city_town_village || null;
+    this.present_district = decryptedData.present_district || null;
+    this.present_state = decryptedData.present_state || null;
+    this.present_pin_code = decryptedData.present_pin_code || null;
+    this.present_country = decryptedData.present_country || null;
+
+    // 🔹 Local Address field
+    this.local_address = decryptedData.local_address || null;
+
     // 🔹 Optional system / metadata fields
     this.has_adl_file = decryptedData.has_adl_file || false;
     this.file_status = decryptedData.file_status || null;
@@ -177,6 +196,25 @@ class Patient {
         district,
         city,
         pin_code,
+        
+        // Permanent Address fields
+        permanent_address_line_1,
+        permanent_city_town_village,
+        permanent_district,
+        permanent_state,
+        permanent_pin_code,
+        permanent_country,
+        
+        // Present Address fields
+        present_address_line_1,
+        present_city_town_village,
+        present_district,
+        present_state,
+        present_pin_code,
+        present_country,
+        
+        // Local Address field
+        local_address,
       
         // Additional Fields
         assigned_doctor_name,
@@ -275,6 +313,22 @@ class Patient {
         district,
         city,
         pin_code,
+        // Permanent Address fields
+        permanent_address_line_1,
+        permanent_city_town_village,
+        permanent_district,
+        permanent_state,
+        permanent_pin_code,
+        permanent_country,
+        // Present Address fields
+        present_address_line_1,
+        present_city_town_village,
+        present_district,
+        present_state,
+        present_pin_code,
+        present_country,
+        // Local Address field
+        local_address,
         assigned_doctor_name,
         assigned_doctor_id,
         assigned_room,
@@ -389,14 +443,20 @@ class Patient {
   
       const query = `
         SELECT 
-          p.id, p.cr_no, p.date, p.name, p.age, p.sex, p.category, p.department, p.unit_consit,
+          p.id, p.cr_no, p.date, p.name, p.age, p.sex, p.category, p.father_name, p.department, p.unit_consit,
           p.room_no, p.serial_no, p.file_no, p.unit_days, p.contact_number, p.seen_in_walk_in_on,
           p.worked_up_on, p.psy_no, p.special_clinic_no, p.age_group, p.marital_status,
           p.year_of_marriage, p.no_of_children_male, p.no_of_children_female, p.occupation,
           p.education, p.locality, p.income, p.religion, p.family_type, p.head_name, p.head_age,
           p.head_relationship, p.head_education, p.head_occupation, p.head_income,
           p.distance_from_hospital, p.mobility, p.referred_by, p.address_line, p.country,
-          p.state, p.district, p.city, p.pin_code, p.assigned_room, p.filled_by,
+          p.state, p.district, p.city, p.pin_code,
+          p.permanent_address_line_1, p.permanent_city_town_village, p.permanent_district,
+          p.permanent_state, p.permanent_pin_code, p.permanent_country,
+          p.present_address_line_1, p.present_city_town_village, p.present_district,
+          p.present_state, p.present_pin_code, p.present_country,
+          p.local_address,
+          p.assigned_room, p.filled_by,
           p.has_adl_file, p.file_status, p.created_at, p.updated_at,
           -- ✅ Get filled_by user role
           (
@@ -835,11 +895,22 @@ class Patient {
         'department', 'unit_consit', 'room_no', 'serial_no', 'file_no', 'unit_days',
         'seen_in_walk_in_on', 'worked_up_on', 'age_group',
         'marital_status', 'year_of_marriage', 'no_of_children_male', 'no_of_children_female',
-        'occupation', 'education', 'locality', 'income', 'religion', 'family_type',
-        'head_name', 'head_age', 'head_relationship', 'head_education', 'head_occupation', 'head_income',
+        'occupation', 'education', 'locality', 'income', 
+        'religion', 'family_type',
+        'head_name', 'head_age', 'head_relationship', 
+        'head_education', 'head_occupation', 'head_income',
         'distance_from_hospital', 'mobility', 'referred_by',
         'address_line', 'country', 'state', 'district', 'city', 'pin_code',
-        'assigned_room', 'assigned_doctor_id', 'assigned_doctor_name', 'file_status', 'has_adl_file', 'special_clinic_no'
+        // Permanent Address fields
+        'permanent_address_line_1', 'permanent_city_town_village',
+        'permanent_district', 'permanent_state', 'permanent_pin_code', 'permanent_country',
+        // Present Address fields
+        'present_address_line_1', 'present_city_town_village',
+        'present_district', 'present_state', 'present_pin_code', 'present_country',
+        // Local Address field
+        'local_address',
+        'assigned_room', 'assigned_doctor_id', 'assigned_doctor_name', 'file_status', 'has_adl_file', 
+        'special_clinic_no', 'psy_no'
       ];
 
       const updates = [];
@@ -869,7 +940,9 @@ class Patient {
       );
 
       if (result.rows.length) {
-        Object.assign(this, result.rows[0]);
+        // Decrypt the updated data before assigning
+        const decryptedData = decryptObject(result.rows[0], encryptionFields.patient);
+        Object.assign(this, decryptedData);
       }
 
       return this;

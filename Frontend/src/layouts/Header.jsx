@@ -47,7 +47,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 bg-clip-text text-transparent whitespace-nowrap drop-shadow-sm">
-                  PGI EMRS
+                  PGIMER PSY
                 </h1>
                 <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 font-medium ml-2 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded-md border border-gray-200/50">
                   Psychiatry Department

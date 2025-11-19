@@ -1320,6 +1320,20 @@ class ClinicalProforma {
     // Decrypt sensitive fields after receiving from database
     const decryptedData = decryptObject(data, encryptionFields.clinicalProforma);
     
+    // Log warning if any fields appear to still be encrypted after decryption attempt
+    // This helps identify decryption failures
+    if (process.env.NODE_ENV === 'development') {
+      const encryptedFields = encryptionFields.clinicalProforma;
+      encryptedFields.forEach(field => {
+        if (decryptedData[field] && typeof decryptedData[field] === 'string' && decryptedData[field].length > 128) {
+          // Check if it looks like base64 encrypted data
+          if (/^[A-Za-z0-9+/=]+$/.test(decryptedData[field]) && !decryptedData[field].includes(' ')) {
+            console.warn(`[ClinicalProforma] Field '${field}' may still be encrypted after decryption attempt (ID: ${data.id || 'unknown'})`);
+          }
+        }
+      });
+    }
+    
     this.id = decryptedData.id;
     this.patient_id = decryptedData.patient_id;
     this.filled_by = decryptedData.filled_by;
@@ -1372,7 +1386,14 @@ class ClinicalProforma {
     this.adl_file_id = decryptedData.adl_file_id;
     
     // Joined fields from related tables (for queries with JOINs)
-    this.patient_name = decryptedData.patient_name;
+    // IMPORTANT: patient_name comes from registered_patient table and is encrypted there
+    // We need to decrypt it separately since it's not in clinicalProforma encryption fields
+    // The decrypt() function handles null/empty values and decryption failures gracefully
+    if (decryptedData.patient_name) {
+      this.patient_name = decrypt(decryptedData.patient_name);
+    } else {
+      this.patient_name = decryptedData.patient_name || null;
+    }
     this.cr_no = decryptedData.cr_no;
     this.psy_no = decryptedData.psy_no;
     this.doctor_name = decryptedData.doctor_name;
@@ -1454,20 +1475,55 @@ class ClinicalProforma {
       // This INSERT only contains basic clinical proforma fields and a reference (adl_file_id) if needed
       // ✅ adl_file_id is included in the INSERT to match the schema
       const adl_file_id = proformaData.adl_file_id || null;
-      // Encrypt sensitive fields before saving
-      const encryptedData = encryptObject({
+      
+      // Encrypt ALL sensitive fields before saving
+      // encryptObject will automatically encrypt only fields that are in encryptionFields.clinicalProforma
+      const allProformaData = {
+        nature_of_information,
+        onset_duration,
+        course,
         precipitating_factor,
         illness_duration,
+        current_episode_since,
+        mood,
+        behaviour,
+        speech,
+        thought,
+        perception,
+        somatic,
+        bio_functions,
+        adjustment,
+        cognitive_function,
+        fits,
+        sexual_problem,
+        substance_use,
         past_history,
         family_history,
+        associated_medical_surgical,
+        mse_behaviour,
+        mse_affect,
+        mse_thought,
         mse_delusions,
+        mse_perception,
+        mse_cognitive_function,
         gpe,
         diagnosis,
+        icd_code,
         disposal,
+        workup_appointment,
         referred_to,
         treatment_prescribed,
-        adl_reasoning
-      }, encryptionFields.clinicalProforma);
+        adl_reasoning,
+        // ADL-related fields (if stored in clinical_proforma)
+        history_narrative: proformaData.history_narrative,
+        history_specific_enquiry: proformaData.history_specific_enquiry,
+        history_drug_intake: proformaData.history_drug_intake,
+        history_treatment_place: proformaData.history_treatment_place,
+        history_treatment_dates: proformaData.history_treatment_dates,
+        history_treatment_drugs: proformaData.history_treatment_drugs,
+        history_treatment_response: proformaData.history_treatment_response
+      };
+      const encryptedData = encryptObject(allProformaData, encryptionFields.clinicalProforma);
 
       const proformaResult = await db.query(
         `INSERT INTO clinical_proforma (
@@ -1489,24 +1545,39 @@ class ClinicalProforma {
         ) RETURNING *`,
         [
           patient_id, filled_by, visit_date, visit_type, room_no, assigned_doctor,
-          informant_present, nature_of_information, onset_duration, course,
+          informant_present, 
+          encryptedData.nature_of_information || nature_of_information, 
+          encryptedData.onset_duration || onset_duration, 
+          encryptedData.course || course,
           encryptedData.precipitating_factor || precipitating_factor, 
           encryptedData.illness_duration || illness_duration, 
-          current_episode_since, mood,
-          behaviour, speech, thought, perception, somatic, bio_functions,
-          adjustment, cognitive_function, fits, sexual_problem, substance_use,
+          encryptedData.current_episode_since || current_episode_since, 
+          encryptedData.mood || mood,
+          encryptedData.behaviour || behaviour, 
+          encryptedData.speech || speech, 
+          encryptedData.thought || thought, 
+          encryptedData.perception || perception, 
+          encryptedData.somatic || somatic, 
+          encryptedData.bio_functions || bio_functions,
+          encryptedData.adjustment || adjustment, 
+          encryptedData.cognitive_function || cognitive_function, 
+          encryptedData.fits || fits, 
+          encryptedData.sexual_problem || sexual_problem, 
+          encryptedData.substance_use || substance_use,
           encryptedData.past_history || past_history, 
           encryptedData.family_history || family_history, 
-          associated_medical_surgical, mse_behaviour,
-          mse_affect, mse_thought, 
+          encryptedData.associated_medical_surgical || associated_medical_surgical, 
+          encryptedData.mse_behaviour || mse_behaviour,
+          encryptedData.mse_affect || mse_affect, 
+          encryptedData.mse_thought || mse_thought, 
           encryptedData.mse_delusions || mse_delusions, 
-          mse_perception,
-          mse_cognitive_function, 
+          encryptedData.mse_perception || mse_perception,
+          encryptedData.mse_cognitive_function || mse_cognitive_function, 
           encryptedData.gpe || gpe, 
           encryptedData.diagnosis || diagnosis, 
-          icd_code, 
+          encryptedData.icd_code || icd_code, 
           encryptedData.disposal || disposal,
-          workup_appointment, 
+          encryptedData.workup_appointment || workup_appointment, 
           encryptedData.referred_to || referred_to, 
           encryptedData.treatment_prescribed || treatment_prescribed, 
           doctor_decision,

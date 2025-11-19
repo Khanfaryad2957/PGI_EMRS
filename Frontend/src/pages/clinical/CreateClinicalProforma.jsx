@@ -480,6 +480,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   const { data: doctorsData } = useGetDoctorsQuery({ page: 1, limit: 100 });
   
   // Fetch existing clinical proforma data if clinicalProformaId is available
+  // Use a stable key to ensure query runs when ID changes
   const { 
     data: existingProformaData, 
     isLoading: isLoadingExistingProforma,
@@ -488,7 +489,9 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
     refetch: refetchProforma
   } = useGetClinicalProformaByIdQuery(clinicalProformaId, {
     skip: !clinicalProformaId,
-    refetchOnMountOrArgChange: true // Always refetch to get latest data including adl_file_id
+    refetchOnMountOrArgChange: true, // Always refetch to get latest data including adl_file_id
+    // Force refetch when clinicalProformaId changes (even if it was previously fetched)
+    pollingInterval: 0, // Disable polling, but ensure refetch on ID change
   });
   
   // Debug logging for query state
@@ -991,20 +994,28 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
 
   // Reset population flag when clinicalProformaId changes
   useEffect(() => {
-    if (clinicalProformaId !== lastPopulatedProformaId) {
+    if (clinicalProformaId && clinicalProformaId !== lastPopulatedProformaId) {
       console.log('[CreateClinicalProforma] Clinical proforma ID changed, resetting population flag');
+      console.log('[CreateClinicalProforma] Old ID:', lastPopulatedProformaId, 'New ID:', clinicalProformaId);
       setHasPopulatedForm(false);
-      setLastPopulatedProformaId(clinicalProformaId);
+      setLastPopulatedProformaId(null); // Reset to allow re-population
     }
   }, [clinicalProformaId, lastPopulatedProformaId]);
 
   // Populate form with existing proforma data when it's loaded
   useEffect(() => {
-    if (existingProforma && !initialData && !hasPopulatedForm) {
-      // Only populate if we don't have initialData (to avoid conflicts) and haven't populated yet
+    // Check if we should populate: existing proforma exists, no initialData conflict, and either:
+    // 1. Haven't populated yet, OR
+    // 2. The proforma ID changed (need to re-populate with new data)
+    const shouldPopulate = existingProforma && 
+                           !initialData && 
+                           (!hasPopulatedForm || (existingProforma.id && existingProforma.id !== lastPopulatedProformaId));
+    
+    if (shouldPopulate) {
       const proforma = existingProforma;
       
       console.log('[CreateClinicalProforma] Populating form with existing proforma data:', proforma);
+      console.log('[CreateClinicalProforma] hasPopulatedForm:', hasPopulatedForm, 'lastPopulatedProformaId:', lastPopulatedProformaId);
       
       // Set saved proforma ID
       if (proforma.id) {
@@ -1079,7 +1090,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
         console.log('[CreateClinicalProforma] ADL file ID set:', proforma.adl_file_id);
       }
       
-      // Mark as populated to prevent re-population
+      // Mark as populated to prevent re-population (unless ID changes)
       setHasPopulatedForm(true);
       if (proforma.id) {
         setLastPopulatedProformaId(proforma.id);
@@ -1091,7 +1102,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
       // Prescriptions will be populated separately from the prescriptions query
       // Don't populate from proforma.prescriptions as they might not be included in the response
     }
-  }, [existingProforma, initialData, hasPopulatedForm]);
+  }, [existingProforma, initialData, hasPopulatedForm, lastPopulatedProformaId]);
   
   // Populate prescriptions when they are fetched
   useEffect(() => {

@@ -40,9 +40,17 @@ class PatientController {
         }
 
         // Create a visit record for the existing patient
+        // Note: patient_id is a UUID (string), not an integer, so don't use parseInt()
+        // assigned_doctor_id is stored as string in Patient model but needs to be integer for patient_visits
+        const assignedDoctorId = existingPatient.assigned_doctor_id 
+          ? (typeof existingPatient.assigned_doctor_id === 'string' 
+              ? parseInt(existingPatient.assigned_doctor_id, 10) 
+              : existingPatient.assigned_doctor_id)
+          : null;
+        
         const visit = await PatientVisit.assignPatient({
-          patient_id: parseInt(patient_id),
-          assigned_doctor_id: existingPatient.assigned_doctor_id || null,
+          patient_id: patient_id, // Pass UUID as-is (patient_visits.patient_id is UUID type)
+          assigned_doctor_id: assignedDoctorId,
           room_no: existingPatient.assigned_room || assigned_room || null,
           visit_date: new Date().toISOString().slice(0, 10),
           visit_type: 'follow_up',
@@ -214,6 +222,14 @@ class PatientController {
       const limit = parseInt(req.query.limit) || 10;
       const filters = {};
 
+      // If id is provided, redirect to getPatientById for better performance
+      if (req.query.id) {
+        // getPatientById expects id in req.params, so we need to set it
+        req.params = req.params || {};
+        req.params.id = req.query.id;
+        return PatientController.getPatientById(req, res);
+      }
+
       // Check if search parameter is provided
       if (req.query.search && req.query.search.trim().length >= 2) {
         const result = await Patient.search(req.query.search.trim(), page, limit);
@@ -230,7 +246,9 @@ class PatientController {
       if (req.query.file_status) filters.file_status = req.query.file_status;
       if (req.query.assigned_room) filters.assigned_room = req.query.assigned_room;
 
-      const result = await Patient.findAll(page, limit, filters);
+      // Limit the maximum page size to prevent timeouts
+      const safeLimit = Math.min(limit, 100); // Cap at 100 to prevent performance issues
+      const result = await Patient.findAll(page, safeLimit, filters);
 
       // Enrich with latest assignment info
       try {
@@ -244,6 +262,7 @@ class PatientController {
           // Fetch visits with assigned_doctor info using PostgreSQL
           let visits = [];
           let visitsToday = [];
+          let visitsTodayError = false;
           
           try {
             const visitsResult = await db.query(
@@ -266,6 +285,7 @@ class PatientController {
             visitsToday = visitsTodayResult.rows || [];
           } catch (queryErr) {
             console.error('[getAllPatients] Error in PostgreSQL query:', queryErr);
+            visitsTodayError = true;
           }
           
           console.log(`[getAllPatients] Found ${visits?.length || 0} visits, ${visitsToday?.length || 0} visits today`);

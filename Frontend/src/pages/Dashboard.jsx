@@ -1,15 +1,15 @@
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { FiUsers, FiFileText, FiFolder, FiClipboard, FiTrendingUp, FiEye, FiEdit,  FiUserPlus, FiActivity  } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiFolder, FiClipboard, FiTrendingUp, FiEye, FiEdit, FiUserPlus, FiActivity, FiAlertCircle, FiCheckCircle, FiXCircle, FiCalendar, FiMapPin, FiHeart, FiShield } from 'react-icons/fi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useGetAllPatientsQuery, useGetPatientsStatsQuery, useGetPatientStatsQuery } from '../features/patients/patientsApiSlice';
-import { useGetClinicalStatsQuery, useGetCasesBySeverityQuery, useGetCasesByDecisionQuery, useGetMyProformasQuery } from '../features/clinical/clinicalApiSlice';
-import { useGetADLStatsQuery, useGetFilesByStatusQuery } from '../features/adl/adlApiSlice';
+import { useGetClinicalStatsQuery, useGetCasesBySeverityQuery, useGetCasesByDecisionQuery, useGetMyProformasQuery, useGetComplexCasesQuery } from '../features/clinical/clinicalApiSlice';
+import { useGetADLStatsQuery, useGetFilesByStatusQuery, useGetActiveFilesQuery } from '../features/adl/adlApiSlice';
 import Card from '../components/Card';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Badge from '../components/Badge';
 import Button from '../components/Button';
-import { isAdmin, isMWO, isJrSr as checkJrSr } from '../utils/constants';
+import { isAdmin, isMWO, isJrSr as checkJrSr, isSR, isJR } from '../utils/constants';
 
 // Chart components
 import {
@@ -80,24 +80,26 @@ const Dashboard = () => {
 
   const isLoading = isAdminUser ? (patientsLoading || clinicalLoading || adlLoading) : false;
 
-  // Role-specific stats for JR/SR
+  // Role-specific stats for JR/SR (Resident/Faculty)
   const isJrSr = checkJrSr(user?.role);
-  const { data: severityStats } = useGetCasesBySeverityQuery(undefined, { skip: !isJrSr });
-  const { data: decisionStats } = useGetCasesByDecisionQuery(undefined, { skip: !isJrSr });
-  const { data: myProformas } = useGetMyProformasQuery({ page: 1, limit: 5 }, { skip: !isJrSr });
+  const isResident = isJR(user?.role);
+  const isFaculty = isSR(user?.role);
+  const { data: severityStats } = useGetCasesBySeverityQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
+  const { data: decisionStats } = useGetCasesByDecisionQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
+  const { data: myProformas } = useGetMyProformasQuery({ page: 1, limit: 10 }, { skip: !isJrSr, refetchOnMountOrArgChange: true });
+  const { data: complexCases } = useGetComplexCasesQuery({ page: 1, limit: 5 }, { skip: !isJrSr, refetchOnMountOrArgChange: true });
 
   // Role-specific stats for MWO
   const isMwo = isMWO(user?.role);
-  
   const { data: outpatientStats } = useGetPatientsStatsQuery(undefined, { skip: !isMwo, refetchOnMountOrArgChange: true });
- 
-  
-  const { data: adlByStatus } = useGetFilesByStatusQuery(undefined, { skip: !isMwo });
- 
+  const { data: adlByStatus } = useGetFilesByStatusQuery(undefined, { skip: !isMwo, refetchOnMountOrArgChange: true });
   const { data: myRecords } = useGetAllPatientsQuery({ page: 1, limit: 10 }, { skip: !isMwo, refetchOnMountOrArgChange: true });
+  
+  // ADL files for JR/SR
+  const { data: activeADLFiles } = useGetActiveFilesQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
 
  
-  const sumValues = (obj) => Object.values(obj || {}).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  // Helper function removed - using direct array reduce instead
 
   // Chart data for Patient Gender Distribution
   const genderChartData = {
@@ -133,16 +135,24 @@ const Dashboard = () => {
   };
 
   // Chart data for Case Severity Distribution
+  // Note: severityStats returns array of { case_severity, count } for JR/SR
+  // For admin, use clinicalStats.data.stats which has direct counts
+  const severityStatsArray = severityStats?.data?.severityStats || [];
+  const severityMap = severityStatsArray.reduce((acc, item) => {
+    acc[item.case_severity] = parseInt(item.count, 10) || 0;
+    return acc;
+  }, {});
+  
   const severityChartData = {
     labels: ['Mild', 'Moderate', 'Severe', 'Critical'],
     datasets: [
       {
         label: 'Cases',
         data: [
-          clinicalStats?.data?.stats?.mild_cases || 0,
-          clinicalStats?.data?.stats?.moderate_cases || 0,
-          clinicalStats?.data?.stats?.severe_cases || 0,
-          clinicalStats?.data?.stats?.critical_cases || 0
+          isAdminUser ? (clinicalStats?.data?.stats?.mild_cases || 0) : (severityMap.mild || 0),
+          isAdminUser ? (clinicalStats?.data?.stats?.moderate_cases || 0) : (severityMap.moderate || 0),
+          isAdminUser ? (clinicalStats?.data?.stats?.severe_cases || 0) : (severityMap.severe || 0),
+          isAdminUser ? (clinicalStats?.data?.stats?.critical_cases || 0) : (severityMap.critical || 0)
         ],
         backgroundColor: ['#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B'],
         borderColor: ['#7C3AED', '#0891B2', '#DC2626', '#D97706'],
@@ -152,15 +162,23 @@ const Dashboard = () => {
   };
 
   // Chart data for ADL File Status Distribution
+  // Note: adlByStatus returns array of { file_status, count } for MWO
+  // For admin, use adlStats.data.stats
+  const adlStatusArray = adlByStatus?.data?.statusStats || [];
+  const adlStatusMap = adlStatusArray.reduce((acc, item) => {
+    acc[item.file_status] = parseInt(item.count, 10) || 0;
+    return acc;
+  }, {});
+  
   const adlStatusChartData = {
     labels: ['Created', 'Stored', 'Retrieved', 'Archived'],
     datasets: [
       {
         data: [
-          adlStats?.data?.stats?.created_files || 0,
-          adlStats?.data?.stats?.stored_files || 0,
-          adlStats?.data?.stats?.retrieved_files || 0,
-          adlStats?.data?.stats?.archived_files || 0
+          isAdminUser ? (adlStats?.data?.stats?.created_files || 0) : (adlStatusMap.created || 0),
+          isAdminUser ? (adlStats?.data?.stats?.stored_files || 0) : (adlStatusMap.stored || 0),
+          isAdminUser ? (adlStats?.data?.stats?.retrieved_files || 0) : (adlStatusMap.retrieved || 0),
+          isAdminUser ? (adlStats?.data?.stats?.archived_files || 0) : (adlStatusMap.archived || 0)
         ],
         backgroundColor: ['#EF4444', '#10B981', '#F59E0B', '#6B7280'],
         borderColor: ['#DC2626', '#059669', '#D97706', '#4B5563'],
@@ -226,12 +244,24 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="space-y-6 p-4 sm:p-6 lg:p-8">
 
+          {/* Welcome Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Welcome back, {user?.name || 'User'}!
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {isFaculty && 'Faculty Dashboard - Clinical Assessment & Case Management'}
+              {isResident && 'Resident Dashboard - Clinical Assessment & Case Management'}
+              {isMwo && 'MWO Dashboard - Patient Registration & Management'}
+            </p>
+          </div>
+
           {/* Role-based quick KPIs */}
           {isJrSr && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard 
-                title="My Proformas" 
-                value={myProformas?.data?.pagination?.total} 
+                title="My Clinical Proformas" 
+                value={myProformas?.data?.pagination?.total || 0} 
                 icon={FiFileText} 
                 colorClasses="from-green-500 to-green-600"
                 gradientFrom="from-green-50" 
@@ -239,8 +269,8 @@ const Dashboard = () => {
                 to="/clinical" 
               />
               <StatCard 
-                title="Cases by Severity" 
-                value={sumValues(severityStats?.data?.stats)} 
+                title="Total Cases" 
+                value={severityStatsArray.reduce((sum, item) => sum + (parseInt(item.count, 10) || 0), 0) || 0} 
                 icon={FiTrendingUp} 
                 colorClasses="from-orange-500 to-orange-600"
                 gradientFrom="from-orange-50" 
@@ -248,29 +278,29 @@ const Dashboard = () => {
                 to="/clinical" 
               />
               <StatCard 
-                title="Decisions Logged" 
-                value={sumValues(decisionStats?.data?.stats)} 
-                icon={FiClipboard} 
-                colorClasses="from-blue-500 to-blue-600"
-                gradientFrom="from-blue-50" 
-                gradientTo="to-indigo-100/50" 
-                to="/clinical" 
+                title="Complex Cases" 
+                value={complexCases?.data?.pagination?.total || 0} 
+                icon={FiAlertCircle} 
+                colorClasses="from-red-500 to-red-600"
+                gradientFrom="from-red-50" 
+                gradientTo="to-rose-100/50" 
+                to="/adl-files" 
               />
               <StatCard 
-                title="Patients" 
-                value="Browse" 
-                icon={FiUsers} 
+                title="Active ADL Files" 
+                value={activeADLFiles?.data?.files?.length || 0} 
+                icon={FiFolder} 
                 colorClasses="from-purple-500 to-purple-600"
                 gradientFrom="from-purple-50" 
                 gradientTo="to-pink-100/50" 
-                to="/patients" 
+                to="/adl-files" 
               />
             </div>
           )}
           {isMwo && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard 
-                title="Total Patients Records" 
+                title="Total Patient Records" 
                 value={outpatientStats?.data?.stats?.total_records || 0} 
                 icon={FiClipboard} 
                 colorClasses="from-blue-500 to-blue-600"
@@ -279,7 +309,7 @@ const Dashboard = () => {
                 to="/patients" 
               />
               <StatCard 
-                title="All Patients" 
+                title="Registered Patients" 
                 value={myRecords?.data?.pagination?.total || 0} 
                 icon={FiUsers} 
                 colorClasses="from-purple-500 to-purple-600"
@@ -288,13 +318,22 @@ const Dashboard = () => {
                 to="/patients" 
               />
               <StatCard 
-                title="Register New" 
-                value="+" 
-                icon={FiTrendingUp} 
+                title="Urban Patients" 
+                value={outpatientStats?.data?.stats?.urban || 0} 
+                icon={FiMapPin} 
+                colorClasses="from-green-500 to-green-600"
+                gradientFrom="from-green-50" 
+                gradientTo="to-emerald-100/50" 
+                to="/patients?locality=urban" 
+              />
+              <StatCard 
+                title="Rural Patients" 
+                value={outpatientStats?.data?.stats?.rural || 0} 
+                icon={FiMapPin} 
                 colorClasses="from-orange-500 to-orange-600"
                 gradientFrom="from-orange-50" 
                 gradientTo="to-amber-100/50" 
-                to="/patients/new" 
+                to="/patients?locality=rural" 
               />
             </div>
           )}
@@ -316,11 +355,11 @@ const Dashboard = () => {
                   <div className="h-80">
                     <Bar
                       data={{
-                        labels: Object.keys(severityStats?.data?.stats || {}),
+                        labels: severityStatsArray.map(item => item.case_severity?.charAt(0).toUpperCase() + item.case_severity?.slice(1) || 'Unknown') || [],
                         datasets: [
                           {
                             label: 'Cases',
-                            data: Object.values(severityStats?.data?.stats || {}),
+                            data: severityStatsArray.map(item => parseInt(item.count, 10) || 0) || [],
                             backgroundColor: ['#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B', '#10B981'],
                             borderColor: ['#7C3AED', '#0891B2', '#DC2626', '#D97706', '#059669'],
                             borderWidth: 2,
@@ -350,10 +389,13 @@ const Dashboard = () => {
                   <div className="h-80">
                     <Doughnut
                       data={{
-                        labels: Object.keys(decisionStats?.data?.stats || {}),
+                        labels: (decisionStats?.data?.decisionStats || []).map(item => {
+                          const decision = item.doctor_decision || '';
+                          return decision.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Unknown';
+                        }),
                         datasets: [
                           {
-                            data: Object.values(decisionStats?.data?.stats || {}),
+                            data: (decisionStats?.data?.decisionStats || []).map(item => parseInt(item.count, 10) || 0),
                             backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
                             borderColor: ['#1D4ED8', '#059669', '#D97706', '#DC2626', '#7C3AED'],
                             borderWidth: 2,
@@ -456,7 +498,7 @@ const Dashboard = () => {
           )}
 
           {/* MWO Recent Records Table with CRUD */}
-          {isMwo && myRecords?.data?.records && myRecords.data.records.length > 0 && (
+          {isMwo && (myRecords?.data?.records || myRecords?.data?.patients) && (myRecords.data.records || myRecords.data.patients || []).length > 0 && (
             <Card 
               title={
                 <div className="flex items-center gap-2">
@@ -480,7 +522,7 @@ const Dashboard = () => {
                       Patient Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      MR No
+                      CR No
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Marital Status
@@ -497,13 +539,13 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {myRecords.data.records.slice(0, 5).map((record) => (
+                  {(myRecords.data.records || myRecords.data.patients || []).slice(0, 5).map((record) => (
                     <tr key={record.id} className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {record.patient_name}
+                        {record.name || record.patient_name || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.mr_no}
+                        {record.cr_no || record.mr_no || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {record.marital_status || 'N/A'}
@@ -514,11 +556,11 @@ const Dashboard = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(record.created_at).toLocaleDateString()}
+                        {record.created_at ? new Date(record.created_at).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/patients/${record.patient_id || record.id}?edit=false`}>
+                          <Link to={`/patients/${record.id}?edit=false`}>
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -528,7 +570,7 @@ const Dashboard = () => {
                               <FiEye className="w-4 h-4 text-blue-600" />
                             </Button>
                           </Link>
-                          <Link to={`/patients/${record.patient_id || record.id}?edit=true`}>
+                          <Link to={`/patients/${record.id}?edit=true`}>
                             <Button 
                               variant="ghost" 
                               size="sm"
@@ -623,7 +665,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Patients"
-            value={patientStats?.data?.stats?.total_patients}
+            value={patientStats?.data?.stats?.total_patients || 0}
             icon={FiUsers}
             colorClasses="from-blue-500 to-blue-600"
             gradientFrom="from-blue-50"
@@ -633,7 +675,7 @@ const Dashboard = () => {
           
           <StatCard
             title="Clinical Records"
-            value={clinicalStats?.data?.stats?.total_proformas}
+            value={clinicalStats?.data?.stats?.total_proformas || 0}
             icon={FiFileText}
             colorClasses="from-green-500 to-green-600"
             gradientFrom="from-green-50"
@@ -643,7 +685,7 @@ const Dashboard = () => {
           
           <StatCard
             title="Additional Detail File"
-            value={adlStats?.data?.stats?.total_files}
+            value={adlStats?.data?.stats?.total_files || 0}
             icon={FiFolder}
             colorClasses="from-purple-500 to-purple-600"
             gradientFrom="from-purple-50"
@@ -653,12 +695,12 @@ const Dashboard = () => {
           
           <StatCard
             title="Complex Cases"
-            value={clinicalStats?.data?.stats?.complex_cases}
+            value={clinicalStats?.data?.stats?.complex_cases || 0}
             icon={FiTrendingUp}
             colorClasses="from-orange-500 to-orange-600"
             gradientFrom="from-orange-50"
             gradientTo="to-amber-100/50"
-            to="/patients?complexity=complex"
+            to="/adl-files"
           />
         </div>
 
@@ -829,13 +871,21 @@ const Dashboard = () => {
               <Badge variant="info">{patientStats?.data?.stats?.female_patients || 0}</Badge>
             </div>
             <div className="flex justify-between items-center">
+              <span className="text-gray-600">Other Patients</span>
+              <Badge variant="info">{patientStats?.data?.stats?.other_patients || 0}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
               <span className="text-gray-600">Patients with Additional Detail File</span>
               <Badge variant="success">{patientStats?.data?.stats?.patients_with_adl || 0}</Badge>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Complex Cases</span>
-              <Badge variant="warning">{clinicalStats?.data?.stats?.complex_cases || 0}</Badge>
-              </div>
+              <Badge variant="warning">{patientStats?.data?.stats?.complex_cases || 0}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Simple Cases</span>
+              <Badge variant="info">{patientStats?.data?.stats?.simple_cases || 0}</Badge>
+            </div>
             </div>
           </Card>
 
@@ -864,7 +914,23 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Cases Requiring ADL</span>
               <Badge variant="warning">{clinicalStats?.data?.stats?.cases_requiring_adl || 0}</Badge>
-              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Mild Cases</span>
+              <Badge variant="info">{clinicalStats?.data?.stats?.mild_cases || 0}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Moderate Cases</span>
+              <Badge variant="warning">{clinicalStats?.data?.stats?.moderate_cases || 0}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Severe Cases</span>
+              <Badge variant="error">{clinicalStats?.data?.stats?.severe_cases || 0}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Critical Cases</span>
+              <Badge variant="error">{clinicalStats?.data?.stats?.critical_cases || 0}</Badge>
+            </div>
             </div>
           </Card>
         </div>

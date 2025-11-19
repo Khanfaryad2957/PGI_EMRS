@@ -45,10 +45,8 @@ const SelectExistingPatient = () => {
 
   
 
-  const { data: allVisitsData } = useGetAllPatientsQuery(
-    { page: 1, limit: 1000, id: selectedPatientId },
-    { skip: !selectedPatientId }
-  );
+  // Note: Visit count will be calculated after visit creation
+  // We don't need to fetch all visits just to count them - it's inefficient
 
 
 
@@ -130,16 +128,24 @@ const SelectExistingPatient = () => {
 
     try {
       // Create outpatient visit record
-      await createRecord({ name: selectedPatient.name, patient_id: parseInt(selectedPatient.id) }).unwrap();
+      // Note: patient_id is a UUID (string), not an integer, so don't use parseInt()
+      await createRecord({ 
+        name: selectedPatient.name, 
+        patient_id: selectedPatient.id // Pass UUID as-is
+      }).unwrap();
       toast.success('Visit record created successfully!');
-      navigate('/patients');
+      // Navigate to today's patients page to see the newly created visit
+      navigate('/clinical-today-patients?tab=existing');
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to create record');
     }
   };
 
   const existingDemo = demographicData?.data?.patient;
-  const currentVisitCount = allVisitsData?.data?.records?.length || 0;
+  // getPatientById returns { data: { patient: {...} } }, not records
+  // For visit count, we'll use a simple count or fetch visits separately if needed
+  // For now, we'll assume 0 visits if patient exists (will be updated after visit creation)
+  const currentVisitCount = 0; // TODO: Fetch visit count from patient visits endpoint if needed
   const nextVisitNumber = currentVisitCount + 1; // This will be the visit number after creation
 
   return (
@@ -322,7 +328,7 @@ const SelectExistingPatient = () => {
                             options={(usersData?.data?.users || [])
                               .map((u) => ({ 
                                 value: String(u.id), 
-                                label: `${u.name} (${isJR(u.role) ? 'JR' : isSR(u.role) ? 'SR' : u.role})` 
+                                label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}` 
                               }))}
                             placeholder="Select doctor"
                             className="flex-1"

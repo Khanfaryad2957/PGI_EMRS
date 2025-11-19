@@ -1176,7 +1176,14 @@ class ADLFile {
     this.updated_at = data.updated_at;
     
     // Joined fields from patients table
-    this.patient_name = data.patient_name;
+    // IMPORTANT: patient_name comes from registered_patient table and is encrypted there
+    // We need to decrypt it separately since it's not in adlFile encryption fields
+    // The decrypt() function handles null/empty values and decryption failures gracefully
+    if (data.patient_name) {
+      this.patient_name = decrypt(data.patient_name);
+    } else {
+      this.patient_name = data.patient_name || null;
+    }
     this.cr_no = data.cr_no;
     this.psy_no = data.psy_no;
     
@@ -1186,10 +1193,11 @@ class ADLFile {
     this.last_accessed_by_name = data.last_accessed_by_name;
     
     // Joined fields from clinical_proforma table
-    this.assigned_doctor = data.assigned_doctor;
-    this.assigned_doctor_name = data.assigned_doctor_name;
-    this.assigned_doctor_role = data.assigned_doctor_role;
-    this.proforma_visit_date = data.proforma_visit_date;
+    // assigned_doctor is the ID (integer), assigned_doctor_name and assigned_doctor_role come from users table JOIN
+    this.assigned_doctor = data.assigned_doctor || null;
+    this.assigned_doctor_name = data.assigned_doctor_name || null;
+    this.assigned_doctor_role = data.assigned_doctor_role || null;
+    this.proforma_visit_date = data.proforma_visit_date || null;
     
     // Complex Case Data Fields (stored in ADL file, not in clinical_proforma)
     // History of Present Illness - Expanded
@@ -1553,35 +1561,40 @@ class ADLFile {
         encryptedAdlData.history_specific_enquiry || history_specific_enquiry, 
         encryptedAdlData.history_drug_intake || history_drug_intake, 
         encryptedAdlData.history_treatment_place || history_treatment_place, 
-        history_treatment_dates,
+        encryptedAdlData.history_treatment_dates || history_treatment_dates,
         encryptedAdlData.history_treatment_drugs || history_treatment_drugs, 
         encryptedAdlData.history_treatment_response || history_treatment_response, 
         informantsJson, 
         complaintsPatientJson, complaintsInformantJson, 
         encryptedAdlData.past_history_medical || past_history_medical, 
-        past_history_psychiatric_dates, 
+        encryptedAdlData.past_history_psychiatric_dates || past_history_psychiatric_dates, 
         encryptedAdlData.past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
         encryptedAdlData.past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
         encryptedAdlData.past_history_psychiatric_interim || past_history_psychiatric_interim, 
         encryptedAdlData.past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
-        family_history_father_age, 
-        family_history_father_education, family_history_father_occupation,
+        encryptedAdlData.family_history_father_age || family_history_father_age, 
+        encryptedAdlData.family_history_father_education || family_history_father_education, 
+        encryptedAdlData.family_history_father_occupation || family_history_father_occupation,
         encryptedAdlData.family_history_father_personality || family_history_father_personality, 
         family_history_father_deceased, 
-        family_history_father_death_age, family_history_father_death_date, 
+        encryptedAdlData.family_history_father_death_age || family_history_father_death_age, 
+        encryptedAdlData.family_history_father_death_date || family_history_father_death_date, 
         encryptedAdlData.family_history_father_death_cause || family_history_father_death_cause, 
-        family_history_mother_age, 
-        family_history_mother_education, family_history_mother_occupation,
+        encryptedAdlData.family_history_mother_age || family_history_mother_age, 
+        encryptedAdlData.family_history_mother_education || family_history_mother_education, 
+        encryptedAdlData.family_history_mother_occupation || family_history_mother_occupation,
         encryptedAdlData.family_history_mother_personality || family_history_mother_personality, 
         family_history_mother_deceased, 
-        family_history_mother_death_age, family_history_mother_death_date, 
+        encryptedAdlData.family_history_mother_death_age || family_history_mother_death_age, 
+        encryptedAdlData.family_history_mother_death_date || family_history_mother_death_date, 
         encryptedAdlData.family_history_mother_death_cause || family_history_mother_death_cause, 
         familyHistorySiblingsJson,
         encryptedAdlData.diagnostic_formulation_summary || diagnostic_formulation_summary, 
         encryptedAdlData.diagnostic_formulation_features || diagnostic_formulation_features, 
         encryptedAdlData.diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
-        premorbid_personality_passive_active, 
-        premorbid_personality_assertive, premorbid_personality_introvert_extrovert,
+        encryptedAdlData.premorbid_personality_passive_active || premorbid_personality_passive_active, 
+        encryptedAdlData.premorbid_personality_assertive || premorbid_personality_assertive, 
+        encryptedAdlData.premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
         premorbidPersonalityTraitsJson, 
         encryptedAdlData.premorbid_personality_hobbies || premorbid_personality_hobbies, 
         encryptedAdlData.premorbid_personality_habits || premorbid_personality_habits, 
@@ -1881,35 +1894,40 @@ class ADLFile {
           encryptedAdlData.history_specific_enquiry || history_specific_enquiry, 
           encryptedAdlData.history_drug_intake || history_drug_intake, 
           encryptedAdlData.history_treatment_place || history_treatment_place, 
-          history_treatment_dates,
+          encryptedAdlData.history_treatment_dates || history_treatment_dates,
           encryptedAdlData.history_treatment_drugs || history_treatment_drugs, 
           encryptedAdlData.history_treatment_response || history_treatment_response, 
           informantsJson, 
           complaintsPatientJson, complaintsInformantJson, 
           encryptedAdlData.past_history_medical || past_history_medical, 
-          past_history_psychiatric_dates, 
+          encryptedAdlData.past_history_psychiatric_dates || past_history_psychiatric_dates, 
           encryptedAdlData.past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
           encryptedAdlData.past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
           encryptedAdlData.past_history_psychiatric_interim || past_history_psychiatric_interim, 
           encryptedAdlData.past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
-          family_history_father_age, 
-          family_history_father_education, family_history_father_occupation,
+          encryptedAdlData.family_history_father_age || family_history_father_age, 
+          encryptedAdlData.family_history_father_education || family_history_father_education, 
+          encryptedAdlData.family_history_father_occupation || family_history_father_occupation,
           encryptedAdlData.family_history_father_personality || family_history_father_personality, 
           family_history_father_deceased, 
-          family_history_father_death_age, family_history_father_death_date, 
+          encryptedAdlData.family_history_father_death_age || family_history_father_death_age, 
+          encryptedAdlData.family_history_father_death_date || family_history_father_death_date, 
           encryptedAdlData.family_history_father_death_cause || family_history_father_death_cause, 
-          family_history_mother_age, 
-          family_history_mother_education, family_history_mother_occupation,
+          encryptedAdlData.family_history_mother_age || family_history_mother_age, 
+          encryptedAdlData.family_history_mother_education || family_history_mother_education, 
+          encryptedAdlData.family_history_mother_occupation || family_history_mother_occupation,
           encryptedAdlData.family_history_mother_personality || family_history_mother_personality, 
           family_history_mother_deceased, 
-          family_history_mother_death_age, family_history_mother_death_date, 
+          encryptedAdlData.family_history_mother_death_age || family_history_mother_death_age, 
+          encryptedAdlData.family_history_mother_death_date || family_history_mother_death_date, 
           encryptedAdlData.family_history_mother_death_cause || family_history_mother_death_cause, 
           familyHistorySiblingsJson,
           encryptedAdlData.diagnostic_formulation_summary || diagnostic_formulation_summary, 
           encryptedAdlData.diagnostic_formulation_features || diagnostic_formulation_features, 
           encryptedAdlData.diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
-          premorbid_personality_passive_active, 
-          premorbid_personality_assertive, premorbid_personality_introvert_extrovert,
+          encryptedAdlData.premorbid_personality_passive_active || premorbid_personality_passive_active, 
+          encryptedAdlData.premorbid_personality_assertive || premorbid_personality_assertive, 
+          encryptedAdlData.premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
           premorbidPersonalityTraitsJson, 
           encryptedAdlData.premorbid_personality_hobbies || premorbid_personality_hobbies, 
           encryptedAdlData.premorbid_personality_habits || premorbid_personality_habits, 
@@ -1975,20 +1993,24 @@ class ADLFile {
           encryptedAdlData.mse_cognitive_proverbs || mse_cognitive_proverbs, 
           encryptedAdlData.mse_insight_understanding || mse_insight_understanding, 
           encryptedAdlData.mse_insight_judgement || mse_insight_judgement, 
-          education_start_age, education_highest_class, 
+          encryptedAdlData.education_start_age || education_start_age, 
+          encryptedAdlData.education_highest_class || education_highest_class, 
           encryptedAdlData.education_performance || education_performance, 
           encryptedAdlData.education_disciplinary || education_disciplinary, 
           encryptedAdlData.education_peer_relationship || education_peer_relationship, 
           encryptedAdlData.education_hobbies || education_hobbies, 
           encryptedAdlData.education_special_abilities || education_special_abilities, 
           encryptedAdlData.education_discontinue_reason || education_discontinue_reason,
-          occupationJobsJson, sexual_menarche_age, 
+          occupationJobsJson, 
+          encryptedAdlData.sexual_menarche_age || sexual_menarche_age, 
           encryptedAdlData.sexual_menarche_reaction || sexual_menarche_reaction, 
           encryptedAdlData.sexual_education || sexual_education, 
           encryptedAdlData.sexual_masturbation || sexual_masturbation, 
           encryptedAdlData.sexual_contact || sexual_contact, 
           encryptedAdlData.sexual_premarital_extramarital || sexual_premarital_extramarital, 
-          sexual_marriage_arranged, sexual_marriage_date, sexual_spouse_age, 
+          encryptedAdlData.sexual_marriage_arranged || sexual_marriage_arranged, 
+          encryptedAdlData.sexual_marriage_date || sexual_marriage_date, 
+          encryptedAdlData.sexual_spouse_age || sexual_spouse_age, 
           encryptedAdlData.sexual_spouse_occupation || sexual_spouse_occupation, 
           encryptedAdlData.sexual_adjustment_general || sexual_adjustment_general, 
           encryptedAdlData.sexual_adjustment_sexual || sexual_adjustment_sexual,
@@ -2008,14 +2030,16 @@ class ADLFile {
           encryptedAdlData.home_situation_parents_relationship || home_situation_parents_relationship,
           encryptedAdlData.home_situation_socioeconomic || home_situation_socioeconomic, 
           encryptedAdlData.home_situation_interpersonal || home_situation_interpersonal, 
-          personal_birth_date, 
+          encryptedAdlData.personal_birth_date || personal_birth_date, 
           encryptedAdlData.personal_birth_place || personal_birth_place, 
           encryptedAdlData.personal_delivery_type || personal_delivery_type, 
           encryptedAdlData.personal_complications_prenatal || personal_complications_prenatal, 
           encryptedAdlData.personal_complications_natal || personal_complications_natal, 
           encryptedAdlData.personal_complications_postnatal || personal_complications_postnatal,
-          development_weaning_age, development_first_words, development_three_words, 
-          development_walking, 
+          encryptedAdlData.development_weaning_age || development_weaning_age, 
+          encryptedAdlData.development_first_words || development_first_words, 
+          encryptedAdlData.development_three_words || development_three_words, 
+          encryptedAdlData.development_walking || development_walking, 
           encryptedAdlData.development_neurotic_traits || development_neurotic_traits, 
           encryptedAdlData.development_nail_biting || development_nail_biting, 
           encryptedAdlData.development_bedwetting || development_bedwetting, 
@@ -2474,8 +2498,13 @@ class ADLFile {
           } else if (dateFields.includes(key)) {
             // Sanitize date fields - convert empty strings to null
             const sanitizedDate = sanitizeDateField(value);
+            // Encrypt date fields if they are in the encryption fields list
+            let finalDateValue = sanitizedDate;
+            if (encryptionFields.adlFile.includes(key) && finalDateValue !== null && finalDateValue !== undefined && finalDateValue !== '') {
+              finalDateValue = encrypt(finalDateValue);
+            }
             updates.push(`${key} = $${paramCount}`);
-            values.push(sanitizedDate);
+            values.push(finalDateValue);
           } else {
             // For non-JSONB, non-date fields, allow null and empty strings
             // Encrypt sensitive fields before saving

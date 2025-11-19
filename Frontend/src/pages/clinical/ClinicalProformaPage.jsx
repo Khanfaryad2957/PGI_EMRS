@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FiPlus, FiSearch, FiEdit, FiTrash2, FiEye, FiRefreshCw, FiUsers } from 'react-icons/fi';
@@ -14,6 +14,31 @@ import Pagination from '../../components/Pagination';
 import Badge from '../../components/Badge';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { formatDate } from '../../utils/formatters';
+import { formatEncryptedField, checkEncryptedFields } from '../../utils/encryptionDetection';
+
+/**
+ * NOTE: All encrypted fields are automatically decrypted by the backend
+ * before being sent to the frontend. The ClinicalProforma model constructor
+ * decrypts sensitive fields (diagnosis, gpe, past_history, family_history, etc.)
+ * using AES-256-GCM decryption. No encrypted data should appear in the UI.
+ * 
+ * If encrypted data is detected, it indicates a backend decryption issue.
+ * This component includes detection and warning indicators for such cases.
+ * 
+ * Encrypted fields that are decrypted server-side:
+ * - diagnosis
+ * - gpe
+ * - past_history
+ * - family_history
+ * - treatment_prescribed
+ * - precipitating_factor
+ * - illness_duration
+ * - current_episode_since
+ * - mse_delusions
+ * - disposal
+ * - referred_to
+ * - adl_reasoning
+ */
 
 const ClinicalProformaPage = () => {
   const [page, setPage] = useState(1);
@@ -39,18 +64,65 @@ const ClinicalProformaPage = () => {
     }
   };
 
+  // Check for encrypted data in the proformas list (log warnings, don't spam toasts)
+  useEffect(() => {
+    if (data?.data?.proformas) {
+      const encryptedProformas = [];
+      data.data.proformas.forEach((proforma) => {
+        const check = checkEncryptedFields(proforma);
+        if (check.hasEncrypted) {
+          encryptedProformas.push({ id: proforma.id, fields: check.encryptedFields });
+          console.error(`[ClinicalProformaPage] Encrypted fields detected in proforma ${proforma.id}:`, check.encryptedFields);
+        }
+      });
+      
+      // Show a single warning if any encrypted data is detected
+      if (encryptedProformas.length > 0) {
+        const count = encryptedProformas.length;
+        console.warn(`[ClinicalProformaPage] ${count} proforma(s) contain encrypted data that failed to decrypt. This indicates a backend decryption issue.`);
+        // Only show toast if there are encrypted proformas (not too intrusive)
+        if (count <= 3) {
+          toast.warning(
+            `${count} proforma(s) contain encrypted data. Please contact administrator.`,
+            { autoClose: 7000 }
+          );
+        }
+      }
+    }
+  }, [data]);
+
   const columns = [
     {
       header: 'Patient',
       accessor: 'patient_name',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center">
-            <FiUsers className="w-4 h-4 text-blue-600" />
+      render: (row) => {
+        // Format patient_name (should be decrypted by backend, but handle encrypted as fallback)
+        const patientNameFormatted = formatEncryptedField(row.patient_name, 'patient_name');
+        const hasEncrypted = checkEncryptedFields(row).hasEncrypted;
+        
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center">
+              <FiUsers className="w-4 h-4 text-blue-600" />
+            </div>
+            {patientNameFormatted.isEncrypted ? (
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-red-600 italic">{patientNameFormatted.display}</span>
+                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded" title="Patient name decryption failed - backend issue">
+                  ⚠️
+                </span>
+              </div>
+            ) : (
+              <span className="font-medium text-gray-900">{patientNameFormatted.display}</span>
+            )}
+            {hasEncrypted && !patientNameFormatted.isEncrypted && (
+              <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded" title="This record contains encrypted data in other fields">
+                🔒
+              </span>
+            )}
           </div>
-          <span className="font-medium text-gray-900">{row.patient_name || 'N/A'}</span>
-        </div>
-      ),
+        );
+      },
     },
     {
       header: 'Visit Date',
@@ -66,7 +138,23 @@ const ClinicalProformaPage = () => {
     },
     {
       header: 'Diagnosis',
-      render: (row) => row.diagnosis || 'Not specified',
+      render: (row) => {
+        // Check if diagnosis is encrypted and format accordingly
+        const formatted = formatEncryptedField(row.diagnosis, 'diagnosis');
+        
+        if (formatted.isEncrypted) {
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-red-600 font-medium italic">{formatted.display}</span>
+              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded" title="Backend decryption failed - please contact administrator">
+                ⚠️
+              </span>
+            </div>
+          );
+        }
+        
+        return <span>{formatted.display}</span>;
+      },
     },
     {
       header: 'Severity',

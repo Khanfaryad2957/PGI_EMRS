@@ -1013,16 +1013,54 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       : null;
   });
 
+  // Update selectedProformaId when patientProformas loads (handles async data loading)
+  useEffect(() => {
+    if (patientProformas.length > 0 && !selectedProformaId) {
+      // If we don't have a selected proforma yet, select the first one
+      const firstProformaId = patientProformas[0]?.id;
+      if (firstProformaId) {
+        console.log('[PatientDetailsEdit] Setting selectedProformaId from patientProformas:', firstProformaId);
+        setSelectedProformaId(firstProformaId.toString());
+      }
+    } else if (patientProformas.length > 0 && selectedProformaId) {
+      // Verify the selected proforma still exists in the list
+      const proformaExists = patientProformas.some(p => p.id?.toString() === selectedProformaId);
+      if (!proformaExists && patientProformas[0]?.id) {
+        // If selected proforma no longer exists, select the first one
+        console.log('[PatientDetailsEdit] Selected proforma no longer exists, selecting first:', patientProformas[0].id);
+        setSelectedProformaId(patientProformas[0].id.toString());
+      }
+    }
+  }, [patientProformas, selectedProformaId]);
+
   // Fetch selected proforma data for editing
   const {
     data: selectedProformaData,
-    isLoading: isLoadingSelectedProforma
+    isLoading: isLoadingSelectedProforma,
+    refetch: refetchSelectedProforma
   } = useGetClinicalProformaByIdQuery(
     selectedProformaId,
-    { skip: !selectedProformaId }
+    { 
+      skip: !selectedProformaId,
+      refetchOnMountOrArgChange: true // Always refetch when ID changes
+    }
   );
 
-  const selectedProforma = selectedProformaData?.data?.proforma;
+  const selectedProforma = selectedProformaData?.data?.proforma || selectedProformaData?.data?.clinical_proforma;
+  
+  // Debug logging for selected proforma
+  useEffect(() => {
+    if (selectedProforma) {
+      console.log('[PatientDetailsEdit] Selected proforma loaded:', {
+        id: selectedProforma.id,
+        hasDiagnosis: !!selectedProforma.diagnosis,
+        hasGpe: !!selectedProforma.gpe,
+        hasPastHistory: !!selectedProforma.past_history,
+        doctor_decision: selectedProforma.doctor_decision,
+        visit_date: selectedProforma.visit_date
+      });
+    }
+  }, [selectedProforma]);
 
   // Debug logging to help troubleshoot ADL data (after all variables are defined)
   useEffect(() => {
@@ -1100,84 +1138,260 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
   console.log(">>>>", patient)
   // Initialize form data from patient and formData props
+  // Use a function to ensure we get the latest patient data on initialization
   const [formData, setFormData] = useState(() => {
+    // Helper to safely get value
+    const getVal = (val, fallback = '') => {
+      if (val === null || val === undefined) return fallback;
+      return val;
+    };
+    
     // Merge patient data with initialFormData, prioritizing patient data
     const merged = {
-      // Basic info
-      name: patient?.name || initialFormData?.name || '',
-      sex: patient?.sex || initialFormData?.sex || '',
-      age: patient?.age || initialFormData?.age || '',
-      cr_no: patient?.cr_no || initialFormData?.cr_no || '',
-      psy_no: patient?.psy_no || initialFormData?.psy_no || '',
-      special_clinic_no: patient?.special_clinic_no || initialFormData?.special_clinic_no || '',
-      contact_number: patient?.contact_number || initialFormData?.contact_number || '',
-      father_name: patient?.father_name || initialFormData?.father_name || '',
-
-      category: patient?.category || initialFormData?.category || '',
+      // Basic info - use patient data first, then initialFormData, then empty string
+      name: getVal(patient?.name, getVal(initialFormData?.name)),
+      sex: getVal(patient?.sex, getVal(initialFormData?.sex)),
+      age: getVal(patient?.age, getVal(initialFormData?.age)),
+      cr_no: getVal(patient?.cr_no, getVal(initialFormData?.cr_no)),
+      psy_no: getVal(patient?.psy_no, getVal(initialFormData?.psy_no)),
+      special_clinic_no: getVal(patient?.special_clinic_no, getVal(initialFormData?.special_clinic_no)),
+      contact_number: getVal(patient?.contact_number, getVal(initialFormData?.contact_number)),
+      father_name: getVal(patient?.father_name, getVal(initialFormData?.father_name)),
+      category: getVal(patient?.category, getVal(initialFormData?.category)),
 
       // Dates
-      date: patient?.date || initialFormData?.date || '',
-      seen_in_walk_in_on: patient?.seen_in_walk_in_on || initialFormData?.seen_in_walk_in_on || '',
-      worked_up_on: patient?.worked_up_on || initialFormData?.worked_up_on || '',
+      date: getVal(patient?.date, getVal(initialFormData?.date)),
+      seen_in_walk_in_on: getVal(patient?.seen_in_walk_in_on, getVal(initialFormData?.seen_in_walk_in_on)),
+      worked_up_on: getVal(patient?.worked_up_on, getVal(initialFormData?.worked_up_on)),
 
       // Quick Entry
-      department: patient?.department || initialFormData?.department || '',
-      unit_consit: patient?.unit_consit || initialFormData?.unit_consit || '',
-      room_no: patient?.room_no || initialFormData?.room_no || '',
-      serial_no: patient?.serial_no || initialFormData?.serial_no || '',
-      file_no: patient?.file_no || initialFormData?.file_no || '',
-      unit_days: patient?.unit_days || initialFormData?.unit_days || '',
+      department: getVal(patient?.department, getVal(initialFormData?.department)),
+      unit_consit: getVal(patient?.unit_consit, getVal(initialFormData?.unit_consit)),
+      room_no: getVal(patient?.room_no, getVal(initialFormData?.room_no)),
+      serial_no: getVal(patient?.serial_no, getVal(initialFormData?.serial_no)),
+      file_no: getVal(patient?.file_no, getVal(initialFormData?.file_no)),
+      unit_days: getVal(patient?.unit_days, getVal(initialFormData?.unit_days)),
 
       // Personal Information
-      age_group: patient?.age_group || initialFormData?.age_group || '',
-      marital_status: patient?.marital_status || initialFormData?.marital_status || '',
-      year_of_marriage: patient?.year_of_marriage || initialFormData?.year_of_marriage || '',
-      no_of_children_male: patient?.no_of_children_male || initialFormData?.no_of_children_male || '',
-      no_of_children_female: patient?.no_of_children_female || initialFormData?.no_of_children_female || '',
+      age_group: getVal(patient?.age_group, getVal(initialFormData?.age_group)),
+      marital_status: getVal(patient?.marital_status, getVal(initialFormData?.marital_status)),
+      year_of_marriage: getVal(patient?.year_of_marriage, getVal(initialFormData?.year_of_marriage)),
+      no_of_children_male: getVal(patient?.no_of_children_male, getVal(initialFormData?.no_of_children_male)),
+      no_of_children_female: getVal(patient?.no_of_children_female, getVal(initialFormData?.no_of_children_female)),
 
       // Occupation & Education
-      occupation: patient?.occupation || initialFormData?.occupation || '',
-      occupation_other: patient?.occupation_other || initialFormData?.occupation_other || '',
-      education: patient?.education || initialFormData?.education || '',
-      locality: patient?.locality || initialFormData?.locality || '',
-      locality_other: patient?.locality_other || initialFormData?.locality_other || '',
-      income: patient?.income || initialFormData?.income || '',
-      religion: patient?.religion || initialFormData?.religion || '',
-      religion_other: patient?.religion_other || initialFormData?.religion_other || '',
-      family_type: patient?.family_type || initialFormData?.family_type || '',
-      family_type_other: patient?.family_type_other || initialFormData?.family_type_other || '',
+      occupation: getVal(patient?.occupation, getVal(initialFormData?.occupation)),
+      occupation_other: getVal(patient?.occupation_other, getVal(initialFormData?.occupation_other)),
+      education: getVal(patient?.education, getVal(initialFormData?.education)),
+      locality: getVal(patient?.locality, getVal(initialFormData?.locality)),
+      locality_other: getVal(patient?.locality_other, getVal(initialFormData?.locality_other)),
+      income: getVal(patient?.income, getVal(initialFormData?.income)),
+      religion: getVal(patient?.religion, getVal(initialFormData?.religion)),
+      religion_other: getVal(patient?.religion_other, getVal(initialFormData?.religion_other)),
+      family_type: getVal(patient?.family_type, getVal(initialFormData?.family_type)),
+      family_type_other: getVal(patient?.family_type_other, getVal(initialFormData?.family_type_other)),
 
       // Head of Family
-      head_name: patient?.head_name || initialFormData?.head_name || '',
-      head_age: patient?.head_age || initialFormData?.head_age || '',
-      head_relationship: patient?.head_relationship || initialFormData?.head_relationship || '',
-      head_relationship_other: patient?.head_relationship_other || initialFormData?.head_relationship_other || '',
-      head_education: patient?.head_education || initialFormData?.head_education || '',
-      head_occupation: patient?.head_occupation || initialFormData?.head_occupation || '',
-      head_income: patient?.head_income || initialFormData?.head_income || '',
+      head_name: getVal(patient?.head_name, getVal(initialFormData?.head_name)),
+      head_age: getVal(patient?.head_age, getVal(initialFormData?.head_age)),
+      head_relationship: getVal(patient?.head_relationship, getVal(initialFormData?.head_relationship)),
+      head_relationship_other: getVal(patient?.head_relationship_other, getVal(initialFormData?.head_relationship_other)),
+      head_education: getVal(patient?.head_education, getVal(initialFormData?.head_education)),
+      head_occupation: getVal(patient?.head_occupation, getVal(initialFormData?.head_occupation)),
+      head_income: getVal(patient?.head_income, getVal(initialFormData?.head_income)),
 
       // Referral & Mobility
-      distance_from_hospital: patient?.distance_from_hospital || initialFormData?.distance_from_hospital || '',
-      mobility: patient?.mobility || initialFormData?.mobility || '',
-      mobility_other: patient?.mobility_other || initialFormData?.mobility_other || '',
-      referred_by: patient?.referred_by || initialFormData?.referred_by || '',
-      referred_by_other: patient?.referred_by_other || initialFormData?.referred_by_other || '',
+      distance_from_hospital: getVal(patient?.distance_from_hospital, getVal(initialFormData?.distance_from_hospital)),
+      mobility: getVal(patient?.mobility, getVal(initialFormData?.mobility)),
+      mobility_other: getVal(patient?.mobility_other, getVal(initialFormData?.mobility_other)),
+      referred_by: getVal(patient?.referred_by, getVal(initialFormData?.referred_by)),
+      referred_by_other: getVal(patient?.referred_by_other, getVal(initialFormData?.referred_by_other)),
 
       // Address
-      address_line: patient?.address_line || initialFormData?.address_line || '',
-      country: patient?.country || initialFormData?.country || '',
-      state: patient?.state || initialFormData?.state || '',
-      district: patient?.district || initialFormData?.district || '',
-      city: patient?.city || initialFormData?.city || '',
-      pin_code: patient?.pin_code || initialFormData?.pin_code || '',
+      address_line: getVal(patient?.address_line, getVal(initialFormData?.address_line)),
+      country: getVal(patient?.country, getVal(initialFormData?.country)),
+      state: getVal(patient?.state, getVal(initialFormData?.state)),
+      district: getVal(patient?.district, getVal(initialFormData?.district)),
+      city: getVal(patient?.city, getVal(initialFormData?.city)),
+      pin_code: getVal(patient?.pin_code, getVal(initialFormData?.pin_code)),
+
+      // Permanent Address fields
+      permanent_address_line_1: getVal(patient?.permanent_address_line_1, getVal(initialFormData?.permanent_address_line_1)),
+      permanent_city_town_village: getVal(patient?.permanent_city_town_village, getVal(initialFormData?.permanent_city_town_village)),
+      permanent_district: getVal(patient?.permanent_district, getVal(initialFormData?.permanent_district)),
+      permanent_state: getVal(patient?.permanent_state, getVal(initialFormData?.permanent_state)),
+      permanent_pin_code: getVal(patient?.permanent_pin_code, getVal(initialFormData?.permanent_pin_code)),
+      permanent_country: getVal(patient?.permanent_country, getVal(initialFormData?.permanent_country)),
+      
+      // Present Address fields
+      present_address_line_1: getVal(patient?.present_address_line_1, getVal(initialFormData?.present_address_line_1)),
+      present_city_town_village: getVal(patient?.present_city_town_village, getVal(initialFormData?.present_city_town_village)),
+      present_district: getVal(patient?.present_district, getVal(initialFormData?.present_district)),
+      present_state: getVal(patient?.present_state, getVal(initialFormData?.present_state)),
+      present_pin_code: getVal(patient?.present_pin_code, getVal(initialFormData?.present_pin_code)),
+      present_country: getVal(patient?.present_country, getVal(initialFormData?.present_country)),
+      
+      // Local Address field
+      local_address: getVal(patient?.local_address, getVal(initialFormData?.local_address)),
 
       // Assignment
-      assigned_doctor_id: patient?.assigned_doctor_id ? String(patient.assigned_doctor_id) : initialFormData?.assigned_doctor_id || '',
-      assigned_doctor_name: patient?.assigned_doctor_name || initialFormData?.assigned_doctor_name || '',
-      assigned_room: patient?.assigned_room || initialFormData?.assigned_room || '',
+      assigned_doctor_id: patient?.assigned_doctor_id ? String(patient.assigned_doctor_id) : getVal(initialFormData?.assigned_doctor_id),
+      assigned_doctor_name: getVal(patient?.assigned_doctor_name, getVal(initialFormData?.assigned_doctor_name)),
+      assigned_room: getVal(patient?.assigned_room, getVal(initialFormData?.assigned_room)),
     };
     return merged;
   });
+
+  // Update form data when patient prop changes (handles cases where patient loads after initial render)
+  // This ensures ALL existing data is populated when editing
+  useEffect(() => {
+    if (patient && (patient.id || Object.keys(patient).length > 0)) {
+      console.log('[PatientDetailsEdit] Patient prop updated, syncing ALL form data:', patient);
+      setFormData(prev => {
+        // Populate ALL fields from patient data, handling null/undefined values
+        // Use patient value if available (even if null), otherwise keep previous value
+        const updated = { ...prev };
+        
+        // Helper to safely get value (handles null, undefined, empty string)
+        const getValue = (val, fallback = '') => {
+          if (val === null || val === undefined) return fallback;
+          return val;
+        };
+        
+        // Basic info - always update if patient has these fields
+        if ('name' in patient) updated.name = getValue(patient.name);
+        if ('sex' in patient) updated.sex = getValue(patient.sex);
+        if ('age' in patient) updated.age = getValue(patient.age);
+        if ('cr_no' in patient) updated.cr_no = getValue(patient.cr_no);
+        if ('psy_no' in patient) updated.psy_no = getValue(patient.psy_no);
+        if ('special_clinic_no' in patient) updated.special_clinic_no = getValue(patient.special_clinic_no);
+        if ('contact_number' in patient) updated.contact_number = getValue(patient.contact_number);
+        if ('father_name' in patient) updated.father_name = getValue(patient.father_name);
+        if ('category' in patient) updated.category = getValue(patient.category);
+        
+        // Dates
+        if ('date' in patient) updated.date = getValue(patient.date);
+        if ('seen_in_walk_in_on' in patient) updated.seen_in_walk_in_on = getValue(patient.seen_in_walk_in_on);
+        if ('worked_up_on' in patient) updated.worked_up_on = getValue(patient.worked_up_on);
+        
+        // Quick Entry fields
+        if ('department' in patient) updated.department = getValue(patient.department);
+        if ('unit_consit' in patient) updated.unit_consit = getValue(patient.unit_consit);
+        if ('room_no' in patient) updated.room_no = getValue(patient.room_no);
+        if ('serial_no' in patient) updated.serial_no = getValue(patient.serial_no);
+        if ('file_no' in patient) updated.file_no = getValue(patient.file_no);
+        if ('unit_days' in patient) updated.unit_days = getValue(patient.unit_days);
+        
+        // Personal Information
+        if ('age_group' in patient) updated.age_group = getValue(patient.age_group);
+        if ('marital_status' in patient) updated.marital_status = getValue(patient.marital_status);
+        if ('year_of_marriage' in patient) updated.year_of_marriage = getValue(patient.year_of_marriage);
+        if ('no_of_children_male' in patient) updated.no_of_children_male = getValue(patient.no_of_children_male);
+        if ('no_of_children_female' in patient) updated.no_of_children_female = getValue(patient.no_of_children_female);
+        
+        // Occupation & Education
+        if ('occupation' in patient) updated.occupation = getValue(patient.occupation);
+        if ('occupation_other' in patient) {
+          updated.occupation_other = getValue(patient.occupation_other);
+          // Sync custom occupation value state
+          if (patient.occupation_other) {
+            setOccupationOther(patient.occupation_other);
+          }
+        }
+        if ('education' in patient) updated.education = getValue(patient.education);
+        if ('locality' in patient) updated.locality = getValue(patient.locality);
+        if ('locality_other' in patient) {
+          updated.locality_other = getValue(patient.locality_other);
+          if (patient.locality_other) {
+            setLocalityOther(patient.locality_other);
+          }
+        }
+        if ('income' in patient) updated.income = getValue(patient.income);
+        if ('religion' in patient) updated.religion = getValue(patient.religion);
+        if ('religion_other' in patient) {
+          updated.religion_other = getValue(patient.religion_other);
+          if (patient.religion_other) {
+            setReligionOther(patient.religion_other);
+          }
+        }
+        if ('family_type' in patient) updated.family_type = getValue(patient.family_type);
+        if ('family_type_other' in patient) {
+          updated.family_type_other = getValue(patient.family_type_other);
+          if (patient.family_type_other) {
+            setFamilyTypeOther(patient.family_type_other);
+          }
+        }
+        
+        // Head of Family
+        if ('head_name' in patient) updated.head_name = getValue(patient.head_name);
+        if ('head_age' in patient) updated.head_age = getValue(patient.head_age);
+        if ('head_relationship' in patient) updated.head_relationship = getValue(patient.head_relationship);
+        if ('head_relationship_other' in patient) {
+          updated.head_relationship_other = getValue(patient.head_relationship_other);
+          if (patient.head_relationship_other) {
+            setHeadRelationshipOther(patient.head_relationship_other);
+          }
+        }
+        if ('head_education' in patient) updated.head_education = getValue(patient.head_education);
+        if ('head_occupation' in patient) updated.head_occupation = getValue(patient.head_occupation);
+        if ('head_income' in patient) updated.head_income = getValue(patient.head_income);
+        
+        // Referral & Mobility
+        if ('distance_from_hospital' in patient) updated.distance_from_hospital = getValue(patient.distance_from_hospital);
+        if ('mobility' in patient) updated.mobility = getValue(patient.mobility);
+        if ('mobility_other' in patient) {
+          updated.mobility_other = getValue(patient.mobility_other);
+          if (patient.mobility_other) {
+            setMobilityOther(patient.mobility_other);
+          }
+        }
+        if ('referred_by' in patient) updated.referred_by = getValue(patient.referred_by);
+        if ('referred_by_other' in patient) {
+          updated.referred_by_other = getValue(patient.referred_by_other);
+          if (patient.referred_by_other) {
+            setReferredByOther(patient.referred_by_other);
+          }
+        }
+        
+        // Address
+        if ('address_line' in patient) updated.address_line = getValue(patient.address_line);
+        if ('country' in patient) updated.country = getValue(patient.country);
+        if ('state' in patient) updated.state = getValue(patient.state);
+        if ('district' in patient) updated.district = getValue(patient.district);
+        if ('city' in patient) updated.city = getValue(patient.city);
+        if ('pin_code' in patient) updated.pin_code = getValue(patient.pin_code);
+        
+        // Permanent Address
+        if ('permanent_address_line_1' in patient) updated.permanent_address_line_1 = getValue(patient.permanent_address_line_1);
+        if ('permanent_city_town_village' in patient) updated.permanent_city_town_village = getValue(patient.permanent_city_town_village);
+        if ('permanent_district' in patient) updated.permanent_district = getValue(patient.permanent_district);
+        if ('permanent_state' in patient) updated.permanent_state = getValue(patient.permanent_state);
+        if ('permanent_pin_code' in patient) updated.permanent_pin_code = getValue(patient.permanent_pin_code);
+        if ('permanent_country' in patient) updated.permanent_country = getValue(patient.permanent_country);
+        
+        // Present Address
+        if ('present_address_line_1' in patient) updated.present_address_line_1 = getValue(patient.present_address_line_1);
+        if ('present_city_town_village' in patient) updated.present_city_town_village = getValue(patient.present_city_town_village);
+        if ('present_district' in patient) updated.present_district = getValue(patient.present_district);
+        if ('present_state' in patient) updated.present_state = getValue(patient.present_state);
+        if ('present_pin_code' in patient) updated.present_pin_code = getValue(patient.present_pin_code);
+        if ('present_country' in patient) updated.present_country = getValue(patient.present_country);
+        
+        // Local Address
+        if ('local_address' in patient) updated.local_address = getValue(patient.local_address);
+        
+        // Assignment
+        if ('assigned_doctor_id' in patient) {
+          updated.assigned_doctor_id = patient.assigned_doctor_id ? String(patient.assigned_doctor_id) : '';
+        }
+        if ('assigned_doctor_name' in patient) updated.assigned_doctor_name = getValue(patient.assigned_doctor_name);
+        if ('assigned_room' in patient) updated.assigned_room = getValue(patient.assigned_room);
+        
+        console.log('[PatientDetailsEdit] Form data synced with patient data');
+        return updated;
+      });
+    }
+  }, [patient, patient?.id]); // Include patient.id to ensure it triggers when patient data loads
 
   // State declarations
   const [errors, setErrors] = useState({});
@@ -1604,6 +1818,25 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         district: formData.district || null,
         city: formData.city || null,
         pin_code: formData.pin_code || null,
+
+        // Permanent Address fields
+        permanent_address_line_1: formData.permanent_address_line_1 || null,
+        permanent_city_town_village: formData.permanent_city_town_village || null,
+        permanent_district: formData.permanent_district || null,
+        permanent_state: formData.permanent_state || null,
+        permanent_pin_code: formData.permanent_pin_code || null,
+        permanent_country: formData.permanent_country || null,
+        
+        // Present Address fields
+        present_address_line_1: formData.present_address_line_1 || null,
+        present_city_town_village: formData.present_city_town_village || null,
+        present_district: formData.present_district || null,
+        present_state: formData.present_state || null,
+        present_pin_code: formData.present_pin_code || null,
+        present_country: formData.present_country || null,
+        
+        // Local Address field
+        local_address: formData.local_address || null,
 
         // Additional fields
         category: formData.category || null,
@@ -2188,7 +2421,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           options={(usersData?.data?.users || [])
                             .map(u => ({
                               value: String(u.id),
-                              label: `${u.name} (${isJR(u.role) ? 'JR' : isSR(u.role) ? 'SR' : u.role})`
+                              label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
                             }))}
                           placeholder="Select doctor (optional)"
                           searchable={true}
@@ -2364,12 +2597,30 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       {/* Card 1: Clinical Proforma - Show only if current user is Admin, JR, or SR */}
       {canViewClinicalProforma && (
         <EditClinicalProforma
+          key={selectedProforma?.id || 'new-proforma'} // Force re-render when selectedProforma changes
           initialData={selectedProforma ? {
             // Pass full existing proforma data if available
             ...selectedProforma,
             patient_id: selectedProforma.patient_id?.toString() || patient?.id?.toString() || '',
-            visit_date: selectedProforma.visit_date ? selectedProforma.visit_date.split('T')[0] : new Date().toISOString().split('T')[0],
+            visit_date: selectedProforma.visit_date ? (selectedProforma.visit_date.includes('T') ? selectedProforma.visit_date.split('T')[0] : selectedProforma.visit_date) : new Date().toISOString().split('T')[0],
             assigned_doctor: selectedProforma.assigned_doctor?.toString() || patient?.assigned_doctor_id?.toString() || '',
+            // Ensure all fields are passed, even if null/undefined
+            onset_duration: selectedProforma.onset_duration || '',
+            course: selectedProforma.course || '',
+            precipitating_factor: selectedProforma.precipitating_factor || '',
+            illness_duration: selectedProforma.illness_duration || '',
+            current_episode_since: selectedProforma.current_episode_since || '',
+            past_history: selectedProforma.past_history || '',
+            family_history: selectedProforma.family_history || '',
+            gpe: selectedProforma.gpe || '',
+            diagnosis: selectedProforma.diagnosis || '',
+            icd_code: selectedProforma.icd_code || '',
+            disposal: selectedProforma.disposal || '',
+            workup_appointment: selectedProforma.workup_appointment || '',
+            referred_to: selectedProforma.referred_to || '',
+            treatment_prescribed: selectedProforma.treatment_prescribed || '',
+            mse_delusions: selectedProforma.mse_delusions || '',
+            adl_reasoning: selectedProforma.adl_reasoning || '',
           } : {
             // Default data for new proforma
             patient_id: patient?.id?.toString() || '',

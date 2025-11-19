@@ -433,19 +433,48 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   const initialFormData = useMemo(() => {
     // If initialData prop is provided, use it (merge with defaults)
     if (propInitialData) {
+      console.log('[EditClinicalProforma] Preparing initialFormData from propInitialData:', {
+        hasId: !!propInitialData.id,
+        hasDiagnosis: !!propInitialData.diagnosis,
+        hasGpe: !!propInitialData.gpe,
+        hasPastHistory: !!propInitialData.past_history,
+        doctor_decision: propInitialData.doctor_decision,
+        case_severity: propInitialData.case_severity
+      });
+      
+      // Helper to get value, preserving null/undefined but defaulting empty strings
+      const getValue = (val, fallback = '') => {
+        if (val === null || val === undefined) return fallback;
+        if (typeof val === 'string' && val.trim() === '') return fallback;
+        return val;
+      };
+      
+      // Helper to format date
+      const formatDate = (dateVal) => {
+        if (!dateVal) return new Date().toISOString().split('T')[0];
+        if (typeof dateVal === 'string') {
+          // If it's already in YYYY-MM-DD format, return as-is
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return dateVal;
+          // If it's a full ISO string, extract date part
+          if (dateVal.includes('T')) return dateVal.split('T')[0];
+          return dateVal;
+        }
+        return new Date().toISOString().split('T')[0];
+      };
+      
       return {
-        patient_id: propInitialData.patient_id || '',
-        visit_date: propInitialData.visit_date || new Date().toISOString().split('T')[0],
-        visit_type: propInitialData.visit_type || 'first_visit',
-        room_no: propInitialData.room_no || '',
-        assigned_doctor: propInitialData.assigned_doctor || '',
+        patient_id: getValue(propInitialData.patient_id),
+        visit_date: formatDate(propInitialData.visit_date),
+        visit_type: getValue(propInitialData.visit_type, 'first_visit'),
+        room_no: getValue(propInitialData.room_no),
+        assigned_doctor: getValue(propInitialData.assigned_doctor),
         informant_present: propInitialData.informant_present ?? true,
-        nature_of_information: propInitialData.nature_of_information || '',
-        onset_duration: propInitialData.onset_duration || '',
-        course: propInitialData.course || '',
-        precipitating_factor: propInitialData.precipitating_factor || '',
-        illness_duration: propInitialData.illness_duration || '',
-        current_episode_since: propInitialData.current_episode_since || '',
+        nature_of_information: getValue(propInitialData.nature_of_information),
+        onset_duration: getValue(propInitialData.onset_duration),
+        course: getValue(propInitialData.course),
+        precipitating_factor: getValue(propInitialData.precipitating_factor),
+        illness_duration: getValue(propInitialData.illness_duration),
+        current_episode_since: formatDate(propInitialData.current_episode_since),
         mood: normalizeArrayField(propInitialData.mood),
         behaviour: normalizeArrayField(propInitialData.behaviour),
         speech: normalizeArrayField(propInitialData.speech),
@@ -458,24 +487,26 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
         fits: normalizeArrayField(propInitialData.fits),
         sexual_problem: normalizeArrayField(propInitialData.sexual_problem),
         substance_use: normalizeArrayField(propInitialData.substance_use),
-        past_history: propInitialData.past_history || '',
-        family_history: propInitialData.family_history || '',
+        past_history: getValue(propInitialData.past_history),
+        family_history: getValue(propInitialData.family_history),
         associated_medical_surgical: normalizeArrayField(propInitialData.associated_medical_surgical),
         mse_behaviour: normalizeArrayField(propInitialData.mse_behaviour),
         mse_affect: normalizeArrayField(propInitialData.mse_affect),
-        mse_thought: propInitialData.mse_thought || '',
-        mse_delusions: propInitialData.mse_delusions || '',
+        mse_thought: getValue(propInitialData.mse_thought),
+        mse_delusions: getValue(propInitialData.mse_delusions),
         mse_perception: normalizeArrayField(propInitialData.mse_perception),
         mse_cognitive_function: normalizeArrayField(propInitialData.mse_cognitive_function),
-        gpe: propInitialData.gpe || '',
-        diagnosis: propInitialData.diagnosis || '',
-        icd_code: propInitialData.icd_code || '',
-        disposal: propInitialData.disposal || '',
-        workup_appointment: propInitialData.workup_appointment || '',
-        referred_to: propInitialData.referred_to || '',
-        treatment_prescribed: propInitialData.treatment_prescribed || '',
-        doctor_decision: propInitialData.doctor_decision || 'simple_case',
-        case_severity: propInitialData.case_severity || '',
+        gpe: getValue(propInitialData.gpe),
+        diagnosis: getValue(propInitialData.diagnosis),
+        icd_code: getValue(propInitialData.icd_code),
+        disposal: getValue(propInitialData.disposal),
+        workup_appointment: formatDate(propInitialData.workup_appointment),
+        referred_to: getValue(propInitialData.referred_to),
+        treatment_prescribed: getValue(propInitialData.treatment_prescribed),
+        doctor_decision: getValue(propInitialData.doctor_decision, 'simple_case'),
+        case_severity: getValue(propInitialData.case_severity),
+        requires_adl_file: propInitialData.requires_adl_file ?? false,
+        adl_reasoning: getValue(propInitialData.adl_reasoning),
       };
     }
 
@@ -640,21 +671,62 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   useEffect(() => {
     if (initialFormData) {
       const prevData = prevInitialDataRef.current;
-      // Only update if this is the first time or if key fields have changed
-      const shouldUpdate = !prevData ||
-        prevData.patient_id !== initialFormData.patient_id ||
-        (prevData.doctor_decision !== initialFormData.doctor_decision && prevData.patient_id === initialFormData.patient_id);
+      // Always update if:
+      // 1. No previous data exists, OR
+      // 2. Patient ID changed (different patient), OR
+      // 3. Using propInitialData and it has an ID that changed (different proforma), OR
+      // 4. Key fields have changed (doctor_decision, diagnosis, etc.)
+      const proformaIdChanged = propInitialData?.id && prevData?.proformaId !== propInitialData.id;
+      const patientIdChanged = prevData?.patient_id !== initialFormData.patient_id;
+      const keyFieldsChanged = prevData?.doctor_decision !== initialFormData.doctor_decision ||
+                               prevData?.diagnosis !== initialFormData.diagnosis ||
+                               prevData?.visit_date !== initialFormData.visit_date;
+      
+      // More aggressive update logic: update if propInitialData exists and has changed
+      const propDataChanged = propInitialData && (
+        !prevData?.proformaId || 
+        prevData.proformaId !== propInitialData.id ||
+        !prevData.proformaId && propInitialData.id
+      );
+      
+      const shouldUpdate = !prevData || 
+        patientIdChanged || 
+        proformaIdChanged ||
+        propDataChanged ||
+        (keyFieldsChanged && prevData.patient_id === initialFormData.patient_id);
 
       if (shouldUpdate) {
+        console.log('[EditClinicalProforma] Updating form data from initialFormData:', {
+          prevData: prevData?.proformaId || prevData?.patient_id,
+          newData: propInitialData?.id || initialFormData.patient_id,
+          reason: !prevData ? 'first load' : 
+                  patientIdChanged ? 'patient changed' :
+                  proformaIdChanged ? 'proforma changed' :
+                  propDataChanged ? 'propInitialData changed' : 'key fields changed',
+          hasPropData: !!propInitialData,
+          propDataId: propInitialData?.id
+        });
         setFormData(initialFormData);
         // Notify parent of initial form data
         if (onFormDataChange) {
           onFormDataChange(initialFormData);
         }
-        prevInitialDataRef.current = initialFormData;
+        prevInitialDataRef.current = {
+          ...initialFormData,
+          proformaId: propInitialData?.id || null
+        };
+      } else {
+        console.log('[EditClinicalProforma] Skipping form data update:', {
+          prevData: prevData?.proformaId || prevData?.patient_id,
+          newData: propInitialData?.id || initialFormData.patient_id,
+          patientIdChanged,
+          proformaIdChanged,
+          propDataChanged,
+          keyFieldsChanged
+        });
       }
     }
-  }, [initialFormData, onFormDataChange]);
+  }, [initialFormData, onFormDataChange, propInitialData?.id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

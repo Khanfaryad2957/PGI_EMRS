@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict vtBenb2wJDziTXFZ1puhYhUE0CG39qitnDByARSB4QU7J4AbFLtlfI0GV33svXw
+\restrict 1uya4b4RdkEyJrLhqJOtMijnhrOhrjv6gc2qvrxsKtuta06okisJSMUf6lYrRfC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
 
--- Started on 2025-11-18 23:31:13
+-- Started on 2025-11-19 10:55:43
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -293,7 +293,7 @@ CREATE TABLE public.adl_files (
     mse_cognitive_proverbs text,
     mse_insight_understanding text,
     mse_insight_judgement text,
-    education_start_age integer,
+    education_start_age text,
     education_highest_class text,
     education_performance text,
     education_disciplinary text,
@@ -302,7 +302,7 @@ CREATE TABLE public.adl_files (
     education_special_abilities text,
     education_discontinue_reason text,
     occupation_jobs jsonb DEFAULT '[]'::jsonb,
-    sexual_menarche_age integer,
+    sexual_menarche_age text,
     sexual_menarche_reaction text,
     sexual_education text,
     sexual_masturbation text,
@@ -336,7 +336,7 @@ CREATE TABLE public.adl_files (
     personal_complications_prenatal text,
     personal_complications_natal text,
     personal_complications_postnatal text,
-    development_weaning_age integer,
+    development_weaning_age text,
     development_first_words text,
     development_three_words text,
     development_walking text,
@@ -551,7 +551,7 @@ CREATE TABLE public.clinical_proforma (
     course text,
     precipitating_factor text,
     illness_duration text,
-    current_episode_since date,
+    current_episode_since text,
     mood text,
     behaviour text,
     speech text,
@@ -575,7 +575,7 @@ CREATE TABLE public.clinical_proforma (
     mse_cognitive_function text,
     gpe text,
     diagnosis text,
-    icd_code character varying(20),
+    icd_code text,
     disposal text,
     workup_appointment date,
     referred_to text,
@@ -869,8 +869,8 @@ ALTER SEQUENCE public.patient_visits_id_seq OWNED BY public.patient_visits.id;
 CREATE TABLE public.prescriptions (
     id integer NOT NULL,
     clinical_proforma_id integer NOT NULL,
-    medicine character varying(255) NOT NULL,
-    dosage character varying(100),
+    medicine text NOT NULL,
+    dosage text,
     when_to_take character varying(100),
     frequency character varying(100),
     duration character varying(100),
@@ -926,53 +926,53 @@ ALTER SEQUENCE public.prescriptions_id_seq OWNED BY public.prescriptions.id;
 CREATE TABLE public.registered_patient (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     cr_no character varying(50),
-    psy_no character varying(50),
-    special_clinic_no character varying(50),
+    psy_no text,
+    special_clinic_no text,
     adl_no character varying(50),
     date date,
-    name character varying(255) NOT NULL,
-    contact_number character varying(20),
+    name text NOT NULL,
+    contact_number text,
     age integer,
     sex character varying(10),
     category character varying(50),
-    father_name character varying(255),
+    father_name text,
     department character varying(100),
-    unit_consit character varying(100),
-    room_no character varying(50),
-    serial_no character varying(50),
-    file_no character varying(50),
-    unit_days character varying(10),
+    unit_consit text,
+    room_no text,
+    serial_no text,
+    file_no text,
+    unit_days text,
     seen_in_walk_in_on date,
     worked_up_on date,
-    age_group character varying(50),
-    marital_status character varying(50),
+    age_group text,
+    marital_status text,
     year_of_marriage integer,
     no_of_children_male integer DEFAULT 0,
     no_of_children_female integer DEFAULT 0,
-    occupation character varying(255),
-    education character varying(255),
-    locality character varying(255),
+    occupation text,
+    education text,
+    locality text,
     income numeric(12,2),
-    religion character varying(100),
-    family_type character varying(100),
-    head_name character varying(255),
+    religion text,
+    family_type text,
+    head_name text,
     head_age integer,
-    head_relationship character varying(100),
-    head_education character varying(255),
-    head_occupation character varying(255),
+    head_relationship text,
+    head_education text,
+    head_occupation text,
     head_income numeric(12,2),
-    distance_from_hospital character varying(255),
-    mobility character varying(100),
-    referred_by character varying(255),
+    distance_from_hospital text,
+    mobility text,
+    referred_by text,
     address_line text,
-    country character varying(100),
-    state character varying(100),
-    district character varying(100),
-    city character varying(100),
-    pin_code character varying(10),
+    country text,
+    state text,
+    district text,
+    city text,
+    pin_code text,
     assigned_doctor_id integer,
-    assigned_doctor_name character varying(255),
-    assigned_room character varying(50),
+    assigned_doctor_name text,
+    assigned_room text,
     filled_by integer,
     has_adl_file boolean DEFAULT false,
     file_status character varying(20) DEFAULT 'none'::character varying,
@@ -980,7 +980,22 @@ CREATE TABLE public.registered_patient (
     is_active boolean DEFAULT true,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_unit_days CHECK (((unit_days IS NULL) OR ((unit_days)::text = ANY ((ARRAY['mon'::character varying, 'tue'::character varying, 'wed'::character varying, 'thu'::character varying, 'fri'::character varying, 'sat'::character varying])::text[])))),
+    permanent_address_line_1 text,
+    permanent_address_line_2 text,
+    permanent_city_town_village text,
+    permanent_district text,
+    permanent_state text,
+    permanent_pin_code text,
+    permanent_country text,
+    present_address_line_1 text,
+    present_address_line_2 text,
+    present_city_town_village text,
+    present_district text,
+    present_state text,
+    present_pin_code text,
+    present_country text,
+    local_address text,
+    CONSTRAINT check_unit_days CHECK (((unit_days IS NULL) OR (unit_days = ANY (ARRAY[('mon'::character varying)::text, ('tue'::character varying)::text, ('wed'::character varying)::text, ('thu'::character varying)::text, ('fri'::character varying)::text, ('sat'::character varying)::text])))),
     CONSTRAINT registered_patient_age_check CHECK (((age >= 0) AND (age <= 150))),
     CONSTRAINT registered_patient_case_complexity_check CHECK (((case_complexity)::text = ANY ((ARRAY['simple'::character varying, 'complex'::character varying])::text[]))),
     CONSTRAINT registered_patient_file_status_check CHECK (((file_status)::text = ANY ((ARRAY['none'::character varying, 'created'::character varying, 'stored'::character varying, 'retrieved'::character varying, 'active'::character varying])::text[]))),
@@ -1213,7 +1228,7 @@ ALTER TABLE ONLY public.system_settings ALTER COLUMN id SET DEFAULT nextval('pub
 --
 
 COPY public.adl_files (id, patient_id, adl_no, created_by, clinical_proforma_id, file_status, physical_file_location, file_created_date, last_accessed_date, last_accessed_by, total_visits, is_active, notes, created_at, updated_at, history_narrative, history_specific_enquiry, history_drug_intake, history_treatment_place, history_treatment_dates, history_treatment_drugs, history_treatment_response, informants, complaints_patient, complaints_informant, past_history_medical, past_history_psychiatric_dates, past_history_psychiatric_diagnosis, past_history_psychiatric_treatment, past_history_psychiatric_interim, past_history_psychiatric_recovery, family_history_father_age, family_history_father_education, family_history_father_occupation, family_history_father_personality, family_history_father_deceased, family_history_father_death_age, family_history_father_death_date, family_history_father_death_cause, family_history_mother_age, family_history_mother_education, family_history_mother_occupation, family_history_mother_personality, family_history_mother_deceased, family_history_mother_death_age, family_history_mother_death_date, family_history_mother_death_cause, family_history_siblings, diagnostic_formulation_summary, diagnostic_formulation_features, diagnostic_formulation_psychodynamic, premorbid_personality_passive_active, premorbid_personality_assertive, premorbid_personality_introvert_extrovert, premorbid_personality_traits, premorbid_personality_hobbies, premorbid_personality_habits, premorbid_personality_alcohol_drugs, physical_appearance, physical_body_build, physical_pallor, physical_icterus, physical_oedema, physical_lymphadenopathy, physical_pulse, physical_bp, physical_height, physical_weight, physical_waist, physical_fundus, physical_cvs_apex, physical_cvs_regularity, physical_cvs_heart_sounds, physical_cvs_murmurs, physical_chest_expansion, physical_chest_percussion, physical_chest_adventitious, physical_abdomen_tenderness, physical_abdomen_mass, physical_abdomen_bowel_sounds, physical_cns_cranial, physical_cns_motor_sensory, physical_cns_rigidity, physical_cns_involuntary, physical_cns_superficial_reflexes, physical_cns_dtrs, physical_cns_plantar, physical_cns_cerebellar, mse_general_demeanour, mse_general_tidy, mse_general_awareness, mse_general_cooperation, mse_psychomotor_verbalization, mse_psychomotor_pressure, mse_psychomotor_tension, mse_psychomotor_posture, mse_psychomotor_mannerism, mse_psychomotor_catatonic, mse_affect_subjective, mse_affect_tone, mse_affect_resting, mse_affect_fluctuation, mse_thought_flow, mse_thought_form, mse_thought_content, mse_cognitive_consciousness, mse_cognitive_orientation_time, mse_cognitive_orientation_place, mse_cognitive_orientation_person, mse_cognitive_memory_immediate, mse_cognitive_memory_recent, mse_cognitive_memory_remote, mse_cognitive_subtraction, mse_cognitive_digit_span, mse_cognitive_counting, mse_cognitive_general_knowledge, mse_cognitive_calculation, mse_cognitive_similarities, mse_cognitive_proverbs, mse_insight_understanding, mse_insight_judgement, education_start_age, education_highest_class, education_performance, education_disciplinary, education_peer_relationship, education_hobbies, education_special_abilities, education_discontinue_reason, occupation_jobs, sexual_menarche_age, sexual_menarche_reaction, sexual_education, sexual_masturbation, sexual_contact, sexual_premarital_extramarital, sexual_marriage_arranged, sexual_marriage_date, sexual_spouse_age, sexual_spouse_occupation, sexual_adjustment_general, sexual_adjustment_sexual, sexual_children, sexual_problems, religion_type, religion_participation, religion_changes, living_residents, living_income_sharing, living_expenses, living_kitchen, living_domestic_conflicts, living_social_class, living_inlaws, home_situation_childhood, home_situation_parents_relationship, home_situation_socioeconomic, home_situation_interpersonal, personal_birth_date, personal_birth_place, personal_delivery_type, personal_complications_prenatal, personal_complications_natal, personal_complications_postnatal, development_weaning_age, development_first_words, development_three_words, development_walking, development_neurotic_traits, development_nail_biting, development_bedwetting, development_phobias, development_childhood_illness, provisional_diagnosis, treatment_plan, consultant_comments) FROM stdin;
-5	9adeca75-5844-44f8-b13e-e39df0960dad	ADL-000001	4	11	created	\N	2025-11-18	\N	\N	1	t	\N	2025-11-18 22:09:11.700507	2025-11-18 22:09:11.700507	\N	\N	\N	\N	\N	\N	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+5	9adeca75-5844-44f8-b13e-e39df0960dad	ADL-000001	4	11	created	\N	2025-11-18	\N	\N	1	t	\N	2025-11-18 22:09:11.700507	2025-11-19 00:00:30.169612	sdfgdhfjgklj;k	dfghjkl;	assdfghjhfscbvgd	dsffgdfgd	\N	dsfsddg	sfddfgdd	[{"name": "", "reliability": "", "relationship": ""}]	[{"duration": "", "complaint": ""}]	[{"duration": "", "complaint": ""}]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	\N	[{"age": "", "sex": "", "education": "", "occupation": "", "marital_status": ""}]	\N	\N	\N	\N	\N	\N	[]	\N	\N	\N	\N	\N	f	f	f	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	[{"job": "", "dates": "", "adjustment": "", "promotions": "", "difficulties": "", "change_reason": ""}]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	[{"age": "", "sex": ""}]	\N	\N	\N	\N	[{"age": "", "name": "", "relationship": ""}]	\N	\N	\N	\N	\N	[{"age": "", "name": "", "relationship": ""}]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	dgetgfhgjhrth	dsfgfrwegfhggethfgr	adsfsfsfdgfgetrhfwarewrewtew
 \.
 
 
@@ -1236,6 +1251,8 @@ COPY public.audit_log (id, table_name, record_id, action, old_values, new_values
 COPY public.clinical_proforma (id, patient_id, filled_by, visit_date, visit_type, room_no, informant_present, nature_of_information, onset_duration, course, precipitating_factor, illness_duration, current_episode_since, mood, behaviour, speech, thought, perception, somatic, bio_functions, adjustment, cognitive_function, fits, sexual_problem, substance_use, past_history, family_history, associated_medical_surgical, mse_behaviour, mse_affect, mse_thought, mse_delusions, mse_perception, mse_cognitive_function, gpe, diagnosis, icd_code, disposal, workup_appointment, referred_to, treatment_prescribed, doctor_decision, case_severity, requires_adl_file, adl_reasoning, adl_file_id, is_active, created_at, updated_at, assigned_doctor) FROM stdin;
 1	700cd2d2-6978-41ba-8b34-793899c779b2	3	2025-11-17	follow_up	206	t	Reliable	<1_week	Continuous	fix it please	6 month	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	{}	\N	\N	120/80	asdfgh	18	asdfghj	2025-11-18	dsfghj	\N	simple_case	critical	f	\N	\N	t	2025-11-18 18:55:16.232327	2025-11-18 22:26:25.302633	\N
 11	9adeca75-5844-44f8-b13e-e39df0960dad	4	2025-11-18	first_visit	205	t	Reliable	1w_1m	Episodic	adfghjk	6	\N	Anxious	Talking/Smiling to self	Incoherent	Grandiose, Hypochondriasis	Hallucination - Visual	Weakness	Bowel/Bladder	Socialization	Inattention	Dissociative	Poor erection	Opioid	\N	\N	Diabetes	Unkempt	Anxious	Suicidal	\N	Hallucinations - Visual	Not impaired	120/80	ASDFGHJKL	6A00.0	SFGHJKL	2025-11-18	ASDFGHJK	\N	complex_case	mild	t	\N	5	t	2025-11-18 21:25:35.978293	2025-11-18 22:09:11.706013	\N
+13	60eb49ca-b3d4-480b-86ee-6e948c0b82da	2	2025-11-19	first_visit	206	t	Unreliable	not_known	Continuous	6	6	\N	Anxious	Talking/Smiling to self, Avolution	Incoherent	Persecution, Nihilism	Hallucination - Auditory	Numbness	Appetite	Socialization	Inattention	Dissociative	Poor erection	Opioid			Diabetes	Unkempt	Elated	Suicidal		Hallucinations - Auditory	Not impaired	120/80	wertyhyjkhgfd	07	ertyyjergerg	2025-11-19	dfghgrghfdg	\N	simple_case	critical	f		\N	t	2025-11-19 08:20:23.772579	2025-11-19 08:20:23.772579	\N
+14	11cd3bb7-686e-4537-8e13-34368b6eb95b	3	2025-11-19	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	f	\N	\N	t	2025-11-19 10:43:14.570065	2025-11-19 10:43:14.570065	\N
 \.
 
 
@@ -1278,6 +1295,11 @@ COPY public.password_reset_tokens (id, user_id, token, otp, expires_at, used, cr
 COPY public.patient_visits (id, patient_id, visit_date, visit_type, has_file, adl_file_id, clinical_proforma_id, assigned_doctor_id, room_no, visit_status, notes, created_at, updated_at) FROM stdin;
 1	700cd2d2-6978-41ba-8b34-793899c779b2	2025-11-18	follow_up	f	\N	\N	2	206	scheduled	\N	2025-11-18 18:52:38.008753	2025-11-18 18:52:38.008753
 2	700cd2d2-6978-41ba-8b34-793899c779b2	2025-11-18	follow_up	f	\N	\N	2	206	scheduled	\N	2025-11-18 18:55:16.204964	2025-11-18 18:55:16.204964
+4	60eb49ca-b3d4-480b-86ee-6e948c0b82da	2025-11-18	follow_up	f	\N	\N	2	206	scheduled	\N	2025-11-19 01:24:41.571481	2025-11-19 01:24:41.571481
+5	700cd2d2-6978-41ba-8b34-793899c779b2	2025-11-19	follow_up	f	\N	\N	2	206	scheduled	Visit created via Existing Patient flow	2025-11-19 08:48:15.160447	2025-11-19 08:48:15.160447
+6	700cd2d2-6978-41ba-8b34-793899c779b2	2025-11-19	follow_up	f	\N	\N	2	206	scheduled	Visit created via Existing Patient flow	2025-11-19 08:52:03.376333	2025-11-19 08:52:03.376333
+7	9adeca75-5844-44f8-b13e-e39df0960dad	2025-11-19	follow_up	f	\N	\N	4	205	scheduled	Visit created via Existing Patient flow	2025-11-19 10:00:17.56089	2025-11-19 10:00:17.56089
+8	11cd3bb7-686e-4537-8e13-34368b6eb95b	2025-11-19	follow_up	f	\N	\N	2	206	scheduled	\N	2025-11-19 10:43:14.524233	2025-11-19 10:43:14.524233
 \.
 
 
@@ -1288,6 +1310,7 @@ COPY public.patient_visits (id, patient_id, visit_date, visit_type, has_file, ad
 --
 
 COPY public.prescriptions (id, clinical_proforma_id, medicine, dosage, when_to_take, frequency, duration, quantity, details, notes, created_at, updated_at) FROM stdin;
+1	11	Paracetamol	1-0-0	Before Food	Twice Daily	5 Days	5	na	na	2025-11-18 23:46:39.511722	2025-11-18 23:46:39.511722
 \.
 
 
@@ -1297,9 +1320,11 @@ COPY public.prescriptions (id, clinical_proforma_id, medicine, dosage, when_to_t
 -- Data for Name: registered_patient; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.registered_patient (id, cr_no, psy_no, special_clinic_no, adl_no, date, name, contact_number, age, sex, category, father_name, department, unit_consit, room_no, serial_no, file_no, unit_days, seen_in_walk_in_on, worked_up_on, age_group, marital_status, year_of_marriage, no_of_children_male, no_of_children_female, occupation, education, locality, income, religion, family_type, head_name, head_age, head_relationship, head_education, head_occupation, head_income, distance_from_hospital, mobility, referred_by, address_line, country, state, district, city, pin_code, assigned_doctor_id, assigned_doctor_name, assigned_room, filled_by, has_adl_file, file_status, case_complexity, is_active, created_at, updated_at) FROM stdin;
-700cd2d2-6978-41ba-8b34-793899c779b2	9875223523	PSY2025068218	01	\N	2025-11-18	Rohit	9816565196	30	M	GEN	Inder Singh	Psychiatry	ABS	211	01	PSYGEN01	tue	2025-11-18	2025-11-18	15-30	single	\N	\N	\N	professional	master_professional	urban	15000.00	hinduism	nuclear	Inder Singh	60	father	matric	skilled	15000.00	20	permanent_resident	medical_specialities_pgi	Dharampur	India	Himachal Pradesh	Mandi	Dharampur	175040	2	Unknown Doctor	206	3	f	none	simple	t	2025-11-18 18:51:08.223449	2025-11-18 18:55:16.143429
-9adeca75-5844-44f8-b13e-e39df0960dad	8411252	PSY2025481113	02	\N	2025-11-18	Anil Kumar	9874563215	33	M	GEN	Rahul	Psychiatry	BNS	211	02	PSYGEN02	wed	2025-11-18	2025-11-18	30-45	single	\N	\N	\N	professional	master_professional	urban	15000.00	hinduism	nuclear	Suresh	55	father	graduate	semi_skilled	15000.00	15	permanent_resident	self	Sarkaghat	India	Himachal Pradesh	Mandi	Mandi	175024	4	Unknown Doctor	205	3	t	none	simple	t	2025-11-18 19:31:21.116199	2025-11-18 22:09:11.713247
+COPY public.registered_patient (id, cr_no, psy_no, special_clinic_no, adl_no, date, name, contact_number, age, sex, category, father_name, department, unit_consit, room_no, serial_no, file_no, unit_days, seen_in_walk_in_on, worked_up_on, age_group, marital_status, year_of_marriage, no_of_children_male, no_of_children_female, occupation, education, locality, income, religion, family_type, head_name, head_age, head_relationship, head_education, head_occupation, head_income, distance_from_hospital, mobility, referred_by, address_line, country, state, district, city, pin_code, assigned_doctor_id, assigned_doctor_name, assigned_room, filled_by, has_adl_file, file_status, case_complexity, is_active, created_at, updated_at, permanent_address_line_1, permanent_address_line_2, permanent_city_town_village, permanent_district, permanent_state, permanent_pin_code, permanent_country, present_address_line_1, present_address_line_2, present_city_town_village, present_district, present_state, present_pin_code, present_country, local_address) FROM stdin;
+700cd2d2-6978-41ba-8b34-793899c779b2	9875223523	PSY2025068218	01	\N	2025-11-18	Rohit	9816565196	30	M	GEN	Inder Singh	Psychiatry	ABS	211	01	PSYGEN01	tue	2025-11-18	2025-11-18	15-30	single	\N	\N	\N	professional	master_professional	urban	15000.00	hinduism	nuclear	Inder Singh	60	father	matric	skilled	15000.00	20	permanent_resident	medical_specialities_pgi	Dharampur	India	Himachal Pradesh	Mandi	Dharampur	175040	2	Unknown Doctor	206	3	f	none	simple	t	2025-11-18 18:51:08.223449	2025-11-18 18:55:16.143429	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+11cd3bb7-686e-4537-8e13-34368b6eb95b	7417894561	PSY2025318489	\N	\N	2025-11-19	OJHU2YxRDKdN93wrphAgc7w2NsOF+dbVcJ4sumlF78El8GiazvQiPQAC3LHpGrPx/qvqOToHCzTeXyryESGbZbmfByzXP2ol3DX5phvcEY/CDBoCDqdcMZE4FG1P+59rBjr9BgOegw==	zAhkM8dFyflN6f3BSFERrwcbLErT6sHk+WAkQKy81exxosMQjbPxUFhkHgTPxKRdNIgnZRX0RvnARLgg7Hiuwqju74piOOKWDJOUJtMMZbRDUsep4CFW7kC25BP42B5U6w6tzgd3lNswiw==	25	M	GEN	nIicuQSmKJmqV1025HqEciep/FN2ZdbPgn7ZbgrzPn1LjadjPMwvnJg0I4M7JClWFRncLw1zs28YxQ+eYQJV0FEBs0d0myt+/IEe8EMPce2XPFKfMD52vnOesyXLkagn0gQ46ecuXUwhH2E=	Psychiatry	ABS	211	04	PSYGEN04	wed	2025-11-19	2025-11-19	dc2E4ujKXsBnyCjlVn0jNPhACMY/VmGmNptGcB2a4pIT/5irwqORdEofSIf+6fjGCxS6V9h4O2XbMDpr9trKEk3uTy97+KWvRl+bBePl4PH7M+H7vsF/yw0qJpvHhIdVh/mIMCQ=	CV3wWkhGGxyWTkvK58CiK7J6aj25++xZdZ4Un4LO8OwLXRHuRhUu+d71wVegU4FOyOR0LZkVm+MZUWgZUsAhR39Ep453rMac7L7Xwy1FA/E5c+L5TGuwo8zFekne+EtNaM1v8Ab5	\N	\N	\N	1LWD5Yn8aF4EbFZwpvwzRqPwnl4PKfTyxDL6+umOgt6b80wEQtNKkzY44GmlF8YFOUeDG1nh2Ph+gjYFeIa7zqF9mcJbF7RnaNX/K+doOC5EocFVL8NtHOWve3LanXyPbD8GyLrdiavd	y2i+E468wAkYNxT6XQ8lk0v1hpKsYcWM6L6Zx/8PLRd5t0Dlcr1dsXJtRpxDB/uXuHrZlBmsHbNkQ+CTBDKFuhdtKHUqyd0IJCZr8c8DR9eAqxpbTRCCO9N0/HULGgqYV2T6BAL9FQ2/WpZo7YG2oVe2tQ==	4WmALhJWafNtawXys4wChdwBTsJIDlASisu7FcICMLfuAsxGeBn3xwH2EeW7MricMFH6MbFmwD3Nsya+Jo7Iks6lchqPRcP+DPZ588pbKmwkDAzTCMDjRUkO9OC5Lo3DBKK+ysU=	\N	rj1Var6PW4hTqquJarSKgZrS4LaHLoJfTBTG5LccXjeN3bl9k92ZRD9fClaIX9W3X3EunmyxF0GcFqgcxDOgo1XpyFN1j4I63eDdBQl9JBjrDwQOMj1UIBsVwW6WAC+m9TkdDmwvKSI=	GkZeHxQeHhpcpg63y8QYuuZlKLTQkooi++oXWqQMcxInO33o8IgQYFn2ujkHs7URPEorzfxHi8xmldIbyWgLToDVVXA/DSxWLTOp5OgD7rbQqAJIi99P4yomRsJa1y3PplFAwMz4iQ==	LodvPUazRbIH0dvhSCXDXYjwKB6f7CSX1s9B5Pz4qYqneoshrTYQbbOcKrrnNS3iLgq4bhQtDx3w/+hUine9eaKKsWhfXHZ2vG2o2V/+XBIkI/Hg0Kfv/8Z+v6rGo6Qan33odjOVQLOIZw==	50	QvmDqxp+eJFigQ4RApC633wtixZmfVWec7knSEflArRquEUuUS0wdIm4WsIeFNCvLsXjBlRZz4yVudnKE+GvPg0c6FTkcEKdTXil0SmCvZYyFLtgfBK4EiMXgKbUOPYFTyjyTLFP	qJw+S9Ckojnji5UCQMMB5Bm8rZt17WAAJW1cJmFPmumxOXlK5z/Tg+YB4omIzt51qSqexO4gtaLk+xORL5eW+EJtsAlJPyvUolSK9q4SGjoEkeNZ4ZFwpI+/99NdaP9VmSWzt0zgWg==	mcU6f5TyaFDw78cmlWXeggNoItWZpIqjxMul4Cr3x2H0GkpF9HBw0NhRwZsaBQ0zw/Pn9PKRVJbBR17n+SdyawK6Mvd/MN7Xd24cG/OuED3E1RtcY0qqcBpbXQPwhmFMxgp5jGkB2UFH	15000.00	PR2sdhymRm7XQvREFEB2XH2NI7mEfqQZz3WJbkV99F1b32zIdT3c4dTSMtmyMuWCHAsd7Oxs+wde8i9dVJ6pQackG9j7e0OZfkxibkmJZb08KPo8GjPdy5fWOHJuejg8Q3A=	A6e6+R76XOgIoBPDJ66+qlBJ8G4qtyb+6/6PSt51o6ar4MhPnFV8dZYyfZfZVoZQEot1q+qb0lAyjRicc4j0/T13Jk3HTtHsHdjCuTiVLxWIsTTgbRZCHjb9cGMtqK2/12xM4Dx/CcTa1NjaVoZ+tadr	W9TAuOA9PcH/C40FVLzKeqBS8IKCy3qM/PTgj3tOmapda8cr0DQ7UmO7IUILSpMN5uTNSp3zoD7G5FINfN+D1fvQgaqtgZkjriTDRM0LKnybdeuQl4LO1PrXbpfx21EFBVNxJg==	cBRoWnyyafM0vQ4nb2wnEKRjyyL13gvOfEE+hkBsVW3VFmCAd68zSEImWGVbxvRZ6vzuPHMRiUk4WzDtMtHIYXqaAm2AZKV+78jhuqjyZUpDrjDY1bnI1axyCpq7AHtDEEMDSa8=	+NRkDOKBGWDXq7lXHj1vSuo7zCwrfOW8qSBuGF6LimljDhEazoyY06+XpXMMYZniyQYp11jGXnWd403NYrDf3m/jza/SJh8AxPl7HrgeFKYjOkUwVoDlBAAKSt04TNQOuOYkUBM=	fGxkCXKW7IG3Kv8VsfJfcbOi4oDGQnQERQj+uoJQCwevTG/Suppa4kH63+kHtCBqb6jzRg5hf2COKlRDm44NaaFZq5Hop0kNH5H3jWpxtOJb21x+rxENNRuyT+getfUcxXKkqAMNkSRlvLSOOTqGVQ==	5gxh6UJHX54OPwqM/N0N2VkdDtB15ZtFuY3+4w4+rj9nPWvW+Wi4UsVUnjNHy91x9vtTNeV7/BKXNm4nGu775dzGeqjRn44qb0qQT1nJo3+lDxWayytgDOWfW5Rg/qRz1YCrFlo=	ICR7OoXeuCLCGj/LM12ADFNToDbRBBCWZOqmKs9qLJrPeIvzo6yQ/KRsDESfbmUdKRdSb4dUILsu3+OhjeZSVFl9TIFpouwkAMg0D8E3/bCYxlKOnA7Nvoz5zlzuPEjXuhh9HCA=	/WKO20hBVV8alUJWplPjQ+sGb5R/jdeH1I+T8NZM8YMWlwKNjBHLCEf3ZMzopKPQYNRGTLzNXQ9/HK4ldXuxLRAzKgqtAn/0nAvoWcVa4jumCFrpDzskphtYhqAxQj+iaNn3ea/b	2	d1IZoZo5xzZD+Wx7UTPG2hp7MrUL/9ioaqUj9PZGhacJrzeE5PDaPvb9lVt+QDwq+2HBaEa1PqEMbQIXU1xyKeCuDMtEW5v9EIRr0Tn9fSRI+J7UTbPTnQESD93uWBhFL2Dr5r6J6U9eoF3jRZ4=	s6PiGbp1uul11xt4fXR6GTuKXCMiPlpjwdcJJmGqwksTFbuYef1K3s7JlQDB5HKx1aIrPboEeKARI46+8aiBIaIr3ew68nk3O9SOS2w3L/jyJBa5xKURPTPdxls2BQFeJ4OZ	3	f	none	simple	t	2025-11-19 09:55:20.688325	2025-11-19 10:42:59.22014	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+9adeca75-5844-44f8-b13e-e39df0960dad	8411252	PSY2025481113	02	\N	2025-11-18	Anil Kumar	9874563215	33	M	GEN	Rahul	Psychiatry	BNS	211	02	PSYGEN02	wed	2025-11-18	2025-11-18	30-45	single	\N	\N	\N	professional	master_professional	urban	15000.00	hinduism	nuclear	Suresh	55	father	graduate	semi_skilled	15000.00	15	permanent_resident	self	Sarkaghat	India	Himachal Pradesh	Mandi	Mandi	175024	4	Unknown Doctor	205	3	t	none	simple	t	2025-11-18 19:31:21.116199	2025-11-18 22:09:11.713247	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+60eb49ca-b3d4-480b-86ee-6e948c0b82da	741852963	PSY2025556541	03	\N	2025-11-19	D7VkSPPnBBNPaFUwL0Ac4C2lOytRXKjxOpVz3wZVpKeKqSmoGu0KPPs2m/7UTbAbIUZJe83KkYXl/5iOuWU9MfvLYr2c5qmTJMk1oWVIdNk/Pp8VK1gWgDYgiZ/6wG0EgOH3BcIWtwuzodEK4w4=	d0E5k6M2wKo++gWq20lWI6M3xNAVIpZojYcMtaosTpl3x5bPdgyI2I7Am1qdMvOcfniIZ3mYOPAmJSlkE8fBF4gIjJnv+unQdafy6mTqv8wOxjJH/S4SS0SyaE5v7WB6AZI+55sb85ePww==	25	F	GEN	q+c0N4oIefp6cQKWZ+bVzCZevWc2aDJxcXNimEoh/QMluJ43XNzcp+SRBm/oLjIqzWETvPELdsWV1YsKvvlt5JJG80vzUQjwu2wFl5OSIYUij3055RCVtnciDig5YB2bOoM0UTIg+v2T/Hw=	Psychiatry	BNS	211	03	PSYGEN03	tue	2025-11-19	2025-11-19	15-30	single	\N	\N	\N	professional	master_professional	urban	25000.00	hinduism	nuclear	9CnKxmDL2tqJcGyBbUR+SdRjnzoKXeUDbVU3rBxjbXU9VaWHEUTubpnhlRrL8IO2Ph2VMXJ0GuDNbw69GSob7P36NQ7WK/Kg5Cf2QNDxRh5Z/pxJG1MpqnczSMMUpysLYnkylV849jrevqc=	60	jgrZ33jJopeRzpcrEjA3DujQLc3T7DXxNXxZDAd21GY0+wcMQw6E2MKH0Ne4UbH3slsbP51WkZDFvjBUJTUnx7NH4N9lE1VByu8LaB+NwHpCCwTLh8FNomP6JWXh71+BbtQ8vj7O	inter_diploma	of/daK35euYcpzyp3cQlT1uYexMOQK7KB2lSHEFbQT8SxwEpCLJj/VhmAu5ktDSsp74yRKYelXUmHybHwCcbNzRYDgyapaufhM46OCUEwgcX+Qx0Zgmhg66Kj1JwhvfkOh7KeLqQ2ztCB7gr	50000.00	10	permanent_resident	self	ro/fT7iXEQDv4genWck3ur7lnC3LD89IiWfvJgam60HjVMH4iLa28rJ22DkPDhja3niCfr6fkJhOCscI7DANylUNpT0a40M+pvikR5Bo7r6HRUBvxSsBLei3mwUpH9hdvtWDrY8=	India	HoHkJYg1u0h5La6ZJ4WPZcRh0D9lpFCILOSn6o4CxLyuvo89MECV7SvWGiXIt0wk9862IsiL/U61dZeXMHeK4TriamiB4tHZ4G3/c7VsaY1phB6Xe4r9xfWx6Lmxdh6iXFZgK+Q0wd1uGRlIQ6sk5A==	Ylnaw3Gljj0Gp9nyaoac0eqwGo/vAF/Gu/R4oTSvUwnqevcaof7mVDvwo53ljjBel+GJ+Dl7lrl+icdtlY/NtNRBAFljurK5VGd7x8vn8et4mnsBKpGj6iwBtNFJPhmZ3KTr/hM=	6SJiw0M9X83aFwJrw2bNJeRMdQ47IRAQ9RZgRScb2jN4HZAUH1+xaJ/1EJV8FHyTGmKD68A4mpOQHkI0429ntKvEe4atI5GdKFubuQ0V1b3Pv+UI5Qs2qKom0pwdeaVHQ6k44E8=	AyULrkicz+WG/E+YI5GA+vfySgW10vz0xElyirewvjzFywzDBn7FLpRUDAJbM54brvBa5sQzC0I4EUO3PgJ63PYFNrbaYNtYXx0P6OERBlUK5YtqIX5LrcnQ4yb1QMtjPaLE9TqO	2	Unknown Doctor	206	3	f	none	simple	t	2025-11-19 01:22:38.601316	2025-11-19 01:24:36.895182	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
 \.
 
 
@@ -1328,10 +1353,10 @@ COPY public.system_settings (id, setting_key, setting_value, description, is_act
 --
 
 COPY public.users (id, name, role, email, password_hash, two_factor_secret, two_factor_enabled, backup_codes, is_active, last_login, created_at, updated_at, new_id) FROM stdin;
-1	System Administrator	Admin	inventory@ihubiitmandi.in	$2a$12$ANThJjcqYV7X1PwFFiAtvO5EiidfmRsCcmTtErsAzMBSB5tB2H1rW	\N	f	\N	t	2025-11-18 19:29:01.216345	2025-11-18 18:25:19.995773	2025-11-18 21:44:08.96003	34c3a41c-c020-4f7f-a6e4-27ffda79ce0d
-3	Rohit Saklani	Psychiatric Welfare Officer	rohit@ihubiitmandi.in	$2a$12$qUZ8ug3xvDtGc3uQj0olLOJD1DZtgsWIkQz1p3pJ/29eV0VcQXZ8G	\N	f	\N	t	2025-11-18 19:29:47.215249	2025-11-18 18:37:43.835447	2025-11-18 21:44:08.96003	c694e820-a58a-4380-af12-c14b50a09b9e
-2	Fariyad Khan	Faculty	fariyad@ihubiitmandi.in	$2a$12$IrG5yDqDJbh4vjiMqYmvM./HyvaEmz7KFV5tZACZiC5OLHoGPyCfe	\N	f	\N	t	2025-11-18 22:25:00.078998	2025-11-18 18:37:04.164572	2025-11-18 22:25:00.078998	f59c7cf1-2428-4f5b-ab36-522c05a0fd6d
-4	Chirag	Resident	chirag@ihubiitmandi.in	$2a$12$4J4fm74bC8Xboge6Assm4.vp22mODz5Nj5ZRZNH5Bc5CKt3gJYktO	\N	f	\N	t	2025-11-18 22:28:42.934546	2025-11-18 19:29:32.690806	2025-11-18 22:28:42.934546	d5f31f5b-bee9-4be3-bd09-10387c6bc6d8
+1	System Administrator	Admin	inventory@ihubiitmandi.in	$2a$12$ANThJjcqYV7X1PwFFiAtvO5EiidfmRsCcmTtErsAzMBSB5tB2H1rW	\N	f	\N	t	2025-11-19 08:56:48.143709	2025-11-18 18:25:19.995773	2025-11-19 08:56:48.143709	34c3a41c-c020-4f7f-a6e4-27ffda79ce0d
+4	Chirag	Resident	chirag@ihubiitmandi.in	$2a$12$4J4fm74bC8Xboge6Assm4.vp22mODz5Nj5ZRZNH5Bc5CKt3gJYktO	\N	f	\N	t	2025-11-19 09:48:26.192322	2025-11-18 19:29:32.690806	2025-11-19 09:48:26.192322	d5f31f5b-bee9-4be3-bd09-10387c6bc6d8
+3	Rohit Saklani	Psychiatric Welfare Officer	rohit@ihubiitmandi.in	$2a$12$qUZ8ug3xvDtGc3uQj0olLOJD1DZtgsWIkQz1p3pJ/29eV0VcQXZ8G	\N	f	\N	t	2025-11-19 09:49:15.824911	2025-11-18 18:37:43.835447	2025-11-19 09:49:15.824911	c694e820-a58a-4380-af12-c14b50a09b9e
+2	Fariyad Khan	Faculty	fariyad@ihubiitmandi.in	$2a$12$IrG5yDqDJbh4vjiMqYmvM./HyvaEmz7KFV5tZACZiC5OLHoGPyCfe	\N	f	\N	t	2025-11-19 10:44:43.005456	2025-11-18 18:37:04.164572	2025-11-19 10:44:43.005456	f59c7cf1-2428-4f5b-ab36-522c05a0fd6d
 \.
 
 
@@ -1359,7 +1384,7 @@ SELECT pg_catalog.setval('public.audit_log_id_seq', 1, false);
 -- Name: clinical_proforma_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.clinical_proforma_id_seq', 11, true);
+SELECT pg_catalog.setval('public.clinical_proforma_id_seq', 14, true);
 
 
 --
@@ -1395,7 +1420,7 @@ SELECT pg_catalog.setval('public.password_reset_tokens_id_seq', 1, false);
 -- Name: patient_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.patient_visits_id_seq', 3, true);
+SELECT pg_catalog.setval('public.patient_visits_id_seq', 8, true);
 
 
 --
@@ -1404,7 +1429,7 @@ SELECT pg_catalog.setval('public.patient_visits_id_seq', 3, true);
 -- Name: prescriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.prescriptions_id_seq', 1, false);
+SELECT pg_catalog.setval('public.prescriptions_id_seq', 1, true);
 
 
 --
@@ -1819,7 +1844,7 @@ CREATE INDEX idx_registered_patient_is_active ON public.registered_patient USING
 
 
 --
--- TOC entry 4944 (class 1259 OID 20485)
+-- TOC entry 4944 (class 1259 OID 20946)
 -- Name: idx_registered_patient_psy_no; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2792,11 +2817,11 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIO
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO fariyad;
 
 
--- Completed on 2025-11-18 23:31:13
+-- Completed on 2025-11-19 10:55:43
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict vtBenb2wJDziTXFZ1puhYhUE0CG39qitnDByARSB4QU7J4AbFLtlfI0GV33svXw
+\unrestrict 1uya4b4RdkEyJrLhqJOtMijnhrOhrjv6gc2qvrxsKtuta06okisJSMUf6lYrRfC
 
