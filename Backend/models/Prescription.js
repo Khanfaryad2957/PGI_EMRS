@@ -1,88 +1,24 @@
 const db = require('../config/database');
-const { encrypt, decrypt, encryptObject, decryptObject } = require('../utils/encryption');
-const encryptionFields = require('../utils/encryptionFields');
 
 class Prescription {
   constructor(data) {
-    // Decrypt sensitive fields after receiving from database
-    const decryptedData = decryptObject(data, encryptionFields.prescription);
-    
-    this.id = decryptedData.id;
-    this.patient_id = decryptedData.patient_id;
-    this.clinical_proforma_id = decryptedData.clinical_proforma_id;
-    this.medicine = decryptedData.medicine;
-    this.dosage = decryptedData.dosage;
+    this.id = data.id;
+    this.patient_id = data.patient_id;
+    this.clinical_proforma_id = data.clinical_proforma_id;
+    this.medicine = data.medicine;
+    this.dosage = data.dosage;
     // Database column is 'when_to_take', but we support 'when' and 'when_taken' for API compatibility
-    this.when_taken = decryptedData.when_to_take || decryptedData.when_taken || decryptedData.when;
-    this.frequency = decryptedData.frequency;
-    this.duration = decryptedData.duration;
+    this.when_taken = data.when_to_take || data.when_taken || data.when;
+    this.frequency = data.frequency;
+    this.duration = data.duration;
     // Database column is 'quantity', but we support 'qty' for API compatibility
-    this.quantity = decryptedData.quantity || decryptedData.qty;
-    this.details = decryptedData.details;
-    this.notes = decryptedData.notes;
-    this.created_at = decryptedData.created_at;
-    this.updated_at = decryptedData.updated_at;
+    this.quantity = data.quantity || data.qty;
+    this.details = data.details;
+    this.notes = data.notes;
+    this.created_at = data.created_at;
+    this.updated_at = data.updated_at;
   }
 
-  // static async create(prescriptionData) {
-  //   try {
-  //     const {
-  //       patient_id,
-  //       clinical_proforma_id,
-  //       medicine,
-  //       dosage,
-  //       when_taken,
-  //       when, // Support both field names
-  //       frequency,
-  //       duration,
-  //       quantity,
-  //       qty, // Support both field names
-  //       details,
-  //       notes
-  //     } = prescriptionData;
-
-  //     // Validate required fields
-  //     // if (!clinical_proforma_id || !medicine) {
-  //     //   throw new Error('clinical_proforma_id and medicine are required');
-  //     // }
-
-  //     // Use when_taken or when, quantity or qty
-  //     const whenValue = when_taken || when || null;
-  //     const quantityValue = quantity || qty || null;
-
-  //     // Encrypt sensitive fields before saving
-  //     const encryptedPrescription = encryptObject({
-  //       medicine,
-  //       dosage,
-  //       details,
-  //       notes
-  //     }, encryptionFields.prescription);
-
-  //     const result = await db.query(
-  //       `INSERT INTO prescriptions (
-  //        patient_id, clinical_proforma_id, medicine, dosage, when_to_take, frequency, 
-  //         duration, quantity, details, notes
-  //       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-  //       RETURNING *`,
-  //       [
-  //         patient_id,
-  //         clinical_proforma_id,
-  //         encryptedPrescription.medicine || medicine,
-  //         encryptedPrescription.dosage || dosage || null,
-  //         whenValue,
-  //         frequency || null,
-  //         duration || null,
-  //         quantityValue,
-  //         encryptedPrescription.details || details || null,
-  //         encryptedPrescription.notes || notes || null
-  //       ]
-  //     );
-
-  //     return new Prescription(result.rows[0]);
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
 
   static async create(prescriptionData) {
     try {
@@ -112,17 +48,6 @@ class Prescription {
       // Ensure medicine is never null (DB constraint)
       const safeMedicine = medicine && medicine.trim() !== "" ? medicine : "";
   
-      // Encrypt
-      const encrypted = encryptObject(
-        {
-          medicine: safeMedicine,
-          dosage: dosage || "",
-          details: details || "",
-          notes: notes || ""
-        },
-        encryptionFields.prescription
-      );
-  
       const result = await db.query(
         `INSERT INTO prescriptions (
            patient_id,
@@ -141,14 +66,14 @@ class Prescription {
         [
           patient_id || null,
           clinical_proforma_id,
-          encrypted.medicine,      // always NON-null
-          encrypted.dosage || null,
+          safeMedicine,      // always NON-null
+          dosage || null,
           whenValue,
           frequency || null,
           duration || null,
           quantityValue || null,
-          encrypted.details || null,
-          encrypted.notes || null
+          details || null,
+          notes || null
         ]
       );
   
@@ -193,25 +118,17 @@ class Prescription {
         const whenValue = when_taken || when || null;
         const quantityValue = quantity || qty || null;
 
-        // Encrypt sensitive fields before saving
-        const encryptedPrescription = encryptObject({
-          medicine,
-          dosage,
-          details,
-          notes
-        }, encryptionFields.prescription);
-
         insertData.push({
           patient_id,
           clinical_proforma_id,
-          medicine: encryptedPrescription.medicine || medicine,
-          dosage: encryptedPrescription.dosage || dosage || null,
+          medicine: medicine,
+          dosage: dosage || null,
           when_to_take: whenValue, // Use correct database column name
           frequency: frequency || null,
           duration: duration || null,
           quantity: quantityValue, // Use correct database column name
-          details: encryptedPrescription.details || details || null,
-          notes: encryptedPrescription.notes || notes || null
+          details: details || null,
+          notes: notes || null
         });
       }
 
@@ -344,12 +261,7 @@ class Prescription {
             values.push(value);
           } else {
             updates.push(`${key} = $${paramCount}`);
-            // Encrypt sensitive fields before saving
-            if (encryptionFields.prescription.includes(key)) {
-              values.push(encrypt(value));
-            } else {
-              values.push(value);
-            }
+            values.push(value);
           }
         }
       }

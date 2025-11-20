@@ -128,10 +128,10 @@ const SelectExistingPatient = () => {
 
     try {
       // Create outpatient visit record
-      // Note: patient_id is a UUID (string), not an integer, so don't use parseInt()
+      // patient_id is now an integer
       await createRecord({ 
         name: selectedPatient.name, 
-        patient_id: selectedPatient.id // Pass UUID as-is
+        patient_id: parseInt(selectedPatient.id, 10) // patient_id is now integer
       }).unwrap();
       toast.success('Visit record created successfully!');
       // Navigate to today's patients page to see the newly created visit

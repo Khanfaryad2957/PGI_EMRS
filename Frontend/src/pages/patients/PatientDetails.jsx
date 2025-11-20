@@ -25,7 +25,7 @@ const PatientDetails = () => {
   const returnTab = searchParams.get('returnTab'); // Get returnTab from URL
   const [isEditing, setIsEditing] = useState(false);
 
-  // Helper function to validate patient ID (supports both UUID and integer)
+  // Helper function to validate patient ID (integer only)
   const isValidPatientId = (patientId) => {
     if (!patientId) return false;
     
@@ -33,19 +33,16 @@ const PatientDetails = () => {
     const idStr = String(patientId).trim();
     if (idStr === '') return false;
     
-    // Check if it's a valid UUID format (contains hyphens and is 36 chars)
-    const isUUID = idStr.includes('-') && idStr.length === 36;
-    
     // Check if it's a valid integer
     const isInt = !isNaN(parseInt(idStr, 10)) && parseInt(idStr, 10) > 0;
     
-    return isUUID || isInt;
+    return isInt;
   };
 
-  // Parse and validate patient ID from URL (supports both UUID and integer)
+  // Parse and validate patient ID from URL (integer only)
   const patientId = id || '';
 
-  // Validate ID is a valid UUID or integer
+  // Validate ID is a valid integer
   if (!isValidPatientId(patientId)) {
     return (
       <div className="text-center py-12">
@@ -288,7 +285,11 @@ const PatientDetails = () => {
       // Verify the patient ID matches the URL ID to prevent showing wrong patient data
       const patientDataId = patient.id || null;
      
-      if (patientDataId && patientDataId !== patientId) {
+      // Convert both to integers for comparison (patientId is string from URL, patient.id is integer)
+      const urlIdInt = parseInt(patientId, 10);
+      const dataIdInt = patientDataId ? parseInt(String(patientDataId), 10) : null;
+     
+      if (dataIdInt && dataIdInt !== urlIdInt) {
         console.error(`[PatientDetails] CRITICAL: Patient ID mismatch! URL ID: ${patientId}, Patient data ID: ${patientDataId}`);
         toast.error(`Data mismatch: Expected patient ID ${patientId}, but received ${patientDataId}`);
         return; // Don't update form data if IDs don't match
@@ -400,8 +401,11 @@ const PatientDetails = () => {
 
       // Verify the record belongs to the current patient
       const recordPatientId = record.patient_id || null;
-      // ? parseInt(record.patient_id, 10) : null;
-      if (recordPatientId && recordPatientId !== patientId) {
+      // Convert both to integers for comparison (patientId is string from URL, record.patient_id is integer)
+      const urlIdInt = parseInt(patientId, 10);
+      const recordIdInt = recordPatientId ? parseInt(String(recordPatientId), 10) : null;
+      
+      if (recordIdInt && recordIdInt !== urlIdInt) {
         console.warn(`[PatientDetails] Record patient ID mismatch: URL ID is ${patientId}, but record patient_id is ${recordPatientId}`);
         return; // Don't update form data if IDs don't match
       }
@@ -469,8 +473,11 @@ const PatientDetails = () => {
 
   // Verify patient ID matches URL ID before rendering
   const returnedPatientId = patient.id || null;
-  // ? parseInt(patient.id, 10) : null;
-  if (returnedPatientId && returnedPatientId !== patientId) {
+  // Convert both to integers for comparison (patientId is string from URL, patient.id is integer)
+  const urlIdInt = parseInt(patientId, 10);
+  const returnedIdInt = returnedPatientId ? parseInt(String(returnedPatientId), 10) : null;
+  
+  if (returnedIdInt && returnedIdInt !== urlIdInt) {
     // console.error(`[PatientDetails] CRITICAL: Patient ID mismatch! URL ID: ${patientId}, Patient ID: ${returnedPatientId}`);
     return (
       <div className="text-center py-12">

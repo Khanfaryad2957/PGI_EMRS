@@ -388,8 +388,8 @@ const validatePatientRegistration = [
     .withMessage('Category must be one of: GEN, SC, ST, OBC, EWS'),
     body('assigned_doctor_id')
     .optional({ nullable: true })
-    .isUUID()
-    .withMessage('Assigned doctor ID must be a valid UUID'),
+    .isInt({ min: 1 })
+    .withMessage('Assigned doctor ID must be a valid integer'),
   
   
   handleValidationErrors
@@ -400,8 +400,7 @@ const validatePatientRegistration = [
 // Clinical proforma validation
 const validateClinicalProforma = [
   body('patient_id')
-    // .isInt({ min: 1 })
-    .isUUID()
+    .isInt({ min: 1 })
     .withMessage('Valid patient ID is required'),
   body('visit_date')
     .isISO8601()
@@ -432,8 +431,7 @@ const validateClinicalProforma = [
 // ADL file validation
 const validateADLFile = [
   body('patient_id')
-    // .isInt({ min: 1 })
-    .isUUID()
+    .isInt({ min: 1 })
     .withMessage('Valid patient ID is required'),
   body('clinical_proforma_id')
     .isInt({ min: 1 })
@@ -448,34 +446,11 @@ const validateADLFile = [
   handleValidationErrors
 ];
 
-// ID parameter validation (supports both UUID and integer)
+// ID parameter validation (integer only)
 const validateId = [
   param('id')
-    .custom((value) => {
-      if (!value) {
-        throw new Error('ID is required');
-      }
-      
-      // Convert to string for validation
-      const idStr = String(value).trim();
-      if (idStr === '') {
-        throw new Error('ID is required');
-      }
-      
-      // Check if it's a valid UUID format (contains hyphens and is 36 chars)
-      const isUUID = idStr.includes('-') && idStr.length === 36;
-      
-      // Check if it's a valid integer
-      const isInt = !isNaN(parseInt(idStr, 10)) && parseInt(idStr, 10) > 0;
-      
-      // Accept either UUID or positive integer
-      if (isUUID || isInt) {
-        return true;
-      }
-      
-      throw new Error('ID must be a valid UUID or positive integer');
-    })
-    .withMessage('Valid ID (UUID or integer) is required'),
+    .isInt({ min: 1 })
+    .withMessage('Valid integer ID is required'),
   handleValidationErrors
 ];
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FiCalendar, FiX, FiChevronLeft, FiChevronRight, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 
 /**
@@ -40,6 +41,8 @@ const CustomDatePicker = ({
   const [selectedDate, setSelectedDate] = useState(null);
   const pickerRef = useRef(null);
   const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 });
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -97,7 +100,10 @@ const CustomDatePicker = ({
   // Close picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current && !containerRef.current.contains(event.target) &&
+        pickerRef.current && !pickerRef.current.contains(event.target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -106,6 +112,32 @@ const CustomDatePicker = ({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+  }, [isOpen]);
+
+  // Update calendar position when open/resize/scroll
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+    
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      // Use fixed positioning for portal (relative to viewport)
+      setMenuStyle({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    
+    updatePosition();
+    // Update on scroll and resize
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
   }, [isOpen]);
 
   // Get days in month
@@ -299,6 +331,7 @@ const CustomDatePicker = ({
 
         {/* Input Display */}
         <div
+          ref={triggerRef}
           className={`relative w-full px-4 py-3.5 pl-14 pr-12 bg-white/70 backdrop-blur-xl border-2 rounded-xl shadow-lg transition-all duration-300 cursor-pointer font-lato ${
             error
               ? 'border-red-400/70 bg-red-50/40 shadow-red-200/50'
@@ -341,11 +374,19 @@ const CustomDatePicker = ({
           </button>
         )}
 
-        {/* Calendar Popup */}
-        {isOpen && !disabled && (
+        {/* Calendar Popup - Rendered via Portal to avoid overflow clipping */}
+        {isOpen && !disabled && createPortal(
           <div
             ref={pickerRef}
-            className="absolute top-full left-0 mt-2 z-50 w-full bg-white/95 backdrop-blur-xl border-2 border-gray-200/60 rounded-xl shadow-2xl overflow-hidden"
+            style={{
+              position: 'fixed',
+              top: menuStyle.top,
+              left: menuStyle.left,
+              width: menuStyle.width || 'auto',
+              minWidth: '320px',
+              zIndex: 999999,
+            }}
+            className="bg-white/95 backdrop-blur-xl border-2 border-gray-200/60 rounded-xl shadow-2xl overflow-hidden"
           >
             {/* Calendar Header */}
             <div className="bg-gradient-to-r from-primary-500/10 via-indigo-500/10 to-blue-500/10 px-3 py-2 border-b border-gray-200/60">
@@ -450,7 +491,8 @@ const CustomDatePicker = ({
                 Today
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

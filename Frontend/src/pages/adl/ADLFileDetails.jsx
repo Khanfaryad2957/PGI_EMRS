@@ -3,7 +3,6 @@ import { toast } from 'react-toastify';
 import { FiArrowLeft, FiDownload, FiUpload, FiArchive, FiUser, FiFileText, FiActivity } from 'react-icons/fi';
 import {
   useGetADLFileByIdQuery,
-  useGetFileMovementHistoryQuery,
   useRetrieveFileMutation,
   useReturnFileMutation,
   useArchiveFileMutation,
@@ -20,7 +19,6 @@ const ADLFileDetails = () => {
   const { id } = useParams();
 
   const { data, isLoading, error, isError } = useGetADLFileByIdQuery(id);
-  const { data: movementsData } = useGetFileMovementHistoryQuery(id);
   const [retrieveFile] = useRetrieveFileMutation();
   const [returnFile] = useReturnFileMutation();
   const [archiveFile] = useArchiveFileMutation();
@@ -232,59 +230,6 @@ const ADLFileDetails = () => {
         )}
       </Card>
 
-      {/* Movement History - Enhanced */}
-      {(movementsData?.data?.movements || movementsData?.data?.movementHistory) && 
-       (movementsData.data.movements || movementsData.data.movementHistory)?.length > 0 && (
-        <Card title="File Movement History" className="border-2 border-purple-100">
-          <div className="space-y-3">
-            {(movementsData.data.movements || movementsData.data.movementHistory || []).map((movement, index, array) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-              >
-                <div className="flex-shrink-0">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-                    <span className="text-white font-bold text-sm">
-                      {array.length - index}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant={movement.movement_type === 'retrieve' ? 'warning' : 'success'} className="text-xs">
-                          {movement.movement_type?.charAt(0).toUpperCase() + movement.movement_type?.slice(1) || 'Movement'}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                        <span className="font-medium text-gray-700">From:</span>
-                        <span className="bg-gray-100 px-2 py-1 rounded">{movement.from_location || 'N/A'}</span>
-                        <span className="text-primary-600">→</span>
-                        <span className="font-medium text-gray-700">To:</span>
-                        <span className="bg-gray-100 px-2 py-1 rounded">{movement.to_location || 'N/A'}</span>
-                      </div>
-                      {movement.notes && (
-                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-gray-700">
-                          <span className="font-medium text-blue-700">Note:</span> {movement.notes}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right text-sm flex-shrink-0">
-                      <p className="font-semibold text-gray-900">{formatDateTime(movement.movement_date)}</p>
-                      {movement.moved_by_name && (
-                        <p className="text-gray-600 mt-1 text-xs">
-                          <span className="text-gray-500">By:</span> {movement.moved_by_name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {/* Complex Case - Patient Details */}
       {isComplexCase && patient && (
@@ -391,7 +336,7 @@ const ADLFileDetails = () => {
                         {clinicalProforma.visit_type === 'first_visit' ? 'First Visit' : 'Follow Up'}
                       </Badge>
                     </div>
-                    <div>
+                    {/* <div>
                       <label className="text-sm font-medium text-gray-500">Case Severity</label>
                       <Badge variant={
                         clinicalProforma.case_severity === 'critical' ? 'danger' :
@@ -400,7 +345,7 @@ const ADLFileDetails = () => {
                       }>
                         {clinicalProforma.case_severity || 'N/A'}
                       </Badge>
-                    </div>
+                    </div> */}
                     <div>
                       <label className="text-sm font-medium text-gray-500">Room Number</label>
                       <p className="text-lg">{clinicalProforma.room_no || 'N/A'}</p>

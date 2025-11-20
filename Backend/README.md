@@ -163,7 +163,6 @@ http://localhost:5000/api
 - `outpatient_record` - Demographic and social data (MWO)
 - `clinical_proforma` - Clinical assessment data (JR/SR)
 - `adl_files` - Specialized file management for complex cases
-- `file_movements` - Complete audit trail of file movements
 - `patient_visits` - Visit tracking and history
 
 ### Key Relationships

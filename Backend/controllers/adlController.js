@@ -98,7 +98,7 @@ class ADLController {
     }
   }
 
-  // Get ADL files by patient ID (supports both UUID and integer)
+  // Get ADL files by patient ID (integer)
   static async getADLFilesByPatientId(req, res) {
     try {
       const { patient_id } = req.params;
@@ -137,13 +137,14 @@ class ADLController {
         });
       }
 
-      // Generate ADL number if not provided
-      let adl_no = adlData.adl_no;
-      if (!adl_no) {
-        const db = require('../config/database');
-        const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
-        adl_no = adlNoResult.rows[0].adl_no;
+      // ADL number must be provided manually
+      if (!adlData.adl_no) {
+        return res.status(400).json({
+          success: false,
+          message: 'ADL number is required. Please provide adl_no in the request.'
+        });
       }
+      const adl_no = adlData.adl_no;
 
       // Prepare ADL data with defaults
       const createData = {
@@ -368,37 +369,6 @@ class ADLController {
     }
   }
 
-  // Get file movement history
-  static async getFileMovementHistory(req, res) {
-    try {
-      const { id } = req.params;
-      const adlFile = await ADLFile.findById(id);
-
-      if (!adlFile) {
-        return res.status(404).json({
-          success: false,
-          message: 'ADL file not found'
-        });
-      }
-
-      const movementHistory = await adlFile.getMovementHistory();
-
-      res.json({
-        success: true,
-        data: {
-          adlFile: adlFile.toJSON(),
-          movementHistory
-        }
-      });
-    } catch (error) {
-      console.error('Get file movement history error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get file movement history',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
 
   // Get files that need to be retrieved
   static async getFilesToRetrieve(req, res) {

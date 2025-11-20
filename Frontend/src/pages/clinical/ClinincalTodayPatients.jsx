@@ -23,7 +23,7 @@ const PatientRow = ({ patient, isNewPatient, navigate }) => {
       refetchOnReconnect: true,
     }
   );
- 
+  
   // Refetch proformas when component becomes visible (e.g., after returning from deletion)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -58,11 +58,8 @@ const PatientRow = ({ patient, isNewPatient, navigate }) => {
     return proformaDate === todayDateString;
   });
   
-  // Hide card if proforma is completed today (but only if we have loaded proforma data)
-  // If still loading, show the card to avoid flickering
-  if (!isLoadingProformas && hasProformaToday) {
-    return null;
-  }
+  // Note: We no longer hide patients with proformas today - they should still be visible in the list
+  // This allows users to view/edit proformas or create additional ones if needed
 
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('en-IN', {
@@ -92,7 +89,7 @@ const PatientRow = ({ patient, isNewPatient, navigate }) => {
   const borderColor = isNewPatient 
     ? 'border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-white' 
     : 'border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-white';
-  
+
   return (
     <div className={`p-5 sm:p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 rounded-lg mb-4 shadow-sm hover:shadow-md ${borderColor}`}>
       <div className="flex flex-col lg:flex-row lg:items-start gap-5 lg:gap-6">
@@ -429,9 +426,9 @@ const ClinicalTodayPatients = () => {
     if (isJrSr(currentUser.role)) {
       // Prefer direct field; fallback to latest assignment fields if present
       if (p.assigned_doctor_id) {
-        // Handle both UUID and integer IDs
-        const patientDoctorId = String(p.assigned_doctor_id);
-        const currentUserId = String(currentUser.id);
+        // Both IDs are integers
+        const patientDoctorId = parseInt(p.assigned_doctor_id, 10);
+        const currentUserId = parseInt(currentUser.id, 10);
         return patientDoctorId === currentUserId;
       }
       if (p.assigned_doctor) {
@@ -462,6 +459,23 @@ const ClinicalTodayPatients = () => {
     });
   });
 
+  // Debug: Log filtering results (after all filters are applied)
+  console.log('[ClinicalTodayPatients] Debug:', {
+    totalApiPatients: deduplicatedApiPatients.length,
+    todayPatientsByDate: todayPatientsByDate.length,
+    todayPatientsAfterRoleFilter: todayPatients.length,
+    filteredPatients: filteredPatients.length,
+    selectedDate,
+    currentDate: toISTDateString(new Date()),
+    currentUser: currentUser ? { id: currentUser.id, role: currentUser.role } : null,
+    samplePatient: deduplicatedApiPatients[0] ? {
+      id: deduplicatedApiPatients[0].id,
+      name: deduplicatedApiPatients[0].name,
+      created_at: deduplicatedApiPatients[0].created_at,
+      created_at_IST: deduplicatedApiPatients[0].created_at ? toISTDateString(deduplicatedApiPatients[0].created_at) : null,
+      assigned_doctor_id: deduplicatedApiPatients[0].assigned_doctor_id,
+    } : null,
+  });
 
   if (isLoading) {
     return (
@@ -511,12 +525,12 @@ const ClinicalTodayPatients = () => {
           <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900">
                   Today's Patients
-                  <span className="ml-2 px-2.5 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                    {filteredPatients.length}
-                  </span>
-                </h3>
+                <span className="ml-2 px-2.5 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                  {filteredPatients.length}
+                </span>
+              </h3>
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-600"></div>

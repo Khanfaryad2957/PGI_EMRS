@@ -186,7 +186,7 @@ class ClinicalController {
             referred_to: data.referred_to,
             treatment_prescribed: data.treatment_prescribed,
             doctor_decision: data.doctor_decision,
-            case_severity: data.case_severity,
+            // case_severity: data.case_severity,
             requires_adl_file: true,
             adl_reasoning: data.adl_reasoning,
           adl_file_id: null // Will be set after ADL file creation
@@ -210,9 +210,14 @@ class ClinicalController {
         }
 
         if (!existingAdlFile) {
-          // Generate ADL number using PostgreSQL function (matches schema: ADL + year + 8-char random)
-          const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
-          const nextAdlNo = adlNoResult.rows[0].adl_no;
+          // ADL number must be provided manually in the request
+          if (!req.body.adl_no) {
+            return res.status(400).json({
+              success: false,
+              message: 'ADL number is required for complex cases. Please provide adl_no in the request.'
+            });
+          }
+          const nextAdlNo = req.body.adl_no;
 
           // Prepare ADL data with complex case fields
           // Note: is_active has a default value in the table, so we don't need to include it
@@ -391,7 +396,7 @@ class ClinicalController {
           referred_to: data.referred_to,
           treatment_prescribed: data.treatment_prescribed,
           doctor_decision: data.doctor_decision,
-          case_severity: data.case_severity,
+          // case_severity: data.case_severity,
           requires_adl_file: false,
           adl_file_id: null,
           adl_reasoning: data.adl_reasoning,
@@ -443,7 +448,7 @@ class ClinicalController {
       // Apply filters
       if (req.query.visit_type) filters.visit_type = req.query.visit_type;
       if (req.query.doctor_decision) filters.doctor_decision = req.query.doctor_decision;
-      if (req.query.case_severity) filters.case_severity = req.query.case_severity;
+      // if (req.query.case_severity) filters.case_severity = req.query.case_severity;
       if (req.query.requires_adl_file !== undefined) filters.requires_adl_file = req.query.requires_adl_file === 'true';
       if (req.query.filled_by) filters.filled_by = req.query.filled_by;
       if (req.query.room_no) filters.room_no = req.query.room_no;
@@ -532,26 +537,16 @@ class ClinicalController {
     try {
       const { id } = req.params;
       
-      // Validate that id is a valid UUID (clinical proforma IDs are now UUIDs)
-      // Check if it's a valid UUID format (36 chars with hyphens)
-      const isUUID = typeof id === 'string' && id.includes('-') && id.length === 36;
-      
-      let proforma;
-      if (!isUUID && id) {
-        // If it's not a UUID, try to parse as integer (for backward compatibility)
-        const idNum = parseInt(id, 10);
-        if (isNaN(idNum) || idNum <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid clinical proforma ID format. ID must be a valid UUID (36 characters with hyphens).'
-          });
-        }
-        // Use integer ID for backward compatibility
-        proforma = await ClinicalProforma.findById(idNum);
-      } else {
-        // Use UUID ID
-        proforma = await ClinicalProforma.findById(id);
+      // Validate that id is a valid integer
+      const proformaId = parseInt(id, 10);
+      if (isNaN(proformaId) || proformaId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid clinical proforma ID format. ID must be a valid integer.'
+        });
       }
+      
+      const proforma = await ClinicalProforma.findById(proformaId);
 
       if (!proforma) {
         return res.status(404).json({
@@ -750,9 +745,14 @@ class ClinicalController {
           
           // Create new ADL file if it doesn't exist or changing to complex case
           if (!adlFile && (changingToComplexCase || !proforma.adl_file_id)) {
-            // Generate ADL number using PostgreSQL function (matches schema: ADL + year + 8-char random)
-            const adlNoResult = await db.query('SELECT generate_adl_number() as adl_no');
-            const nextAdlNo = adlNoResult.rows[0].adl_no;
+            // ADL number must be provided manually in the request
+            if (!req.body.adl_no) {
+              return res.status(400).json({
+                success: false,
+                message: 'ADL number is required for complex cases. Please provide adl_no in the request.'
+              });
+            }
+            const nextAdlNo = req.body.adl_no;
 
             // Prepare ADL data
             const adlData = {

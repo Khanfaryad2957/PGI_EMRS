@@ -222,14 +222,14 @@ const ClinicalProformaDetails = () => {
               <label className="text-sm font-medium text-gray-500">ICD Code</label>
               <p className="text-lg mt-1">{proforma.icd_code || 'Not specified'}</p>
             </div>
-            <div>
+            {/* <div>
               <label className="text-sm font-medium text-gray-500">Case Severity</label>
               <div className="mt-1">
                 <Badge variant={proforma.case_severity === 'severe' ? 'danger' : 'warning'}>
                   {proforma.case_severity}
                 </Badge>
               </div>
-            </div>
+            </div> */}
             <div>
               <label className="text-sm font-medium text-gray-500">Doctor Decision</label>
               <div className="mt-1">

@@ -745,8 +745,7 @@
 //       });
 
 //       // Log the movement
-//       await this.logMovement('retrieved', 'Record Room', 'Doctor Office', accessedBy);
-      
+//       
 //       return this;
 //     } catch (error) {
 //       throw error;
@@ -763,8 +762,7 @@
 //       });
 
 //       // Log the movement
-//       await this.logMovement('returned', 'Doctor Office', 'Record Room', returnedBy);
-      
+//       
 //       return this;
 //     } catch (error) {
 //       throw error;
@@ -782,8 +780,7 @@
 //       });
 
 //       // Log the movement
-//       await this.logMovement('archived', 'Record Room', 'Archive Room', archivedBy);
-      
+//       
 //       return this;
 //     } catch (error) {
 //       throw error;
@@ -1151,15 +1148,10 @@
 
 
 const db = require('../config/database');
-const { encrypt, decrypt, encryptObject, decryptObject } = require('../utils/encryption');
-const encryptionFields = require('../utils/encryptionFields');
 
 class ADLFile {
   constructor(data) {
-    // Decrypt sensitive fields after receiving from database
-    const decryptedData = decryptObject(data, encryptionFields.adlFile);
-    
-    this.id = decryptedData.id;
+    this.id = data.id;
     this.patient_id = data.patient_id;
     this.adl_no = data.adl_no;
     this.created_by = data.created_by;
@@ -1176,14 +1168,7 @@ class ADLFile {
     this.updated_at = data.updated_at;
     
     // Joined fields from patients table
-    // IMPORTANT: patient_name comes from registered_patient table and is encrypted there
-    // We need to decrypt it separately since it's not in adlFile encryption fields
-    // The decrypt() function handles null/empty values and decryption failures gracefully
-    if (data.patient_name) {
-      this.patient_name = decrypt(data.patient_name);
-    } else {
-      this.patient_name = data.patient_name || null;
-    }
+    this.patient_name = data.patient_name || null;
     this.cr_no = data.cr_no;
     this.psy_no = data.psy_no;
     
@@ -1201,13 +1186,13 @@ class ADLFile {
     
     // Complex Case Data Fields (stored in ADL file, not in clinical_proforma)
     // History of Present Illness - Expanded
-    this.history_narrative = decryptedData.history_narrative;
-    this.history_specific_enquiry = decryptedData.history_specific_enquiry;
-    this.history_drug_intake = decryptedData.history_drug_intake;
-    this.history_treatment_place = decryptedData.history_treatment_place;
-    this.history_treatment_dates = decryptedData.history_treatment_dates;
-    this.history_treatment_drugs = decryptedData.history_treatment_drugs;
-    this.history_treatment_response = decryptedData.history_treatment_response;
+    this.history_narrative = data.history_narrative;
+    this.history_specific_enquiry = data.history_specific_enquiry;
+    this.history_drug_intake = data.history_drug_intake;
+    this.history_treatment_place = data.history_treatment_place;
+    this.history_treatment_dates = data.history_treatment_dates;
+    this.history_treatment_drugs = data.history_treatment_drugs;
+    this.history_treatment_response = data.history_treatment_response;
     
     // Multiple Informants (JSONB)
     this.informants = data.informants ? (typeof data.informants === 'string' ? JSON.parse(data.informants) : data.informants) : [];
@@ -1217,191 +1202,191 @@ class ADLFile {
     this.complaints_informant = data.complaints_informant ? (typeof data.complaints_informant === 'string' ? JSON.parse(data.complaints_informant) : data.complaints_informant) : [];
     
     // Illness Details
-    this.onset_duration = decryptedData.onset_duration;
-    this.precipitating_factor = decryptedData.precipitating_factor;
-    this.course = decryptedData.course;
+    this.onset_duration = data.onset_duration;
+    this.precipitating_factor = data.precipitating_factor;
+    this.course = data.course;
     
     // Past History - Detailed
-    this.past_history_medical = decryptedData.past_history_medical;
-    this.past_history_psychiatric_dates = decryptedData.past_history_psychiatric_dates;
-    this.past_history_psychiatric_diagnosis = decryptedData.past_history_psychiatric_diagnosis;
-    this.past_history_psychiatric_treatment = decryptedData.past_history_psychiatric_treatment;
-    this.past_history_psychiatric_interim = decryptedData.past_history_psychiatric_interim;
-    this.past_history_psychiatric_recovery = decryptedData.past_history_psychiatric_recovery;
+    this.past_history_medical = data.past_history_medical;
+    this.past_history_psychiatric_dates = data.past_history_psychiatric_dates;
+    this.past_history_psychiatric_diagnosis = data.past_history_psychiatric_diagnosis;
+    this.past_history_psychiatric_treatment = data.past_history_psychiatric_treatment;
+    this.past_history_psychiatric_interim = data.past_history_psychiatric_interim;
+    this.past_history_psychiatric_recovery = data.past_history_psychiatric_recovery;
     
     // Family History - Detailed
-    this.family_history_father_age = decryptedData.family_history_father_age;
-    this.family_history_father_education = decryptedData.family_history_father_education;
-    this.family_history_father_occupation = decryptedData.family_history_father_occupation;
-    this.family_history_father_personality = decryptedData.family_history_father_personality;
-    this.family_history_father_deceased = decryptedData.family_history_father_deceased || false;
-    this.family_history_father_death_age = decryptedData.family_history_father_death_age;
-    this.family_history_father_death_date = decryptedData.family_history_father_death_date;
-    this.family_history_father_death_cause = decryptedData.family_history_father_death_cause;
-    this.family_history_mother_age = decryptedData.family_history_mother_age;
-    this.family_history_mother_education = decryptedData.family_history_mother_education;
-    this.family_history_mother_occupation = decryptedData.family_history_mother_occupation;
-    this.family_history_mother_personality = decryptedData.family_history_mother_personality;
-    this.family_history_mother_deceased = decryptedData.family_history_mother_deceased || false;
-    this.family_history_mother_death_age = decryptedData.family_history_mother_death_age;
-    this.family_history_mother_death_date = decryptedData.family_history_mother_death_date;
-    this.family_history_mother_death_cause = decryptedData.family_history_mother_death_cause;
+    this.family_history_father_age = data.family_history_father_age;
+    this.family_history_father_education = data.family_history_father_education;
+    this.family_history_father_occupation = data.family_history_father_occupation;
+    this.family_history_father_personality = data.family_history_father_personality;
+    this.family_history_father_deceased = data.family_history_father_deceased || false;
+    this.family_history_father_death_age = data.family_history_father_death_age;
+    this.family_history_father_death_date = data.family_history_father_death_date;
+    this.family_history_father_death_cause = data.family_history_father_death_cause;
+    this.family_history_mother_age = data.family_history_mother_age;
+    this.family_history_mother_education = data.family_history_mother_education;
+    this.family_history_mother_occupation = data.family_history_mother_occupation;
+    this.family_history_mother_personality = data.family_history_mother_personality;
+    this.family_history_mother_deceased = data.family_history_mother_deceased || false;
+    this.family_history_mother_death_age = data.family_history_mother_death_age;
+    this.family_history_mother_death_date = data.family_history_mother_death_date;
+    this.family_history_mother_death_cause = data.family_history_mother_death_cause;
     this.family_history_siblings = data.family_history_siblings ? (typeof data.family_history_siblings === 'string' ? JSON.parse(data.family_history_siblings) : data.family_history_siblings) : [];
     // Family History of Mental Illness
-    this.family_history = decryptedData.family_history;
+    this.family_history = data.family_history;
     
     // Diagnostic Formulation
-    this.diagnostic_formulation_summary = decryptedData.diagnostic_formulation_summary;
-    this.diagnostic_formulation_features = decryptedData.diagnostic_formulation_features;
-    this.diagnostic_formulation_psychodynamic = decryptedData.diagnostic_formulation_psychodynamic;
+    this.diagnostic_formulation_summary = data.diagnostic_formulation_summary;
+    this.diagnostic_formulation_features = data.diagnostic_formulation_features;
+    this.diagnostic_formulation_psychodynamic = data.diagnostic_formulation_psychodynamic;
     
     // Premorbid Personality
-    this.premorbid_personality_passive_active = decryptedData.premorbid_personality_passive_active;
-    this.premorbid_personality_assertive = decryptedData.premorbid_personality_assertive;
-    this.premorbid_personality_introvert_extrovert = decryptedData.premorbid_personality_introvert_extrovert;
-    this.premorbid_personality_traits = decryptedData.premorbid_personality_traits ? (typeof decryptedData.premorbid_personality_traits === 'string' ? JSON.parse(decryptedData.premorbid_personality_traits) : decryptedData.premorbid_personality_traits) : [];
-    this.premorbid_personality_hobbies = decryptedData.premorbid_personality_hobbies;
-    this.premorbid_personality_habits = decryptedData.premorbid_personality_habits;
-    this.premorbid_personality_alcohol_drugs = decryptedData.premorbid_personality_alcohol_drugs;
+    this.premorbid_personality_passive_active = data.premorbid_personality_passive_active;
+    this.premorbid_personality_assertive = data.premorbid_personality_assertive;
+    this.premorbid_personality_introvert_extrovert = data.premorbid_personality_introvert_extrovert;
+    this.premorbid_personality_traits = data.premorbid_personality_traits ? (typeof data.premorbid_personality_traits === 'string' ? JSON.parse(data.premorbid_personality_traits) : data.premorbid_personality_traits) : [];
+    this.premorbid_personality_hobbies = data.premorbid_personality_hobbies;
+    this.premorbid_personality_habits = data.premorbid_personality_habits;
+    this.premorbid_personality_alcohol_drugs = data.premorbid_personality_alcohol_drugs;
     
     // Physical Examination - Comprehensive
-    this.physical_appearance = decryptedData.physical_appearance;
-    this.physical_body_build = decryptedData.physical_body_build;
-    this.physical_pallor = decryptedData.physical_pallor || false;
-    this.physical_icterus = decryptedData.physical_icterus || false;
-    this.physical_oedema = decryptedData.physical_oedema || false;
-    this.physical_lymphadenopathy = decryptedData.physical_lymphadenopathy || false;
-    this.physical_pulse = decryptedData.physical_pulse;
-    this.physical_bp = decryptedData.physical_bp;
-    this.physical_height = decryptedData.physical_height;
-    this.physical_weight = decryptedData.physical_weight;
-    this.physical_waist = decryptedData.physical_waist;
-    this.physical_fundus = decryptedData.physical_fundus;
-    this.physical_cvs_apex = decryptedData.physical_cvs_apex;
-    this.physical_cvs_regularity = decryptedData.physical_cvs_regularity;
-    this.physical_cvs_heart_sounds = decryptedData.physical_cvs_heart_sounds;
-    this.physical_cvs_murmurs = decryptedData.physical_cvs_murmurs;
-    this.physical_chest_expansion = decryptedData.physical_chest_expansion;
-    this.physical_chest_percussion = decryptedData.physical_chest_percussion;
-    this.physical_chest_adventitious = decryptedData.physical_chest_adventitious;
-    this.physical_abdomen_tenderness = decryptedData.physical_abdomen_tenderness;
-    this.physical_abdomen_mass = decryptedData.physical_abdomen_mass;
-    this.physical_abdomen_bowel_sounds = decryptedData.physical_abdomen_bowel_sounds;
-    this.physical_cns_cranial = decryptedData.physical_cns_cranial;
-    this.physical_cns_motor_sensory = decryptedData.physical_cns_motor_sensory;
-    this.physical_cns_rigidity = decryptedData.physical_cns_rigidity;
-    this.physical_cns_involuntary = decryptedData.physical_cns_involuntary;
-    this.physical_cns_superficial_reflexes = decryptedData.physical_cns_superficial_reflexes;
-    this.physical_cns_dtrs = decryptedData.physical_cns_dtrs;
-    this.physical_cns_plantar = decryptedData.physical_cns_plantar;
-    this.physical_cns_cerebellar = decryptedData.physical_cns_cerebellar;
+    this.physical_appearance = data.physical_appearance;
+    this.physical_body_build = data.physical_body_build;
+    this.physical_pallor = data.physical_pallor || false;
+    this.physical_icterus = data.physical_icterus || false;
+    this.physical_oedema = data.physical_oedema || false;
+    this.physical_lymphadenopathy = data.physical_lymphadenopathy || false;
+    this.physical_pulse = data.physical_pulse;
+    this.physical_bp = data.physical_bp;
+    this.physical_height = data.physical_height;
+    this.physical_weight = data.physical_weight;
+    this.physical_waist = data.physical_waist;
+    this.physical_fundus = data.physical_fundus;
+    this.physical_cvs_apex = data.physical_cvs_apex;
+    this.physical_cvs_regularity = data.physical_cvs_regularity;
+    this.physical_cvs_heart_sounds = data.physical_cvs_heart_sounds;
+    this.physical_cvs_murmurs = data.physical_cvs_murmurs;
+    this.physical_chest_expansion = data.physical_chest_expansion;
+    this.physical_chest_percussion = data.physical_chest_percussion;
+    this.physical_chest_adventitious = data.physical_chest_adventitious;
+    this.physical_abdomen_tenderness = data.physical_abdomen_tenderness;
+    this.physical_abdomen_mass = data.physical_abdomen_mass;
+    this.physical_abdomen_bowel_sounds = data.physical_abdomen_bowel_sounds;
+    this.physical_cns_cranial = data.physical_cns_cranial;
+    this.physical_cns_motor_sensory = data.physical_cns_motor_sensory;
+    this.physical_cns_rigidity = data.physical_cns_rigidity;
+    this.physical_cns_involuntary = data.physical_cns_involuntary;
+    this.physical_cns_superficial_reflexes = data.physical_cns_superficial_reflexes;
+    this.physical_cns_dtrs = data.physical_cns_dtrs;
+    this.physical_cns_plantar = data.physical_cns_plantar;
+    this.physical_cns_cerebellar = data.physical_cns_cerebellar;
     
     // Mental Status Examination - Expanded
-    this.mse_general_demeanour = decryptedData.mse_general_demeanour;
-    this.mse_general_tidy = decryptedData.mse_general_tidy;
-    this.mse_general_awareness = decryptedData.mse_general_awareness;
-    this.mse_general_cooperation = decryptedData.mse_general_cooperation;
-    this.mse_psychomotor_verbalization = decryptedData.mse_psychomotor_verbalization;
-    this.mse_psychomotor_pressure = decryptedData.mse_psychomotor_pressure;
-    this.mse_psychomotor_tension = decryptedData.mse_psychomotor_tension;
-    this.mse_psychomotor_posture = decryptedData.mse_psychomotor_posture;
-    this.mse_psychomotor_mannerism = decryptedData.mse_psychomotor_mannerism;
-    this.mse_psychomotor_catatonic = decryptedData.mse_psychomotor_catatonic;
-    this.mse_affect_subjective = decryptedData.mse_affect_subjective;
-    this.mse_affect_tone = decryptedData.mse_affect_tone;
-    this.mse_affect_resting = decryptedData.mse_affect_resting;
-    this.mse_affect_fluctuation = decryptedData.mse_affect_fluctuation;
-    this.mse_thought_flow = decryptedData.mse_thought_flow;
-    this.mse_thought_form = decryptedData.mse_thought_form;
-    this.mse_thought_content = decryptedData.mse_thought_content;
-    this.mse_thought_possession = decryptedData.mse_thought_possession;
-    this.mse_cognitive_consciousness = decryptedData.mse_cognitive_consciousness;
-    this.mse_cognitive_orientation_time = decryptedData.mse_cognitive_orientation_time;
-    this.mse_cognitive_orientation_place = decryptedData.mse_cognitive_orientation_place;
-    this.mse_cognitive_orientation_person = decryptedData.mse_cognitive_orientation_person;
-    this.mse_cognitive_memory_immediate = decryptedData.mse_cognitive_memory_immediate;
-    this.mse_cognitive_memory_recent = decryptedData.mse_cognitive_memory_recent;
-    this.mse_cognitive_memory_remote = decryptedData.mse_cognitive_memory_remote;
-    this.mse_cognitive_subtraction = decryptedData.mse_cognitive_subtraction;
-    this.mse_cognitive_digit_span = decryptedData.mse_cognitive_digit_span;
-    this.mse_cognitive_counting = decryptedData.mse_cognitive_counting;
-    this.mse_cognitive_general_knowledge = decryptedData.mse_cognitive_general_knowledge;
-    this.mse_cognitive_calculation = decryptedData.mse_cognitive_calculation;
-    this.mse_cognitive_similarities = decryptedData.mse_cognitive_similarities;
-    this.mse_cognitive_proverbs = decryptedData.mse_cognitive_proverbs;
-    this.mse_insight_understanding = decryptedData.mse_insight_understanding;
-    this.mse_insight_judgement = decryptedData.mse_insight_judgement;
+    this.mse_general_demeanour = data.mse_general_demeanour;
+    this.mse_general_tidy = data.mse_general_tidy;
+    this.mse_general_awareness = data.mse_general_awareness;
+    this.mse_general_cooperation = data.mse_general_cooperation;
+    this.mse_psychomotor_verbalization = data.mse_psychomotor_verbalization;
+    this.mse_psychomotor_pressure = data.mse_psychomotor_pressure;
+    this.mse_psychomotor_tension = data.mse_psychomotor_tension;
+    this.mse_psychomotor_posture = data.mse_psychomotor_posture;
+    this.mse_psychomotor_mannerism = data.mse_psychomotor_mannerism;
+    this.mse_psychomotor_catatonic = data.mse_psychomotor_catatonic;
+    this.mse_affect_subjective = data.mse_affect_subjective;
+    this.mse_affect_tone = data.mse_affect_tone;
+    this.mse_affect_resting = data.mse_affect_resting;
+    this.mse_affect_fluctuation = data.mse_affect_fluctuation;
+    this.mse_thought_flow = data.mse_thought_flow;
+    this.mse_thought_form = data.mse_thought_form;
+    this.mse_thought_content = data.mse_thought_content;
+    this.mse_thought_possession = data.mse_thought_possession;
+    this.mse_cognitive_consciousness = data.mse_cognitive_consciousness;
+    this.mse_cognitive_orientation_time = data.mse_cognitive_orientation_time;
+    this.mse_cognitive_orientation_place = data.mse_cognitive_orientation_place;
+    this.mse_cognitive_orientation_person = data.mse_cognitive_orientation_person;
+    this.mse_cognitive_memory_immediate = data.mse_cognitive_memory_immediate;
+    this.mse_cognitive_memory_recent = data.mse_cognitive_memory_recent;
+    this.mse_cognitive_memory_remote = data.mse_cognitive_memory_remote;
+    this.mse_cognitive_subtraction = data.mse_cognitive_subtraction;
+    this.mse_cognitive_digit_span = data.mse_cognitive_digit_span;
+    this.mse_cognitive_counting = data.mse_cognitive_counting;
+    this.mse_cognitive_general_knowledge = data.mse_cognitive_general_knowledge;
+    this.mse_cognitive_calculation = data.mse_cognitive_calculation;
+    this.mse_cognitive_similarities = data.mse_cognitive_similarities;
+    this.mse_cognitive_proverbs = data.mse_cognitive_proverbs;
+    this.mse_insight_understanding = data.mse_insight_understanding;
+    this.mse_insight_judgement = data.mse_insight_judgement;
     
     // Educational History
-    this.education_start_age = decryptedData.education_start_age;
-    this.education_highest_class = decryptedData.education_highest_class;
-    this.education_performance = decryptedData.education_performance;
-    this.education_disciplinary = decryptedData.education_disciplinary;
-    this.education_peer_relationship = decryptedData.education_peer_relationship;
-    this.education_hobbies = decryptedData.education_hobbies;
-    this.education_special_abilities = decryptedData.education_special_abilities;
-    this.education_discontinue_reason = decryptedData.education_discontinue_reason;
+    this.education_start_age = data.education_start_age;
+    this.education_highest_class = data.education_highest_class;
+    this.education_performance = data.education_performance;
+    this.education_disciplinary = data.education_disciplinary;
+    this.education_peer_relationship = data.education_peer_relationship;
+    this.education_hobbies = data.education_hobbies;
+    this.education_special_abilities = data.education_special_abilities;
+    this.education_discontinue_reason = data.education_discontinue_reason;
     
     // Occupational History (JSONB)
     this.occupation_jobs = data.occupation_jobs ? (typeof data.occupation_jobs === 'string' ? JSON.parse(data.occupation_jobs) : data.occupation_jobs) : [];
     
     // Sexual and Marital History
-    this.sexual_menarche_age = decryptedData.sexual_menarche_age;
-    this.sexual_menarche_reaction = decryptedData.sexual_menarche_reaction;
-    this.sexual_education = decryptedData.sexual_education;
-    this.sexual_masturbation = decryptedData.sexual_masturbation;
-    this.sexual_contact = decryptedData.sexual_contact;
-    this.sexual_premarital_extramarital = decryptedData.sexual_premarital_extramarital;
-    this.sexual_marriage_arranged = decryptedData.sexual_marriage_arranged;
-    this.sexual_marriage_date = decryptedData.sexual_marriage_date;
-    this.sexual_spouse_age = decryptedData.sexual_spouse_age;
-    this.sexual_spouse_occupation = decryptedData.sexual_spouse_occupation;
-    this.sexual_adjustment_general = decryptedData.sexual_adjustment_general;
-    this.sexual_adjustment_sexual = decryptedData.sexual_adjustment_sexual;
-    this.sexual_children = decryptedData.sexual_children ? (typeof decryptedData.sexual_children === 'string' ? JSON.parse(decryptedData.sexual_children) : decryptedData.sexual_children) : [];
-    this.sexual_problems = decryptedData.sexual_problems;
+    this.sexual_menarche_age = data.sexual_menarche_age;
+    this.sexual_menarche_reaction = data.sexual_menarche_reaction;
+    this.sexual_education = data.sexual_education;
+    this.sexual_masturbation = data.sexual_masturbation;
+    this.sexual_contact = data.sexual_contact;
+    this.sexual_premarital_extramarital = data.sexual_premarital_extramarital;
+    this.sexual_marriage_arranged = data.sexual_marriage_arranged;
+    this.sexual_marriage_date = data.sexual_marriage_date;
+    this.sexual_spouse_age = data.sexual_spouse_age;
+    this.sexual_spouse_occupation = data.sexual_spouse_occupation;
+    this.sexual_adjustment_general = data.sexual_adjustment_general;
+    this.sexual_adjustment_sexual = data.sexual_adjustment_sexual;
+    this.sexual_children = data.sexual_children ? (typeof data.sexual_children === 'string' ? JSON.parse(data.sexual_children) : data.sexual_children) : [];
+    this.sexual_problems = data.sexual_problems;
     
     // Religion
-    this.religion_type = decryptedData.religion_type;
-    this.religion_participation = decryptedData.religion_participation;
-    this.religion_changes = decryptedData.religion_changes;
+    this.religion_type = data.religion_type;
+    this.religion_participation = data.religion_participation;
+    this.religion_changes = data.religion_changes;
     
     // Present Living Situation
-    this.living_residents = decryptedData.living_residents ? (typeof decryptedData.living_residents === 'string' ? JSON.parse(decryptedData.living_residents) : decryptedData.living_residents) : [];
-    this.living_income_sharing = decryptedData.living_income_sharing;
-    this.living_expenses = decryptedData.living_expenses;
-    this.living_kitchen = decryptedData.living_kitchen;
-    this.living_domestic_conflicts = decryptedData.living_domestic_conflicts;
-    this.living_social_class = decryptedData.living_social_class;
-    this.living_inlaws = decryptedData.living_inlaws ? (typeof decryptedData.living_inlaws === 'string' ? JSON.parse(decryptedData.living_inlaws) : decryptedData.living_inlaws) : [];
+    this.living_residents = data.living_residents ? (typeof data.living_residents === 'string' ? JSON.parse(data.living_residents) : data.living_residents) : [];
+    this.living_income_sharing = data.living_income_sharing;
+    this.living_expenses = data.living_expenses;
+    this.living_kitchen = data.living_kitchen;
+    this.living_domestic_conflicts = data.living_domestic_conflicts;
+    this.living_social_class = data.living_social_class;
+    this.living_inlaws = data.living_inlaws ? (typeof data.living_inlaws === 'string' ? JSON.parse(data.living_inlaws) : data.living_inlaws) : [];
     
     // General Home Situation and Early Development
-    this.home_situation_childhood = decryptedData.home_situation_childhood;
-    this.home_situation_parents_relationship = decryptedData.home_situation_parents_relationship;
-    this.home_situation_socioeconomic = decryptedData.home_situation_socioeconomic;
-    this.home_situation_interpersonal = decryptedData.home_situation_interpersonal;
-    this.personal_birth_date = decryptedData.personal_birth_date;
-    this.personal_birth_place = decryptedData.personal_birth_place;
-    this.personal_delivery_type = decryptedData.personal_delivery_type;
-    this.personal_complications_prenatal = decryptedData.personal_complications_prenatal;
-    this.personal_complications_natal = decryptedData.personal_complications_natal;
-    this.personal_complications_postnatal = decryptedData.personal_complications_postnatal;
-    this.development_weaning_age = decryptedData.development_weaning_age;
-    this.development_first_words = decryptedData.development_first_words;
-    this.development_three_words = decryptedData.development_three_words;
-    this.development_walking = decryptedData.development_walking;
-    this.development_neurotic_traits = decryptedData.development_neurotic_traits;
-    this.development_nail_biting = decryptedData.development_nail_biting;
-    this.development_bedwetting = decryptedData.development_bedwetting;
-    this.development_phobias = decryptedData.development_phobias;
-    this.development_childhood_illness = decryptedData.development_childhood_illness;
+    this.home_situation_childhood = data.home_situation_childhood;
+    this.home_situation_parents_relationship = data.home_situation_parents_relationship;
+    this.home_situation_socioeconomic = data.home_situation_socioeconomic;
+    this.home_situation_interpersonal = data.home_situation_interpersonal;
+    this.personal_birth_date = data.personal_birth_date;
+    this.personal_birth_place = data.personal_birth_place;
+    this.personal_delivery_type = data.personal_delivery_type;
+    this.personal_complications_prenatal = data.personal_complications_prenatal;
+    this.personal_complications_natal = data.personal_complications_natal;
+    this.personal_complications_postnatal = data.personal_complications_postnatal;
+    this.development_weaning_age = data.development_weaning_age;
+    this.development_first_words = data.development_first_words;
+    this.development_three_words = data.development_three_words;
+    this.development_walking = data.development_walking;
+    this.development_neurotic_traits = data.development_neurotic_traits;
+    this.development_nail_biting = data.development_nail_biting;
+    this.development_bedwetting = data.development_bedwetting;
+    this.development_phobias = data.development_phobias;
+    this.development_childhood_illness = data.development_childhood_illness;
     
     // Provisional Diagnosis and Treatment Plan
-    this.provisional_diagnosis = decryptedData.provisional_diagnosis;
-    this.treatment_plan = decryptedData.treatment_plan;
+    this.provisional_diagnosis = data.provisional_diagnosis;
+    this.treatment_plan = data.treatment_plan;
     
     // Comments of the Consultant
-    this.consultant_comments = decryptedData.consultant_comments;
+    this.consultant_comments = data.consultant_comments;
   }
 
   // Static method to create ADL file with transaction support
@@ -1480,8 +1465,7 @@ class ADLFile {
     const livingResidentsJson = living_residents ? JSON.stringify(Array.isArray(living_residents) ? living_residents : []) : '[]';
     const livingInlawsJson = living_inlaws ? JSON.stringify(Array.isArray(living_inlaws) ? living_inlaws : []) : '[]';
 
-    // Encrypt sensitive fields before saving
-    const encryptedAdlData = encryptObject(adlData, encryptionFields.adlFile);
+    // Prepare ADL data for saving
 
     const result = await client.query(
       `INSERT INTO adl_files (
@@ -1567,163 +1551,163 @@ class ADLFile {
       [
         patient_id, adl_no, created_by, clinical_proforma_id, file_status, 
         file_created_date, total_visits, 
-        encryptedAdlData.history_narrative || history_narrative, 
-        encryptedAdlData.history_specific_enquiry || history_specific_enquiry, 
-        encryptedAdlData.history_drug_intake || history_drug_intake, 
-        encryptedAdlData.history_treatment_place || history_treatment_place, 
-        encryptedAdlData.history_treatment_dates || history_treatment_dates,
-        encryptedAdlData.history_treatment_drugs || history_treatment_drugs, 
-        encryptedAdlData.history_treatment_response || history_treatment_response, 
+history_narrative, 
+history_specific_enquiry || history_specific_enquiry, 
+history_drug_intake || history_drug_intake, 
+history_treatment_place || history_treatment_place, 
+history_treatment_dates || history_treatment_dates,
+history_treatment_drugs || history_treatment_drugs, 
+history_treatment_response || history_treatment_response, 
         informantsJson, 
         complaintsPatientJson, complaintsInformantJson, 
-        encryptedAdlData.onset_duration || onset_duration,
-        encryptedAdlData.precipitating_factor || precipitating_factor,
-        encryptedAdlData.course || course,
-        encryptedAdlData.past_history_medical || past_history_medical, 
-        encryptedAdlData.past_history_psychiatric_dates || past_history_psychiatric_dates, 
-        encryptedAdlData.past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
-        encryptedAdlData.past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
-        encryptedAdlData.past_history_psychiatric_interim || past_history_psychiatric_interim, 
-        encryptedAdlData.past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
-        encryptedAdlData.family_history_father_age || family_history_father_age, 
-        encryptedAdlData.family_history_father_education || family_history_father_education, 
-        encryptedAdlData.family_history_father_occupation || family_history_father_occupation,
-        encryptedAdlData.family_history_father_personality || family_history_father_personality, 
+onset_duration,
+precipitating_factor,
+course,
+past_history_medical || past_history_medical, 
+past_history_psychiatric_dates || past_history_psychiatric_dates, 
+past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
+past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
+past_history_psychiatric_interim || past_history_psychiatric_interim, 
+past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
+family_history_father_age || family_history_father_age, 
+family_history_father_education || family_history_father_education, 
+family_history_father_occupation || family_history_father_occupation,
+family_history_father_personality || family_history_father_personality, 
         family_history_father_deceased, 
-        encryptedAdlData.family_history_father_death_age || family_history_father_death_age, 
-        encryptedAdlData.family_history_father_death_date || family_history_father_death_date, 
-        encryptedAdlData.family_history_father_death_cause || family_history_father_death_cause, 
-        encryptedAdlData.family_history_mother_age || family_history_mother_age, 
-        encryptedAdlData.family_history_mother_education || family_history_mother_education, 
-        encryptedAdlData.family_history_mother_occupation || family_history_mother_occupation,
-        encryptedAdlData.family_history_mother_personality || family_history_mother_personality, 
+family_history_father_death_age || family_history_father_death_age, 
+family_history_father_death_date || family_history_father_death_date, 
+family_history_father_death_cause || family_history_father_death_cause, 
+family_history_mother_age || family_history_mother_age, 
+family_history_mother_education || family_history_mother_education, 
+family_history_mother_occupation || family_history_mother_occupation,
+family_history_mother_personality || family_history_mother_personality, 
         family_history_mother_deceased, 
-        encryptedAdlData.family_history_mother_death_age || family_history_mother_death_age, 
-        encryptedAdlData.family_history_mother_death_date || family_history_mother_death_date, 
-        encryptedAdlData.family_history_mother_death_cause || family_history_mother_death_cause, 
+family_history_mother_death_age || family_history_mother_death_age, 
+family_history_mother_death_date || family_history_mother_death_date, 
+family_history_mother_death_cause || family_history_mother_death_cause, 
         familyHistorySiblingsJson,
-        encryptedAdlData.family_history || family_history,
-        encryptedAdlData.diagnostic_formulation_summary || diagnostic_formulation_summary, 
-        encryptedAdlData.diagnostic_formulation_features || diagnostic_formulation_features, 
-        encryptedAdlData.diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
-        encryptedAdlData.premorbid_personality_passive_active || premorbid_personality_passive_active, 
-        encryptedAdlData.premorbid_personality_assertive || premorbid_personality_assertive, 
-        encryptedAdlData.premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
+family_history || family_history,
+diagnostic_formulation_summary || diagnostic_formulation_summary, 
+diagnostic_formulation_features || diagnostic_formulation_features, 
+diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
+premorbid_personality_passive_active || premorbid_personality_passive_active, 
+premorbid_personality_assertive || premorbid_personality_assertive, 
+premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
         premorbidPersonalityTraitsJson, 
-        encryptedAdlData.premorbid_personality_hobbies || premorbid_personality_hobbies, 
-        encryptedAdlData.premorbid_personality_habits || premorbid_personality_habits, 
-        encryptedAdlData.premorbid_personality_alcohol_drugs || premorbid_personality_alcohol_drugs,
-        encryptedAdlData.physical_appearance || physical_appearance, 
-        encryptedAdlData.physical_body_build || physical_body_build, 
+premorbid_personality_hobbies || premorbid_personality_hobbies, 
+premorbid_personality_habits || premorbid_personality_habits, 
+premorbid_personality_alcohol_drugs || premorbid_personality_alcohol_drugs,
+physical_appearance || physical_appearance, 
+physical_body_build || physical_body_build, 
         physical_pallor, physical_icterus, 
         physical_oedema, physical_lymphadenopathy, 
-        encryptedAdlData.physical_pulse || physical_pulse, 
-        encryptedAdlData.physical_bp || physical_bp, 
-        encryptedAdlData.physical_height || physical_height, 
-        encryptedAdlData.physical_weight || physical_weight, 
-        encryptedAdlData.physical_waist || physical_waist, 
-        encryptedAdlData.physical_fundus || physical_fundus,
-        encryptedAdlData.physical_cvs_apex || physical_cvs_apex, 
-        encryptedAdlData.physical_cvs_regularity || physical_cvs_regularity, 
-        encryptedAdlData.physical_cvs_heart_sounds || physical_cvs_heart_sounds, 
-        encryptedAdlData.physical_cvs_murmurs || physical_cvs_murmurs, 
-        encryptedAdlData.physical_chest_expansion || physical_chest_expansion, 
-        encryptedAdlData.physical_chest_percussion || physical_chest_percussion, 
-        encryptedAdlData.physical_chest_adventitious || physical_chest_adventitious, 
-        encryptedAdlData.physical_abdomen_tenderness || physical_abdomen_tenderness, 
-        encryptedAdlData.physical_abdomen_mass || physical_abdomen_mass, 
-        encryptedAdlData.physical_abdomen_bowel_sounds || physical_abdomen_bowel_sounds, 
-        encryptedAdlData.physical_cns_cranial || physical_cns_cranial, 
-        encryptedAdlData.physical_cns_motor_sensory || physical_cns_motor_sensory, 
-        encryptedAdlData.physical_cns_rigidity || physical_cns_rigidity, 
-        encryptedAdlData.physical_cns_involuntary || physical_cns_involuntary, 
-        encryptedAdlData.physical_cns_superficial_reflexes || physical_cns_superficial_reflexes, 
-        encryptedAdlData.physical_cns_dtrs || physical_cns_dtrs, 
-        encryptedAdlData.physical_cns_plantar || physical_cns_plantar, 
-        encryptedAdlData.physical_cns_cerebellar || physical_cns_cerebellar,
-        encryptedAdlData.mse_general_demeanour || mse_general_demeanour, 
-        encryptedAdlData.mse_general_tidy || mse_general_tidy, 
-        encryptedAdlData.mse_general_awareness || mse_general_awareness, 
-        encryptedAdlData.mse_general_cooperation || mse_general_cooperation, 
-        encryptedAdlData.mse_psychomotor_verbalization || mse_psychomotor_verbalization, 
-        encryptedAdlData.mse_psychomotor_pressure || mse_psychomotor_pressure, 
-        encryptedAdlData.mse_psychomotor_tension || mse_psychomotor_tension, 
-        encryptedAdlData.mse_psychomotor_posture || mse_psychomotor_posture, 
-        encryptedAdlData.mse_psychomotor_mannerism || mse_psychomotor_mannerism, 
-        encryptedAdlData.mse_psychomotor_catatonic || mse_psychomotor_catatonic, 
-        encryptedAdlData.mse_affect_subjective || mse_affect_subjective, 
-        encryptedAdlData.mse_affect_tone || mse_affect_tone,
-        encryptedAdlData.mse_affect_resting || mse_affect_resting, 
-        encryptedAdlData.mse_affect_fluctuation || mse_affect_fluctuation, 
-        encryptedAdlData.mse_thought_flow || mse_thought_flow, 
-        encryptedAdlData.mse_thought_form || mse_thought_form, 
-        encryptedAdlData.mse_thought_content || mse_thought_content, 
-        encryptedAdlData.mse_thought_possession || mse_thought_possession,
-        encryptedAdlData.mse_cognitive_consciousness || mse_cognitive_consciousness, 
-        encryptedAdlData.mse_cognitive_orientation_time || mse_cognitive_orientation_time, 
-        encryptedAdlData.mse_cognitive_orientation_place || mse_cognitive_orientation_place, 
-        encryptedAdlData.mse_cognitive_orientation_person || mse_cognitive_orientation_person, 
-        encryptedAdlData.mse_cognitive_memory_immediate || mse_cognitive_memory_immediate, 
-        encryptedAdlData.mse_cognitive_memory_recent || mse_cognitive_memory_recent,
-        encryptedAdlData.mse_cognitive_memory_remote || mse_cognitive_memory_remote, 
-        encryptedAdlData.mse_cognitive_subtraction || mse_cognitive_subtraction, 
-        encryptedAdlData.mse_cognitive_digit_span || mse_cognitive_digit_span, 
-        encryptedAdlData.mse_cognitive_counting || mse_cognitive_counting, 
-        encryptedAdlData.mse_cognitive_general_knowledge || mse_cognitive_general_knowledge, 
-        encryptedAdlData.mse_cognitive_calculation || mse_cognitive_calculation, 
-        encryptedAdlData.mse_cognitive_similarities || mse_cognitive_similarities, 
-        encryptedAdlData.mse_cognitive_proverbs || mse_cognitive_proverbs, 
-        encryptedAdlData.mse_insight_understanding || mse_insight_understanding, 
-        encryptedAdlData.mse_insight_judgement || mse_insight_judgement, 
+physical_pulse || physical_pulse, 
+physical_bp || physical_bp, 
+physical_height || physical_height, 
+physical_weight || physical_weight, 
+physical_waist || physical_waist, 
+physical_fundus || physical_fundus,
+physical_cvs_apex || physical_cvs_apex, 
+physical_cvs_regularity || physical_cvs_regularity, 
+physical_cvs_heart_sounds || physical_cvs_heart_sounds, 
+physical_cvs_murmurs || physical_cvs_murmurs, 
+physical_chest_expansion || physical_chest_expansion, 
+physical_chest_percussion || physical_chest_percussion, 
+physical_chest_adventitious || physical_chest_adventitious, 
+physical_abdomen_tenderness || physical_abdomen_tenderness, 
+physical_abdomen_mass || physical_abdomen_mass, 
+physical_abdomen_bowel_sounds || physical_abdomen_bowel_sounds, 
+physical_cns_cranial || physical_cns_cranial, 
+physical_cns_motor_sensory || physical_cns_motor_sensory, 
+physical_cns_rigidity || physical_cns_rigidity, 
+physical_cns_involuntary || physical_cns_involuntary, 
+physical_cns_superficial_reflexes || physical_cns_superficial_reflexes, 
+physical_cns_dtrs || physical_cns_dtrs, 
+physical_cns_plantar || physical_cns_plantar, 
+physical_cns_cerebellar || physical_cns_cerebellar,
+mse_general_demeanour || mse_general_demeanour, 
+mse_general_tidy || mse_general_tidy, 
+mse_general_awareness || mse_general_awareness, 
+mse_general_cooperation || mse_general_cooperation, 
+mse_psychomotor_verbalization || mse_psychomotor_verbalization, 
+mse_psychomotor_pressure || mse_psychomotor_pressure, 
+mse_psychomotor_tension || mse_psychomotor_tension, 
+mse_psychomotor_posture || mse_psychomotor_posture, 
+mse_psychomotor_mannerism || mse_psychomotor_mannerism, 
+mse_psychomotor_catatonic || mse_psychomotor_catatonic, 
+mse_affect_subjective || mse_affect_subjective, 
+mse_affect_tone || mse_affect_tone,
+mse_affect_resting || mse_affect_resting, 
+mse_affect_fluctuation || mse_affect_fluctuation, 
+mse_thought_flow || mse_thought_flow, 
+mse_thought_form || mse_thought_form, 
+mse_thought_content || mse_thought_content, 
+mse_thought_possession || mse_thought_possession,
+mse_cognitive_consciousness || mse_cognitive_consciousness, 
+mse_cognitive_orientation_time || mse_cognitive_orientation_time, 
+mse_cognitive_orientation_place || mse_cognitive_orientation_place, 
+mse_cognitive_orientation_person || mse_cognitive_orientation_person, 
+mse_cognitive_memory_immediate || mse_cognitive_memory_immediate, 
+mse_cognitive_memory_recent || mse_cognitive_memory_recent,
+mse_cognitive_memory_remote || mse_cognitive_memory_remote, 
+mse_cognitive_subtraction || mse_cognitive_subtraction, 
+mse_cognitive_digit_span || mse_cognitive_digit_span, 
+mse_cognitive_counting || mse_cognitive_counting, 
+mse_cognitive_general_knowledge || mse_cognitive_general_knowledge, 
+mse_cognitive_calculation || mse_cognitive_calculation, 
+mse_cognitive_similarities || mse_cognitive_similarities, 
+mse_cognitive_proverbs || mse_cognitive_proverbs, 
+mse_insight_understanding || mse_insight_understanding, 
+mse_insight_judgement || mse_insight_judgement, 
         education_start_age, education_highest_class, 
-        encryptedAdlData.education_performance || education_performance, 
-        encryptedAdlData.education_disciplinary || education_disciplinary, 
-        encryptedAdlData.education_peer_relationship || education_peer_relationship, 
-        encryptedAdlData.education_hobbies || education_hobbies, 
-        encryptedAdlData.education_special_abilities || education_special_abilities, 
-        encryptedAdlData.education_discontinue_reason || education_discontinue_reason,
+education_performance || education_performance, 
+education_disciplinary || education_disciplinary, 
+education_peer_relationship || education_peer_relationship, 
+education_hobbies || education_hobbies, 
+education_special_abilities || education_special_abilities, 
+education_discontinue_reason || education_discontinue_reason,
         occupationJobsJson, sexual_menarche_age, 
-        encryptedAdlData.sexual_menarche_reaction || sexual_menarche_reaction, 
-        encryptedAdlData.sexual_education || sexual_education, 
-        encryptedAdlData.sexual_masturbation || sexual_masturbation, 
-        encryptedAdlData.sexual_contact || sexual_contact, 
-        encryptedAdlData.sexual_premarital_extramarital || sexual_premarital_extramarital, 
+sexual_menarche_reaction || sexual_menarche_reaction, 
+sexual_education || sexual_education, 
+sexual_masturbation || sexual_masturbation, 
+sexual_contact || sexual_contact, 
+sexual_premarital_extramarital || sexual_premarital_extramarital, 
         sexual_marriage_arranged, sexual_marriage_date, sexual_spouse_age, 
-        encryptedAdlData.sexual_spouse_occupation || sexual_spouse_occupation, 
-        encryptedAdlData.sexual_adjustment_general || sexual_adjustment_general, 
-        encryptedAdlData.sexual_adjustment_sexual || sexual_adjustment_sexual,
+sexual_spouse_occupation || sexual_spouse_occupation, 
+sexual_adjustment_general || sexual_adjustment_general, 
+sexual_adjustment_sexual || sexual_adjustment_sexual,
         sexualChildrenJson, 
-        encryptedAdlData.sexual_problems || sexual_problems, 
-        encryptedAdlData.religion_type || religion_type, 
-        encryptedAdlData.religion_participation || religion_participation, 
-        encryptedAdlData.religion_changes || religion_changes, 
+sexual_problems || sexual_problems, 
+religion_type || religion_type, 
+religion_participation || religion_participation, 
+religion_changes || religion_changes, 
         livingResidentsJson, 
-        encryptedAdlData.living_income_sharing || living_income_sharing, 
-        encryptedAdlData.living_expenses || living_expenses, 
-        encryptedAdlData.living_kitchen || living_kitchen, 
-        encryptedAdlData.living_domestic_conflicts || living_domestic_conflicts, 
-        encryptedAdlData.living_social_class || living_social_class, 
+living_income_sharing || living_income_sharing, 
+living_expenses || living_expenses, 
+living_kitchen || living_kitchen, 
+living_domestic_conflicts || living_domestic_conflicts, 
+living_social_class || living_social_class, 
         livingInlawsJson, 
-        encryptedAdlData.home_situation_childhood || home_situation_childhood, 
-        encryptedAdlData.home_situation_parents_relationship || home_situation_parents_relationship,
-        encryptedAdlData.home_situation_socioeconomic || home_situation_socioeconomic, 
-        encryptedAdlData.home_situation_interpersonal || home_situation_interpersonal, 
+home_situation_childhood || home_situation_childhood, 
+home_situation_parents_relationship || home_situation_parents_relationship,
+home_situation_socioeconomic || home_situation_socioeconomic, 
+home_situation_interpersonal || home_situation_interpersonal, 
         personal_birth_date, 
-        encryptedAdlData.personal_birth_place || personal_birth_place, 
-        encryptedAdlData.personal_delivery_type || personal_delivery_type, 
-        encryptedAdlData.personal_complications_prenatal || personal_complications_prenatal, 
-        encryptedAdlData.personal_complications_natal || personal_complications_natal, 
-        encryptedAdlData.personal_complications_postnatal || personal_complications_postnatal,
+personal_birth_place || personal_birth_place, 
+personal_delivery_type || personal_delivery_type, 
+personal_complications_prenatal || personal_complications_prenatal, 
+personal_complications_natal || personal_complications_natal, 
+personal_complications_postnatal || personal_complications_postnatal,
         development_weaning_age, development_first_words, development_three_words, 
         development_walking, 
-        encryptedAdlData.development_neurotic_traits || development_neurotic_traits, 
-        encryptedAdlData.development_nail_biting || development_nail_biting, 
-        encryptedAdlData.development_bedwetting || development_bedwetting, 
-        encryptedAdlData.development_phobias || development_phobias, 
-        encryptedAdlData.development_childhood_illness || development_childhood_illness, 
-        encryptedAdlData.provisional_diagnosis || provisional_diagnosis, 
-        encryptedAdlData.treatment_plan || treatment_plan, 
-        encryptedAdlData.consultant_comments || consultant_comments
+development_neurotic_traits || development_neurotic_traits, 
+development_nail_biting || development_nail_biting, 
+development_bedwetting || development_bedwetting, 
+development_phobias || development_phobias, 
+development_childhood_illness || development_childhood_illness, 
+provisional_diagnosis || provisional_diagnosis, 
+treatment_plan || treatment_plan, 
+consultant_comments || consultant_comments
       ]
     );
 
@@ -1821,9 +1805,6 @@ class ADLFile {
       const livingResidentsJson = living_residents ? JSON.stringify(Array.isArray(living_residents) ? living_residents : []) : '[]';
       const livingInlawsJson = living_inlaws ? JSON.stringify(Array.isArray(living_inlaws) ? living_inlaws : []) : '[]';
 
-      // Encrypt sensitive fields before saving
-      const encryptedAdlData = encryptObject(adlData, encryptionFields.adlFile);
-
       // Use db.query directly instead of managing separate transaction
       // This allows it to work within the existing transaction context from ClinicalProforma.create()
       const result = await db.query(
@@ -1906,164 +1887,164 @@ class ADLFile {
         [
           patient_id, adl_no, created_by, clinical_proforma_id, file_status, 
           file_created_date, total_visits, 
-          encryptedAdlData.history_narrative || history_narrative, 
-          encryptedAdlData.history_specific_enquiry || history_specific_enquiry, 
-          encryptedAdlData.history_drug_intake || history_drug_intake, 
-          encryptedAdlData.history_treatment_place || history_treatment_place, 
-          encryptedAdlData.history_treatment_dates || history_treatment_dates,
-          encryptedAdlData.history_treatment_drugs || history_treatment_drugs, 
-          encryptedAdlData.history_treatment_response || history_treatment_response, 
+history_narrative, 
+history_specific_enquiry || history_specific_enquiry, 
+history_drug_intake || history_drug_intake, 
+history_treatment_place || history_treatment_place, 
+history_treatment_dates || history_treatment_dates,
+history_treatment_drugs || history_treatment_drugs, 
+history_treatment_response || history_treatment_response, 
           informantsJson, 
           complaintsPatientJson, complaintsInformantJson, 
-          encryptedAdlData.past_history_medical || past_history_medical, 
-          encryptedAdlData.past_history_psychiatric_dates || past_history_psychiatric_dates, 
-          encryptedAdlData.past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
-          encryptedAdlData.past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
-          encryptedAdlData.past_history_psychiatric_interim || past_history_psychiatric_interim, 
-          encryptedAdlData.past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
-          encryptedAdlData.family_history_father_age || family_history_father_age, 
-          encryptedAdlData.family_history_father_education || family_history_father_education, 
-          encryptedAdlData.family_history_father_occupation || family_history_father_occupation,
-          encryptedAdlData.family_history_father_personality || family_history_father_personality, 
+past_history_medical || past_history_medical, 
+past_history_psychiatric_dates || past_history_psychiatric_dates, 
+past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
+past_history_psychiatric_treatment || past_history_psychiatric_treatment, 
+past_history_psychiatric_interim || past_history_psychiatric_interim, 
+past_history_psychiatric_recovery || past_history_psychiatric_recovery, 
+family_history_father_age || family_history_father_age, 
+family_history_father_education || family_history_father_education, 
+family_history_father_occupation || family_history_father_occupation,
+family_history_father_personality || family_history_father_personality, 
           family_history_father_deceased, 
-          encryptedAdlData.family_history_father_death_age || family_history_father_death_age, 
-          encryptedAdlData.family_history_father_death_date || family_history_father_death_date, 
-          encryptedAdlData.family_history_father_death_cause || family_history_father_death_cause, 
-          encryptedAdlData.family_history_mother_age || family_history_mother_age, 
-          encryptedAdlData.family_history_mother_education || family_history_mother_education, 
-          encryptedAdlData.family_history_mother_occupation || family_history_mother_occupation,
-          encryptedAdlData.family_history_mother_personality || family_history_mother_personality, 
+family_history_father_death_age || family_history_father_death_age, 
+family_history_father_death_date || family_history_father_death_date, 
+family_history_father_death_cause || family_history_father_death_cause, 
+family_history_mother_age || family_history_mother_age, 
+family_history_mother_education || family_history_mother_education, 
+family_history_mother_occupation || family_history_mother_occupation,
+family_history_mother_personality || family_history_mother_personality, 
           family_history_mother_deceased, 
-          encryptedAdlData.family_history_mother_death_age || family_history_mother_death_age, 
-          encryptedAdlData.family_history_mother_death_date || family_history_mother_death_date, 
-          encryptedAdlData.family_history_mother_death_cause || family_history_mother_death_cause, 
+family_history_mother_death_age || family_history_mother_death_age, 
+family_history_mother_death_date || family_history_mother_death_date, 
+family_history_mother_death_cause || family_history_mother_death_cause, 
           familyHistorySiblingsJson,
-          encryptedAdlData.diagnostic_formulation_summary || diagnostic_formulation_summary, 
-          encryptedAdlData.diagnostic_formulation_features || diagnostic_formulation_features, 
-          encryptedAdlData.diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
-          encryptedAdlData.premorbid_personality_passive_active || premorbid_personality_passive_active, 
-          encryptedAdlData.premorbid_personality_assertive || premorbid_personality_assertive, 
-          encryptedAdlData.premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
+diagnostic_formulation_summary || diagnostic_formulation_summary, 
+diagnostic_formulation_features || diagnostic_formulation_features, 
+diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
+premorbid_personality_passive_active || premorbid_personality_passive_active, 
+premorbid_personality_assertive || premorbid_personality_assertive, 
+premorbid_personality_introvert_extrovert || premorbid_personality_introvert_extrovert,
           premorbidPersonalityTraitsJson, 
-          encryptedAdlData.premorbid_personality_hobbies || premorbid_personality_hobbies, 
-          encryptedAdlData.premorbid_personality_habits || premorbid_personality_habits, 
-          encryptedAdlData.premorbid_personality_alcohol_drugs || premorbid_personality_alcohol_drugs,
-          encryptedAdlData.physical_appearance || physical_appearance, 
-          encryptedAdlData.physical_body_build || physical_body_build, 
+premorbid_personality_hobbies || premorbid_personality_hobbies, 
+premorbid_personality_habits || premorbid_personality_habits, 
+premorbid_personality_alcohol_drugs || premorbid_personality_alcohol_drugs,
+physical_appearance || physical_appearance, 
+physical_body_build || physical_body_build, 
           physical_pallor, physical_icterus, 
           physical_oedema, physical_lymphadenopathy, 
-          encryptedAdlData.physical_pulse || physical_pulse, 
-          encryptedAdlData.physical_bp || physical_bp, 
-          encryptedAdlData.physical_height || physical_height, 
-          encryptedAdlData.physical_weight || physical_weight, 
-          encryptedAdlData.physical_waist || physical_waist, 
-          encryptedAdlData.physical_fundus || physical_fundus,
-          encryptedAdlData.physical_cvs_apex || physical_cvs_apex, 
-          encryptedAdlData.physical_cvs_regularity || physical_cvs_regularity, 
-          encryptedAdlData.physical_cvs_heart_sounds || physical_cvs_heart_sounds, 
-          encryptedAdlData.physical_cvs_murmurs || physical_cvs_murmurs, 
-          encryptedAdlData.physical_chest_expansion || physical_chest_expansion, 
-          encryptedAdlData.physical_chest_percussion || physical_chest_percussion, 
-          encryptedAdlData.physical_chest_adventitious || physical_chest_adventitious, 
-          encryptedAdlData.physical_abdomen_tenderness || physical_abdomen_tenderness, 
-          encryptedAdlData.physical_abdomen_mass || physical_abdomen_mass, 
-          encryptedAdlData.physical_abdomen_bowel_sounds || physical_abdomen_bowel_sounds, 
-          encryptedAdlData.physical_cns_cranial || physical_cns_cranial, 
-          encryptedAdlData.physical_cns_motor_sensory || physical_cns_motor_sensory, 
-          encryptedAdlData.physical_cns_rigidity || physical_cns_rigidity, 
-          encryptedAdlData.physical_cns_involuntary || physical_cns_involuntary, 
-          encryptedAdlData.physical_cns_superficial_reflexes || physical_cns_superficial_reflexes, 
-          encryptedAdlData.physical_cns_dtrs || physical_cns_dtrs, 
-          encryptedAdlData.physical_cns_plantar || physical_cns_plantar, 
-          encryptedAdlData.physical_cns_cerebellar || physical_cns_cerebellar,
-          encryptedAdlData.mse_general_demeanour || mse_general_demeanour, 
-          encryptedAdlData.mse_general_tidy || mse_general_tidy, 
-          encryptedAdlData.mse_general_awareness || mse_general_awareness, 
-          encryptedAdlData.mse_general_cooperation || mse_general_cooperation, 
-          encryptedAdlData.mse_psychomotor_verbalization || mse_psychomotor_verbalization, 
-          encryptedAdlData.mse_psychomotor_pressure || mse_psychomotor_pressure, 
-          encryptedAdlData.mse_psychomotor_tension || mse_psychomotor_tension, 
-          encryptedAdlData.mse_psychomotor_posture || mse_psychomotor_posture, 
-          encryptedAdlData.mse_psychomotor_mannerism || mse_psychomotor_mannerism, 
-          encryptedAdlData.mse_psychomotor_catatonic || mse_psychomotor_catatonic, 
-          encryptedAdlData.mse_affect_subjective || mse_affect_subjective, 
-          encryptedAdlData.mse_affect_tone || mse_affect_tone,
-          encryptedAdlData.mse_affect_resting || mse_affect_resting, 
-          encryptedAdlData.mse_affect_fluctuation || mse_affect_fluctuation, 
-          encryptedAdlData.mse_thought_flow || mse_thought_flow, 
-          encryptedAdlData.mse_thought_form || mse_thought_form, 
-          encryptedAdlData.mse_thought_content || mse_thought_content, 
-          encryptedAdlData.mse_cognitive_consciousness || mse_cognitive_consciousness, 
-          encryptedAdlData.mse_cognitive_orientation_time || mse_cognitive_orientation_time, 
-          encryptedAdlData.mse_cognitive_orientation_place || mse_cognitive_orientation_place, 
-          encryptedAdlData.mse_cognitive_orientation_person || mse_cognitive_orientation_person, 
-          encryptedAdlData.mse_cognitive_memory_immediate || mse_cognitive_memory_immediate, 
-          encryptedAdlData.mse_cognitive_memory_recent || mse_cognitive_memory_recent,
-          encryptedAdlData.mse_cognitive_memory_remote || mse_cognitive_memory_remote, 
-          encryptedAdlData.mse_cognitive_subtraction || mse_cognitive_subtraction, 
-          encryptedAdlData.mse_cognitive_digit_span || mse_cognitive_digit_span, 
-          encryptedAdlData.mse_cognitive_counting || mse_cognitive_counting, 
-          encryptedAdlData.mse_cognitive_general_knowledge || mse_cognitive_general_knowledge, 
-          encryptedAdlData.mse_cognitive_calculation || mse_cognitive_calculation, 
-          encryptedAdlData.mse_cognitive_similarities || mse_cognitive_similarities, 
-          encryptedAdlData.mse_cognitive_proverbs || mse_cognitive_proverbs, 
-          encryptedAdlData.mse_insight_understanding || mse_insight_understanding, 
-          encryptedAdlData.mse_insight_judgement || mse_insight_judgement, 
-          encryptedAdlData.education_start_age || education_start_age, 
-          encryptedAdlData.education_highest_class || education_highest_class, 
-          encryptedAdlData.education_performance || education_performance, 
-          encryptedAdlData.education_disciplinary || education_disciplinary, 
-          encryptedAdlData.education_peer_relationship || education_peer_relationship, 
-          encryptedAdlData.education_hobbies || education_hobbies, 
-          encryptedAdlData.education_special_abilities || education_special_abilities, 
-          encryptedAdlData.education_discontinue_reason || education_discontinue_reason,
+physical_pulse || physical_pulse, 
+physical_bp || physical_bp, 
+physical_height || physical_height, 
+physical_weight || physical_weight, 
+physical_waist || physical_waist, 
+physical_fundus || physical_fundus,
+physical_cvs_apex || physical_cvs_apex, 
+physical_cvs_regularity || physical_cvs_regularity, 
+physical_cvs_heart_sounds || physical_cvs_heart_sounds, 
+physical_cvs_murmurs || physical_cvs_murmurs, 
+physical_chest_expansion || physical_chest_expansion, 
+physical_chest_percussion || physical_chest_percussion, 
+physical_chest_adventitious || physical_chest_adventitious, 
+physical_abdomen_tenderness || physical_abdomen_tenderness, 
+physical_abdomen_mass || physical_abdomen_mass, 
+physical_abdomen_bowel_sounds || physical_abdomen_bowel_sounds, 
+physical_cns_cranial || physical_cns_cranial, 
+physical_cns_motor_sensory || physical_cns_motor_sensory, 
+physical_cns_rigidity || physical_cns_rigidity, 
+physical_cns_involuntary || physical_cns_involuntary, 
+physical_cns_superficial_reflexes || physical_cns_superficial_reflexes, 
+physical_cns_dtrs || physical_cns_dtrs, 
+physical_cns_plantar || physical_cns_plantar, 
+physical_cns_cerebellar || physical_cns_cerebellar,
+mse_general_demeanour || mse_general_demeanour, 
+mse_general_tidy || mse_general_tidy, 
+mse_general_awareness || mse_general_awareness, 
+mse_general_cooperation || mse_general_cooperation, 
+mse_psychomotor_verbalization || mse_psychomotor_verbalization, 
+mse_psychomotor_pressure || mse_psychomotor_pressure, 
+mse_psychomotor_tension || mse_psychomotor_tension, 
+mse_psychomotor_posture || mse_psychomotor_posture, 
+mse_psychomotor_mannerism || mse_psychomotor_mannerism, 
+mse_psychomotor_catatonic || mse_psychomotor_catatonic, 
+mse_affect_subjective || mse_affect_subjective, 
+mse_affect_tone || mse_affect_tone,
+mse_affect_resting || mse_affect_resting, 
+mse_affect_fluctuation || mse_affect_fluctuation, 
+mse_thought_flow || mse_thought_flow, 
+mse_thought_form || mse_thought_form, 
+mse_thought_content || mse_thought_content, 
+mse_cognitive_consciousness || mse_cognitive_consciousness, 
+mse_cognitive_orientation_time || mse_cognitive_orientation_time, 
+mse_cognitive_orientation_place || mse_cognitive_orientation_place, 
+mse_cognitive_orientation_person || mse_cognitive_orientation_person, 
+mse_cognitive_memory_immediate || mse_cognitive_memory_immediate, 
+mse_cognitive_memory_recent || mse_cognitive_memory_recent,
+mse_cognitive_memory_remote || mse_cognitive_memory_remote, 
+mse_cognitive_subtraction || mse_cognitive_subtraction, 
+mse_cognitive_digit_span || mse_cognitive_digit_span, 
+mse_cognitive_counting || mse_cognitive_counting, 
+mse_cognitive_general_knowledge || mse_cognitive_general_knowledge, 
+mse_cognitive_calculation || mse_cognitive_calculation, 
+mse_cognitive_similarities || mse_cognitive_similarities, 
+mse_cognitive_proverbs || mse_cognitive_proverbs, 
+mse_insight_understanding || mse_insight_understanding, 
+mse_insight_judgement || mse_insight_judgement, 
+education_start_age || education_start_age, 
+education_highest_class || education_highest_class, 
+education_performance || education_performance, 
+education_disciplinary || education_disciplinary, 
+education_peer_relationship || education_peer_relationship, 
+education_hobbies || education_hobbies, 
+education_special_abilities || education_special_abilities, 
+education_discontinue_reason || education_discontinue_reason,
           occupationJobsJson, 
-          encryptedAdlData.sexual_menarche_age || sexual_menarche_age, 
-          encryptedAdlData.sexual_menarche_reaction || sexual_menarche_reaction, 
-          encryptedAdlData.sexual_education || sexual_education, 
-          encryptedAdlData.sexual_masturbation || sexual_masturbation, 
-          encryptedAdlData.sexual_contact || sexual_contact, 
-          encryptedAdlData.sexual_premarital_extramarital || sexual_premarital_extramarital, 
-          encryptedAdlData.sexual_marriage_arranged || sexual_marriage_arranged, 
-          encryptedAdlData.sexual_marriage_date || sexual_marriage_date, 
-          encryptedAdlData.sexual_spouse_age || sexual_spouse_age, 
-          encryptedAdlData.sexual_spouse_occupation || sexual_spouse_occupation, 
-          encryptedAdlData.sexual_adjustment_general || sexual_adjustment_general, 
-          encryptedAdlData.sexual_adjustment_sexual || sexual_adjustment_sexual,
+sexual_menarche_age || sexual_menarche_age, 
+sexual_menarche_reaction || sexual_menarche_reaction, 
+sexual_education || sexual_education, 
+sexual_masturbation || sexual_masturbation, 
+sexual_contact || sexual_contact, 
+sexual_premarital_extramarital || sexual_premarital_extramarital, 
+sexual_marriage_arranged || sexual_marriage_arranged, 
+sexual_marriage_date || sexual_marriage_date, 
+sexual_spouse_age || sexual_spouse_age, 
+sexual_spouse_occupation || sexual_spouse_occupation, 
+sexual_adjustment_general || sexual_adjustment_general, 
+sexual_adjustment_sexual || sexual_adjustment_sexual,
           sexualChildrenJson, 
-          encryptedAdlData.sexual_problems || sexual_problems, 
-          encryptedAdlData.religion_type || religion_type, 
-          encryptedAdlData.religion_participation || religion_participation, 
-          encryptedAdlData.religion_changes || religion_changes, 
+sexual_problems || sexual_problems, 
+religion_type || religion_type, 
+religion_participation || religion_participation, 
+religion_changes || religion_changes, 
           livingResidentsJson, 
-          encryptedAdlData.living_income_sharing || living_income_sharing, 
-          encryptedAdlData.living_expenses || living_expenses, 
-          encryptedAdlData.living_kitchen || living_kitchen, 
-          encryptedAdlData.living_domestic_conflicts || living_domestic_conflicts, 
-          encryptedAdlData.living_social_class || living_social_class, 
+living_income_sharing || living_income_sharing, 
+living_expenses || living_expenses, 
+living_kitchen || living_kitchen, 
+living_domestic_conflicts || living_domestic_conflicts, 
+living_social_class || living_social_class, 
           livingInlawsJson, 
-          encryptedAdlData.home_situation_childhood || home_situation_childhood, 
-          encryptedAdlData.home_situation_parents_relationship || home_situation_parents_relationship,
-          encryptedAdlData.home_situation_socioeconomic || home_situation_socioeconomic, 
-          encryptedAdlData.home_situation_interpersonal || home_situation_interpersonal, 
-          encryptedAdlData.personal_birth_date || personal_birth_date, 
-          encryptedAdlData.personal_birth_place || personal_birth_place, 
-          encryptedAdlData.personal_delivery_type || personal_delivery_type, 
-          encryptedAdlData.personal_complications_prenatal || personal_complications_prenatal, 
-          encryptedAdlData.personal_complications_natal || personal_complications_natal, 
-          encryptedAdlData.personal_complications_postnatal || personal_complications_postnatal,
-          encryptedAdlData.development_weaning_age || development_weaning_age, 
-          encryptedAdlData.development_first_words || development_first_words, 
-          encryptedAdlData.development_three_words || development_three_words, 
-          encryptedAdlData.development_walking || development_walking, 
-          encryptedAdlData.development_neurotic_traits || development_neurotic_traits, 
-          encryptedAdlData.development_nail_biting || development_nail_biting, 
-          encryptedAdlData.development_bedwetting || development_bedwetting, 
-          encryptedAdlData.development_phobias || development_phobias, 
-          encryptedAdlData.development_childhood_illness || development_childhood_illness, 
-          encryptedAdlData.provisional_diagnosis || provisional_diagnosis, 
-          encryptedAdlData.treatment_plan || treatment_plan, 
-          encryptedAdlData.consultant_comments || consultant_comments
+home_situation_childhood || home_situation_childhood, 
+home_situation_parents_relationship || home_situation_parents_relationship,
+home_situation_socioeconomic || home_situation_socioeconomic, 
+home_situation_interpersonal || home_situation_interpersonal, 
+personal_birth_date || personal_birth_date, 
+personal_birth_place || personal_birth_place, 
+personal_delivery_type || personal_delivery_type, 
+personal_complications_prenatal || personal_complications_prenatal, 
+personal_complications_natal || personal_complications_natal, 
+personal_complications_postnatal || personal_complications_postnatal,
+development_weaning_age || development_weaning_age, 
+development_first_words || development_first_words, 
+development_three_words || development_three_words, 
+development_walking || development_walking, 
+development_neurotic_traits || development_neurotic_traits, 
+development_nail_biting || development_nail_biting, 
+development_bedwetting || development_bedwetting, 
+development_phobias || development_phobias, 
+development_childhood_illness || development_childhood_illness, 
+provisional_diagnosis || provisional_diagnosis, 
+treatment_plan || treatment_plan, 
+consultant_comments || consultant_comments
         ]
       );
 
@@ -2140,95 +2121,35 @@ class ADLFile {
     }
   }
 
-  // Find ADL file by patient ID (supports both UUID and integer)
+  // Find ADL file by patient ID (integer)
   static async findByPatientId(patient_id) {
     try {
-      // Check if ID is a UUID (contains hyphens and is 36 chars) or integer
-      const isUUID = typeof patient_id === 'string' && patient_id.includes('-') && patient_id.length === 36;
-      
-      let query;
-      let queryParam;
-      
-      if (isUUID) {
-        // For UUID, explicitly cast parameter to UUID type
-        query = `
-          SELECT af.*, 
-                 p.name as patient_name, p.cr_no, p.psy_no, 
-                 u1.name as created_by_name, u1.role as created_by_role,
-                 u2.name as last_accessed_by_name,
-                 cp.assigned_doctor, cp.visit_date as proforma_visit_date,
-                 u3.name as assigned_doctor_name, u3.role as assigned_doctor_role,
-                 cp.id as clinical_proforma_id
-          FROM adl_files af
-          LEFT JOIN registered_patient p ON af.patient_id = p.id
-          LEFT JOIN users u1 ON af.created_by = u1.id
-          LEFT JOIN users u2 ON af.last_accessed_by = u2.id
-          LEFT JOIN clinical_proforma cp ON af.clinical_proforma_id = cp.id
-          LEFT JOIN users u3 ON cp.assigned_doctor = u3.id
-          WHERE af.patient_id = $1::uuid
-          ORDER BY af.file_created_date DESC
-        `;
-        queryParam = patient_id;
-      } else {
-        // For integer, use integer comparison
-        const patientIdNum = parseInt(patient_id, 10);
-        if (isNaN(patientIdNum)) {
-          console.error('[ADLFile.findByPatientId] Invalid patient_id:', patient_id);
-          return [];
-        }
-        query = `
-          SELECT af.*, 
-                 p.name as patient_name, p.cr_no, p.psy_no, 
-                 u1.name as created_by_name, u1.role as created_by_role,
-                 u2.name as last_accessed_by_name,
-                 cp.assigned_doctor, cp.visit_date as proforma_visit_date,
-                 u3.name as assigned_doctor_name, u3.role as assigned_doctor_role,
-                 cp.id as clinical_proforma_id
-          FROM adl_files af
-          LEFT JOIN registered_patient p ON af.patient_id = p.id
-          LEFT JOIN users u1 ON af.created_by = u1.id
-          LEFT JOIN users u2 ON af.last_accessed_by = u2.id
-          LEFT JOIN clinical_proforma cp ON af.clinical_proforma_id = cp.id
-          LEFT JOIN users u3 ON cp.assigned_doctor = u3.id
-          WHERE af.patient_id = $1
-          ORDER BY af.file_created_date DESC
-        `;
-        queryParam = patientIdNum;
+      // Validate that patient_id is a valid integer
+      const patientIdNum = parseInt(patient_id, 10);
+      if (isNaN(patientIdNum) || patientIdNum <= 0) {
+        console.error('[ADLFile.findByPatientId] Invalid patient_id:', patient_id);
+        return [];
       }
+      
+      const query = `
+        SELECT af.*, 
+               p.name as patient_name, p.cr_no, p.psy_no, 
+               u1.name as created_by_name, u1.role as created_by_role,
+               u2.name as last_accessed_by_name,
+               cp.assigned_doctor, cp.visit_date as proforma_visit_date,
+               u3.name as assigned_doctor_name, u3.role as assigned_doctor_role,
+               cp.id as clinical_proforma_id
+        FROM adl_files af
+        LEFT JOIN registered_patient p ON af.patient_id = p.id
+        LEFT JOIN users u1 ON af.created_by = u1.id
+        LEFT JOIN users u2 ON af.last_accessed_by = u2.id
+        LEFT JOIN clinical_proforma cp ON af.clinical_proforma_id = cp.id
+        LEFT JOIN users u3 ON cp.assigned_doctor = u3.id
+        WHERE af.patient_id = $1
+        ORDER BY af.file_created_date DESC
+      `;
 
-      let result;
-      try {
-        result = await db.query(query, [queryParam]);
-      } catch (queryError) {
-        // If UUID casting fails, try text comparison as fallback
-        if (isUUID && queryError.message && (
-          queryError.message.includes('invalid input syntax for type uuid') ||
-          queryError.message.includes('cannot cast') ||
-          queryError.message.includes('uuid')
-        )) {
-          console.warn(`[ADLFile.findByPatientId] UUID cast failed, trying text comparison: ${queryError.message}`);
-          const fallbackQuery = `
-            SELECT af.*, 
-                   p.name as patient_name, p.cr_no, p.psy_no, 
-                   u1.name as created_by_name, u1.role as created_by_role,
-                   u2.name as last_accessed_by_name,
-                   cp.assigned_doctor, cp.visit_date as proforma_visit_date,
-                   u3.name as assigned_doctor_name, u3.role as assigned_doctor_role,
-                   cp.id as clinical_proforma_id
-            FROM adl_files af
-            LEFT JOIN registered_patient p ON af.patient_id::text = p.id::text
-            LEFT JOIN users u1 ON af.created_by = u1.id
-            LEFT JOIN users u2 ON af.last_accessed_by = u2.id
-            LEFT JOIN clinical_proforma cp ON af.clinical_proforma_id = cp.id
-            LEFT JOIN users u3 ON cp.assigned_doctor = u3.id
-            WHERE af.patient_id::text = $1
-            ORDER BY af.file_created_date DESC
-          `;
-          result = await db.query(fallbackQuery, [String(patient_id)]);
-        } else {
-          throw queryError;
-        }
-      }
+      const result = await db.query(query, [patientIdNum]);
 
       console.log(`[ADLFile.findByPatientId] Found ${result.rows.length} ADL files for patient_id: ${patient_id}`);
 
@@ -2514,20 +2435,11 @@ class ADLFile {
           } else if (dateFields.includes(key)) {
             // Sanitize date fields - convert empty strings to null
             const sanitizedDate = sanitizeDateField(value);
-            // Encrypt date fields if they are in the encryption fields list
-            let finalDateValue = sanitizedDate;
-            if (encryptionFields.adlFile.includes(key) && finalDateValue !== null && finalDateValue !== undefined && finalDateValue !== '') {
-              finalDateValue = encrypt(finalDateValue);
-            }
             updates.push(`${key} = $${paramCount}`);
-            values.push(finalDateValue);
+            values.push(sanitizedDate);
           } else {
             // For non-JSONB, non-date fields, allow null and empty strings
-            // Encrypt sensitive fields before saving
             let finalValue = value === '' ? null : value;
-            if (encryptionFields.adlFile.includes(key) && finalValue !== null) {
-              finalValue = encrypt(finalValue);
-            }
             updates.push(`${key} = $${paramCount}`);
             values.push(finalValue);
           }
@@ -2615,7 +2527,6 @@ class ADLFile {
         last_accessed_by: accessedBy
       });
 
-      await this.logMovement('retrieved', 'Record Room', 'Doctor Office', accessedBy);
       
       return this;
     } catch (error) {
@@ -2632,7 +2543,6 @@ class ADLFile {
         last_accessed_by: returnedBy
       });
 
-      await this.logMovement('returned', 'Doctor Office', 'Record Room', returnedBy);
       
       return this;
     } catch (error) {
@@ -2650,7 +2560,6 @@ class ADLFile {
         last_accessed_by: archivedBy
       });
 
-      await this.logMovement('archived', 'Record Room', 'Archive Room', archivedBy);
       
       return this;
     } catch (error) {
@@ -2659,35 +2568,6 @@ class ADLFile {
   }
 
   // Log file movement
-  async logMovement(movementType, fromLocation, toLocation, movedBy, notes = null) {
-    try {
-      await db.query(
-        `INSERT INTO file_movements (adl_file_id, patient_id, moved_by, movement_type, from_location, to_location, notes) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [this.id, this.patient_id, movedBy, movementType, fromLocation, toLocation, notes]
-      );
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Get file movement history
-  async getMovementHistory() {
-    try {
-      const result = await db.query(
-        `SELECT fm.*, u.name as moved_by_name, u.role as moved_by_role
-         FROM file_movements fm
-         LEFT JOIN users u ON fm.moved_by = u.id
-         WHERE fm.adl_file_id = $1
-         ORDER BY fm.movement_date DESC`,
-        [this.id]
-      );
-
-      return result.rows;
-    } catch (error) {
-      throw error;
-    }
-  }
 
   // Get files that need to be retrieved
   static async getFilesToRetrieve() {

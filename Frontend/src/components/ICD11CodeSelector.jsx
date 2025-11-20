@@ -1,3 +1,7 @@
+import { useState, useEffect } from 'react';
+import Select from './Select';
+import icd11Codes from '../assets/ICD11_Codes.json';
+
 export const ICD11CodeSelector = ({ value, onChange, error }) => {
     const [selectedPath, setSelectedPath] = useState([]);
     const [selectedCode, setSelectedCode] = useState(value || '');

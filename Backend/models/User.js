@@ -294,8 +294,6 @@ class User {
       // 4. Set adl_files.last_accessed_by to NULL for files last accessed by this user
       await db.query('UPDATE adl_files SET last_accessed_by = NULL WHERE last_accessed_by = $1', [this.id]);
       
-      // 5. Set file_movements.moved_by to NULL for movements by this user
-      await db.query('UPDATE file_movements SET moved_by = NULL WHERE moved_by = $1', [this.id]);
       
       // 6. Set patient_assignments.assigned_doctor to NULL for assignments to this user
       await db.query('UPDATE patient_assignments SET assigned_doctor = NULL WHERE assigned_doctor = $1', [this.id]);

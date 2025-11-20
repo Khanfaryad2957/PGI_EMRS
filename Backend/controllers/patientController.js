@@ -40,16 +40,22 @@ class PatientController {
         }
 
         // Create a visit record for the existing patient
-        // Note: patient_id is a UUID (string), not an integer, so don't use parseInt()
-        // assigned_doctor_id is stored as string in Patient model but needs to be integer for patient_visits
+        // patient_id is now an integer
+        const patientIdInt = parseInt(patient_id, 10);
+        if (isNaN(patientIdInt)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid patient ID format'
+          });
+        }
+        
+        // assigned_doctor_id is an integer
         const assignedDoctorId = existingPatient.assigned_doctor_id 
-          ? (typeof existingPatient.assigned_doctor_id === 'string' 
-              ? parseInt(existingPatient.assigned_doctor_id, 10) 
-              : existingPatient.assigned_doctor_id)
+          ? parseInt(existingPatient.assigned_doctor_id, 10)
           : null;
         
         const visit = await PatientVisit.assignPatient({
-          patient_id: patient_id, // Pass UUID as-is (patient_visits.patient_id is UUID type)
+          patient_id: patientIdInt, // patient_id is now integer
           assigned_doctor_id: assignedDoctorId,
           room_no: existingPatient.assigned_room || assigned_room || null,
           visit_date: new Date().toISOString().slice(0, 10),
@@ -105,7 +111,8 @@ class PatientController {
         mobile_no: req.body.mobile_no,
         father_name: req.body.father_name,
         education: req.body.education,
-        income: req.body.income,
+        patient_income: req.body.patient_income,
+        family_income: req.body.family_income,
         distance_from_hospital: req.body.distance_from_hospital
       });
 
@@ -192,24 +199,16 @@ class PatientController {
         column: error.column
       });
       
-      // Check if it's a column size error (encryption-related)
-      let errorMessage = 'Failed to register patient with details';
-      if (error.code === '22001' || error.message.includes('too long') || error.message.includes('character varying')) {
-        errorMessage = 'Data too long for database column. Please run the encryption migration: npm run migrate:encryption';
-        console.error('⚠️ ENCRYPTION MIGRATION REQUIRED: Column size too small for encrypted data');
-      }
-      
       res.status(500).json({
         success: false,
-        message: errorMessage,
+        message: 'Failed to register patient with details',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
         details: process.env.NODE_ENV === 'development' ? {
           code: error.code,
           detail: error.detail,
           constraint: error.constraint,
           table: error.table,
-          column: error.column,
-          hint: error.code === '22001' ? 'Run: npm run migrate:encryption' : undefined
+          column: error.column
         } : undefined
       });
     }
@@ -317,7 +316,7 @@ class PatientController {
             }
 
             // Group visits by patient_id (get latest)
-            // Use string comparison to handle both UUID and integer IDs
+            // Use integer comparison for IDs
             const latestByPatient = new Map();
             for (const v of visits) {
               const visitPatientId = String(v.patient_id);
@@ -423,12 +422,12 @@ class PatientController {
     }
   }
 
-  // Get patient by ID (supports both UUID and integer)
+  // Get patient by ID (integer)
   static async getPatientById(req, res) {
     try {
       const { id } = req.params;
       
-      // Pass ID as-is to Patient.findById, which handles both UUID and integer
+      // Pass ID to Patient.findById (integer)
       console.log(`[getPatientById] Fetching patient with ID: ${id} (type: ${typeof id})`);
       
       const patient = await Patient.findById(id);
@@ -441,11 +440,11 @@ class PatientController {
         });
       }
 
-      // Verify ID matches (handle both UUID and integer comparison)
-      const requestedId = id;
-      const returnedId = patient.id;
+      // Verify ID matches (integer comparison)
+      const requestedId = parseInt(id, 10);
+      const returnedId = parseInt(patient.id, 10);
       const idMatches = (typeof returnedId === 'string' && returnedId.includes('-'))
-        ? String(returnedId) === String(requestedId) // UUID comparison
+        ? returnedId === requestedId // Integer comparison
         : parseInt(returnedId, 10) === parseInt(requestedId, 10); // Integer comparison
 
       if (!idMatches) {
@@ -663,7 +662,8 @@ class PatientController {
         'occupation',
         'education',
         'locality',
-        'income',
+        'patient_income',
+        'family_income',
         'religion',
         'family_type',
         'head_name',
@@ -692,10 +692,10 @@ class PatientController {
       const updateData = {};
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {
-          // Handle assigned_doctor_id - it's UUID, keep as string if provided
+          // Handle assigned_doctor_id - it's integer
           if (field === 'assigned_doctor_id' && req.body[field] !== null && req.body[field] !== '') {
-            // UUIDs should be strings
-            updateData[field] = String(req.body[field]);
+            // Convert to integer
+            updateData[field] = parseInt(req.body[field], 10);
             
             // If assigned_doctor_id is provided but assigned_doctor_name is not, fetch it
             if (!req.body.assigned_doctor_name && updateData[field]) {
@@ -1027,14 +1027,12 @@ class PatientController {
     try {
       const { id } = req.params;
   
-      // Validate UUID
-      const uuidRegex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  
-      if (!uuidRegex.test(id)) {
+      // Validate integer ID
+      const patientId = parseInt(id, 10);
+      if (isNaN(patientId) || patientId <= 0) {
         return res.status(400).json({
           success: false,
-          message: "Invalid patient ID",
+          message: "Invalid patient ID. ID must be a positive integer",
         });
       }
   
@@ -1096,16 +1094,6 @@ class PatientController {
           const adlFileIds = adlFiles.map(af => af.id);
           
           // Delete file movements by adl_file_id
-          await client.query(
-            'DELETE FROM file_movements WHERE adl_file_id = ANY($1)',
-            [adlFileIds]
-          );
-          
-          // Delete file movements by patient_id
-          await client.query(
-            'DELETE FROM file_movements WHERE patient_id = $1',
-            [id]
-          );
           
           console.log(`[deletePatient] Deleted file movements`);
         }
@@ -1201,55 +1189,36 @@ class PatientController {
         });
       }
 
-      // First, look up the patient to get the actual ID (handles both UUID and integer)
-      const patient = await Patient.findById(patient_id);
+      // Validate patient_id is an integer
+      const patientIdInt = parseInt(patient_id, 10);
+      if (isNaN(patientIdInt) || patientIdInt <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid patient ID format. Patient ID must be a positive integer.'
+        });
+      }
+      
+      // Validate doctor_id is an integer
+      const doctorIdInt = parseInt(assigned_doctor_id, 10);
+      if (isNaN(doctorIdInt) || doctorIdInt <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid doctor ID format. Doctor ID must be a positive integer.'
+        });
+      }
+      
+      // Verify patient exists
+      const patient = await Patient.findById(patientIdInt);
       if (!patient) {
         return res.status(404).json({ 
           success: false, 
           message: 'Patient not found' 
         });
       }
-
-      // Get the patient's actual ID (should be UUID after migration)
-      const actualPatientId = patient.id;
-      const actualDoctorId = String(assigned_doctor_id).trim();
       
-      // Validate that patient_id is a valid UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const isPatientUUID = typeof actualPatientId === 'string' && uuidRegex.test(actualPatientId);
-      
-      // Validate doctor_id - can be UUID or integer (support both for backward compatibility)
-      const isDoctorUUID = typeof actualDoctorId === 'string' && uuidRegex.test(actualDoctorId);
-      const isDoctorInteger = !isNaN(parseInt(actualDoctorId)) && parseInt(actualDoctorId) > 0 && !actualDoctorId.includes('-');
-      const isValidDoctorId = isDoctorUUID || isDoctorInteger;
-      
-      if (!isValidDoctorId) {
-        console.error(`[assignPatient] Doctor ID is not valid: ${actualDoctorId} (type: ${typeof actualDoctorId})`);
-        return res.status(400).json({ 
-          success: false, 
-          message: `Invalid doctor ID format: The doctor ID "${actualDoctorId}" must be a valid UUID or integer.`,
-          doctor_id_received: actualDoctorId,
-          doctor_id_type: typeof actualDoctorId,
-          error: process.env.NODE_ENV === 'development' ? 'Doctor ID must be a valid UUID or integer' : undefined
-        });
-      }
-      
-      if (!isPatientUUID) {
-        console.error(`[assignPatient] Patient ID is not a valid UUID: ${actualPatientId} (type: ${typeof actualPatientId})`);
-        return res.status(400).json({ 
-          success: false, 
-          message: `Invalid patient ID format: The patient record has ID "${actualPatientId}" which is not a valid UUID. The patient_visits table requires UUID format.`,
-          patient_id_received: actualPatientId,
-          patient_id_type: typeof actualPatientId,
-          error: process.env.NODE_ENV === 'development' ? 'Patient ID must be a valid UUID format (e.g., "123e4567-e89b-12d3-a456-426614174000")' : undefined
-        });
-      }
-      
-      // Use the UUID directly for patient
-      const patientIdForVisit = actualPatientId;
-      // For doctor ID, keep as string if UUID, convert to integer if it's a number string
-      // The database/PatientVisit will handle the type conversion
-      const doctorIdForVisit = isDoctorUUID ? actualDoctorId : parseInt(actualDoctorId);
+      // Use integers for both patient and doctor IDs
+      const patientIdForVisit = patientIdInt;
+      const doctorIdForVisit = doctorIdInt;
    
       const assignment = await PatientVisit.assignPatient({ 
         patient_id: patientIdForVisit, 
@@ -1267,30 +1236,15 @@ class PatientController {
     } catch (error) {
       console.error('Assign patient error:', error);
       
-      // Check if error is due to UUID/integer mismatch in patient_visits
+      // Check if error is due to invalid ID format
       if (error.message && (
         error.message.includes('invalid input syntax for type integer') ||
-        error.message.includes('invalid input syntax for type uuid') ||
         error.message.includes('Invalid patient_id format') ||
-        error.message.includes('Database schema mismatch') ||
         error.message.includes('type mismatch')
       )) {
-        const isUUIDError = error.message.includes('invalid input syntax for type uuid');
-        
-        // Determine the actual issue
-        const isIntegerColumnError = error.message.includes('invalid input syntax for type integer');
-        const isUUIDColumnError = error.message.includes('invalid input syntax for type uuid');
-        
         return res.status(400).json({ 
           success: false, 
-          message: isUUIDColumnError
-            ? 'Invalid patient ID format: The patient_visits table now uses UUID for patient_id, but the provided patient ID is not a valid UUID. Please ensure the patient record exists and has a valid UUID identifier.'
-            : isIntegerColumnError
-            ? 'Database schema mismatch: The patient_visits.patient_id column is still INT type, but patient records use UUID. You MUST run the migration script to convert patient_visits.patient_id from INT to UUID.'
-            : 'Database schema mismatch: Type mismatch between patient_visits table and patient records.',
-          migration_required: isIntegerColumnError,
-          migration_instructions: isIntegerColumnError ? '1. Connect to your PostgreSQL database\n2. Copy and paste the contents of Backend/database/migrate_patient_visits_simple.sql\n3. If you have existing visit data you want to keep, use migrate_patient_visits_to_uuid.sql instead\n4. Execute the SQL script using psql or your database client\n5. Verify the migration worked' : undefined,
-          migration_file: isIntegerColumnError ? 'Backend/database/migrate_patient_visits_simple.sql' : undefined,
+          message: 'Invalid ID format. Patient ID and Doctor ID must be valid integers.',
           error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
       }

@@ -823,7 +823,7 @@ const {
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Complex case with ADL file saved successfully" | "Clinical proforma created successfully"
+ *                   example: "Clinical proforma created successfully"
  *                 data:
  *                   type: object
  *                   properties:

@@ -1,117 +1,113 @@
 
 // models/Patient.js
 const db = require('../config/database');
-const { v4: uuidv4 } = require('uuid');
-const { encrypt, decrypt, encryptObject, decryptObject } = require('../utils/encryption');
-const encryptionFields = require('../utils/encryptionFields');
 
 class Patient {
   constructor(data = {}) {
-    // Decrypt sensitive fields after receiving from database
-    const decryptedData = decryptObject(data, encryptionFields.patient);
-    
     // 🔹 Core identifiers
-    this.id = decryptedData.id || null;
-    this.cr_no = decryptedData.cr_no || null;
-    this.psy_no = decryptedData.psy_no || null;
-    this.adl_no = decryptedData.adl_no || null;
-    this.special_clinic_no = decryptedData.special_clinic_no || null;
+    this.id = data.id || null;
+    this.cr_no = data.cr_no || null;
+    this.psy_no = data.psy_no || null;
+    this.adl_no = data.adl_no || null;
+    this.special_clinic_no = data.special_clinic_no || null;
 
     // 🔹 Registration & Quick Entry details
-    this.date = decryptedData.date || null;
-    this.name = decryptedData.name || null;
-    this.age = decryptedData.age || null;
-    this.sex = decryptedData.sex || null;
-    this.category = decryptedData.category || null;
-    this.father_name = decryptedData.father_name || null;
-    this.department = decryptedData.department || null;
-    this.unit_consit = decryptedData.unit_consit || null;
-    this.room_no = decryptedData.room_no || null;
-    this.serial_no = decryptedData.serial_no || null;
-    this.file_no = decryptedData.file_no || null;
-    this.unit_days = decryptedData.unit_days || null;
-    this.contact_number = decryptedData.contact_number || null;
+    this.date = data.date || null;
+    this.name = data.name || null;
+    this.age = data.age || null;
+    this.sex = data.sex || null;
+    this.category = data.category || null;
+    this.father_name = data.father_name || null;
+    this.department = data.department || null;
+    this.unit_consit = data.unit_consit || null;
+    this.room_no = data.room_no || null;
+    this.serial_no = data.serial_no || null;
+    this.file_no = data.file_no || null;
+    this.unit_days = data.unit_days || null;
+    this.contact_number = data.contact_number || null;
 
     // 🔹 Examination & clinic details
-    this.seen_in_walk_in_on = decryptedData.seen_in_walk_in_on || null;
-    this.worked_up_on = decryptedData.worked_up_on || null;
-    this.age_group = decryptedData.age_group || null;
+    this.seen_in_walk_in_on = data.seen_in_walk_in_on || null;
+    this.worked_up_on = data.worked_up_on || null;
+    this.age_group = data.age_group || null;
 
     // 🔹 Personal information
-    this.marital_status = decryptedData.marital_status || null;
-    this.year_of_marriage = decryptedData.year_of_marriage || null;
-    this.no_of_children_male = decryptedData.no_of_children_male || null;
-    this.no_of_children_female = decryptedData.no_of_children_female || null;
+    this.marital_status = data.marital_status || null;
+    this.year_of_marriage = data.year_of_marriage || null;
+    this.no_of_children_male = data.no_of_children_male || null;
+    this.no_of_children_female = data.no_of_children_female || null;
 
     // 🔹 Occupation & education
-    this.occupation = decryptedData.occupation || null;
-    this.education = decryptedData.education || null;
-    this.locality = decryptedData.locality || null;
-    this.income = decryptedData.income || null;
-    this.religion = decryptedData.religion || null;
-    this.family_type = decryptedData.family_type || null;
+    this.occupation = data.occupation || null;
+    this.education = data.education || null;
+    this.locality = data.locality || null;
+   
+    this.patient_income = data.patient_income || null;
+    this.family_income = data.family_income || null;
+    this.religion = data.religion || null;
+    this.family_type = data.family_type || null;
 
     // 🔹 Head of family
-    this.head_name = decryptedData.head_name || decryptedData.father_name || null;
-    this.head_age = decryptedData.head_age || null;
-    this.head_relationship = decryptedData.head_relationship || null;
-    this.head_education = decryptedData.head_education || null;
-    this.head_occupation = decryptedData.head_occupation || null;
-    this.head_income = decryptedData.head_income || null;
+    this.head_name = data.head_name || data.father_name || null;
+    this.head_age = data.head_age || null;
+    this.head_relationship = data.head_relationship || null;
+    this.head_education = data.head_education || null;
+    this.head_occupation = data.head_occupation || null;
+    this.head_income = data.head_income || null;
 
     // 🔹 Distance & mobility
-    this.distance_from_hospital = decryptedData.distance_from_hospital || null;
-    this.mobility = decryptedData.mobility || null;
+    this.distance_from_hospital = data.distance_from_hospital || null;
+    this.mobility = data.mobility || null;
 
     // 🔹 Referral & assignment
-    this.referred_by = decryptedData.referred_by || null;
-    this.assigned_room = decryptedData.assigned_room || null;
+    this.referred_by = data.referred_by || null;
+    this.assigned_room = data.assigned_room || null;
 
     // 🔹 Address details
-    this.address_line = decryptedData.address_line || null;
-    this.country = decryptedData.country || null;
-    this.state = decryptedData.state || null;
-    this.district = decryptedData.district || null;
-    this.city = decryptedData.city || null;
-    this.pin_code = decryptedData.pin_code || null;
+    this.address_line = data.address_line || null;
+    this.country = data.country || null;
+    this.state = data.state || null;
+    this.district = data.district || null;
+    this.city = data.city || null;
+    this.pin_code = data.pin_code || null;
 
     // 🔹 Permanent Address fields
-    this.permanent_address_line_1 = decryptedData.permanent_address_line_1 || null;
-    this.permanent_city_town_village = decryptedData.permanent_city_town_village || null;
-    this.permanent_district = decryptedData.permanent_district || null;
-    this.permanent_state = decryptedData.permanent_state || null;
-    this.permanent_pin_code = decryptedData.permanent_pin_code || null;
-    this.permanent_country = decryptedData.permanent_country || null;
+    this.permanent_address_line_1 = data.permanent_address_line_1 || null;
+    this.permanent_city_town_village = data.permanent_city_town_village || null;
+    this.permanent_district = data.permanent_district || null;
+    this.permanent_state = data.permanent_state || null;
+    this.permanent_pin_code = data.permanent_pin_code || null;
+    this.permanent_country = data.permanent_country || null;
 
     // 🔹 Present Address fields
-    this.present_address_line_1 = decryptedData.present_address_line_1 || null;
-    this.present_city_town_village = decryptedData.present_city_town_village || null;
-    this.present_district = decryptedData.present_district || null;
-    this.present_state = decryptedData.present_state || null;
-    this.present_pin_code = decryptedData.present_pin_code || null;
-    this.present_country = decryptedData.present_country || null;
+    this.present_address_line_1 = data.present_address_line_1 || null;
+    this.present_city_town_village = data.present_city_town_village || null;
+    this.present_district = data.present_district || null;
+    this.present_state = data.present_state || null;
+    this.present_pin_code = data.present_pin_code || null;
+    this.present_country = data.present_country || null;
 
     // 🔹 Local Address field
-    this.local_address = decryptedData.local_address || null;
+    this.local_address = data.local_address || null;
 
     // 🔹 Optional system / metadata fields
-    this.has_adl_file = decryptedData.has_adl_file || false;
-    this.file_status = decryptedData.file_status || null;
-    this.case_complexity = decryptedData.case_complexity || null;
-    this.filled_by = decryptedData.filled_by || null;
-    this.filled_by_name = decryptedData.filled_by_name || null;
-    this.filled_by_role = decryptedData.filled_by_role || null;
+    this.has_adl_file = data.has_adl_file || false;
+    this.file_status = data.file_status || null;
+    this.case_complexity = data.case_complexity || null;
+    this.filled_by = data.filled_by || null;
+    this.filled_by_name = data.filled_by_name || null;
+    this.filled_by_role = data.filled_by_role || null;
 
     // 🔹 Timestamps
-    this.created_at = decryptedData.created_at || null;
-    this.updated_at = decryptedData.updated_at || null;
+    this.created_at = data.created_at || null;
+    this.updated_at = data.updated_at || null;
 
     // 🔹 Joined / derived fields (query results)
-    this.patient_name = decryptedData.patient_name || this.name || null;
-    this.assigned_doctor_name = decryptedData.assigned_doctor_name || null;
-    this.assigned_doctor_role = decryptedData.assigned_doctor_role || null;
-    this.last_assigned_date = decryptedData.last_assigned_date || null;
-    this.assigned_doctor_id = decryptedData.assigned_doctor_id || null;
+    this.patient_name = data.patient_name || this.name || null;
+    this.assigned_doctor_name = data.assigned_doctor_name || null;
+    this.assigned_doctor_role = data.assigned_doctor_role || null;
+    this.last_assigned_date = data.last_assigned_date || null;
+    this.assigned_doctor_id = data.assigned_doctor_id || null;
   }
 
   // Utilities for unique numbers
@@ -129,8 +125,8 @@ class Patient {
 
   static generateADLNo() {
     const year = new Date().getFullYear();
-    const uuid = uuidv4().slice(0, 8).toUpperCase();
-    return `ADL${year}${uuid}`;
+    const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+    return `ADL${year}${random}`;
   }
 
   // Create new patient record
@@ -170,7 +166,8 @@ class Patient {
         occupation,
         education,
         locality,
-        income,
+        patient_income,
+        family_income,
         religion,
         family_type,
       
@@ -251,8 +248,7 @@ class Patient {
 
       fields.push('name');
       placeholders.push(`$${++paramCount}`);
-      // Encrypt name before saving
-      values.push(encrypt(name.trim()));
+      values.push(name.trim());
 
       // Sex and age are optional in the database schema, but we'll include them if provided
       if (sex !== undefined && sex !== null && sex !== '') {
@@ -295,7 +291,8 @@ class Patient {
         occupation,
         education,
         locality,
-        income,
+        patient_income,
+        family_income,
         religion,
         family_type,
         head_name,
@@ -342,12 +339,7 @@ class Patient {
         if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
           fields.push(fieldName);
           placeholders.push(`$${++paramCount}`);
-          // Encrypt sensitive fields before saving
-          if (encryptionFields.patient.includes(fieldName)) {
-            values.push(encrypt(fieldValue));
-          } else {
-            values.push(fieldValue);
-          }
+          values.push(fieldValue);
         }
       }
 
@@ -430,16 +422,12 @@ class Patient {
         return null;
       }
   
-      const isUUID =
-        typeof id === 'string' &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim());
-  
-      if (!isUUID) {
-        console.error(`[Patient.findById] ❌ Invalid UUID format: ${id}`);
+      // Validate that id is a valid integer
+      const patientId = parseInt(id, 10);
+      if (isNaN(patientId) || patientId <= 0) {
+        console.error(`[Patient.findById] ❌ Invalid integer ID: ${id}`);
         return null;
       }
-  
-      const patientId = id.trim();
   
       const query = `
         SELECT 
@@ -447,7 +435,7 @@ class Patient {
           p.room_no, p.serial_no, p.file_no, p.unit_days, p.contact_number, p.seen_in_walk_in_on,
           p.worked_up_on, p.psy_no, p.special_clinic_no, p.age_group, p.marital_status,
           p.year_of_marriage, p.no_of_children_male, p.no_of_children_female, p.occupation,
-          p.education, p.locality, p.income, p.religion, p.family_type, p.head_name, p.head_age,
+          p.education, p.locality, p.patient_income, p.family_income, p.religion, p.family_type, p.head_name, p.head_age,
           p.head_relationship, p.head_education, p.head_occupation, p.head_income,
           p.distance_from_hospital, p.mobility, p.referred_by, p.address_line, p.country,
           p.state, p.district, p.city, p.pin_code,
@@ -535,7 +523,7 @@ class Patient {
           ) AS last_assigned_date
         FROM registered_patient p
         LEFT JOIN adl_files af ON af.patient_id = p.id
-        WHERE p.id = $1::uuid
+        WHERE p.id = $1
         LIMIT 1;
       `;
   
@@ -895,7 +883,7 @@ class Patient {
         'department', 'unit_consit', 'room_no', 'serial_no', 'file_no', 'unit_days',
         'seen_in_walk_in_on', 'worked_up_on', 'age_group',
         'marital_status', 'year_of_marriage', 'no_of_children_male', 'no_of_children_female',
-        'occupation', 'education', 'locality', 'income', 
+        'occupation', 'education', 'locality','patient_income', 'family_income', 
         'religion', 'family_type',
         'head_name', 'head_age', 'head_relationship', 
         'head_education', 'head_occupation', 'head_income',
@@ -920,12 +908,7 @@ class Patient {
       for (const [k, v] of Object.entries(updateData)) {
         if (allowedFields.includes(k) && v !== undefined) {
           updates.push(`${k} = $${idx++}`);
-          // Encrypt sensitive fields before saving
-          if (encryptionFields.patient.includes(k)) {
-            values.push(encrypt(v));
-          } else {
-            values.push(v);
-          }
+          values.push(v);
         }
       }
 
@@ -940,9 +923,7 @@ class Patient {
       );
 
       if (result.rows.length) {
-        // Decrypt the updated data before assigning
-        const decryptedData = decryptObject(result.rows[0], encryptionFields.patient);
-        Object.assign(this, decryptedData);
+        Object.assign(this, result.rows[0]);
       }
 
       return this;
@@ -979,11 +960,6 @@ class Patient {
         [this.id, adl_no, createdBy, clinicalProformaId, 'created']
       );
 
-      await client.query(
-        `INSERT INTO file_movements (adl_file_id, patient_id, moved_by, movement_type, from_location, to_location, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [adlResult.rows[0].id, this.id, createdBy, 'created', 'Doctor Office', 'Record Room', 'Initial ADL file creation for complex case']
-      );
 
       await client.query('COMMIT');
       return adlResult.rows[0];
@@ -1071,33 +1047,7 @@ class Patient {
         console.log(`[Patient.delete] Deleted prescriptions`);
       }
       
-      // Step 3: Delete file movements
-      try {
-        const adlFilesResult = await client.query(
-          'SELECT id FROM adl_files WHERE patient_id = $1',
-          [this.id]
-        );
-        
-        const adlFileIds = adlFilesResult.rows.map(af => af.id);
-        
-        if (adlFileIds.length > 0) {
-          await client.query(
-            'DELETE FROM file_movements WHERE adl_file_id = ANY($1)',
-            [adlFileIds]
-          );
-        }
-        
-        await client.query(
-          'DELETE FROM file_movements WHERE patient_id = $1',
-          [this.id]
-        );
-        
-        console.log(`[Patient.delete] Deleted file movements`);
-      } catch (fileMovementsErr) {
-        console.warn(`[Patient.delete] Could not delete file_movements: ${fileMovementsErr.message}`);
-      }
-      
-      // Step 4: Delete ADL files
+      // Step 3: Delete ADL files
       await client.query(
         'DELETE FROM adl_files WHERE patient_id = $1',
         [this.id]
@@ -1211,7 +1161,8 @@ class Patient {
       occupation : this.occupation ,
       education : this.education ,
       locality : this.locality ,
-      income : this.income ,
+      patient_income : this.patient_income ,
+      family_income : this.family_income ,
       religion : this.religion ,
       family_type : this.family_type ,
   

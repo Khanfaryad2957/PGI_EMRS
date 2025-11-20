@@ -1032,32 +1032,6 @@ router.post('/:id/return', authenticateToken, validateId, ADLController.returnAD
  */
 router.post('/:id/archive', authenticateToken, validateId, ADLController.archiveADLFile);
 
-/**
- * @swagger
- * /api/adl-files/{id}/movement-history:
- *   get:
- *     summary: Get ADL file movement history
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ADL file ID
- *     responses:
- *       200:
- *         description: Movement history retrieved successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: ADL file not found
- *       500:
- *         description: Server error
- */
-router.get('/:id/movement-history', authenticateToken, validateId, ADLController.getFileMovementHistory);
 
 /**
  * @swagger

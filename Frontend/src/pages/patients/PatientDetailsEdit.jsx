@@ -17,7 +17,37 @@ import Button from '../../components/Button';
 import DatePicker from '../../components/CustomDatePicker';
 import Badge from '../../components/Badge';
 import { formatDate, formatDateTime } from '../../utils/formatters';
-import CreateClinicalProforma from '../clinical/CreateClinicalProforma';
+
+// Helper function to format date for DatePicker (YYYY-MM-DD format)
+const formatDateForDatePicker = (dateValue) => {
+  if (!dateValue) return '';
+  if (typeof dateValue === 'string') {
+    // If it's already in YYYY-MM-DD format, return as-is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+    // If it's an ISO string with time, extract date part
+    if (dateValue.includes('T')) return dateValue.split('T')[0];
+    // Try to parse and format
+    try {
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    } catch {
+      return '';
+    }
+  }
+  if (dateValue instanceof Date) {
+    const year = dateValue.getFullYear();
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return '';
+};
+// import CreateClinicalProforma from '../clinical/CreateClinicalProforma';
 import { useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
 import { useGetADLFileByIdQuery } from '../../features/adl/adlApiSlice';
 import { useGetPrescriptionsByProformaIdQuery, useCreateBulkPrescriptionsMutation } from '../../features/prescriptions/prescriptionApiSlice';
@@ -967,6 +997,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   const [showHeadRelationshipOther, setShowHeadRelationshipOther] = useState(false);
   const [showMobilityOther, setShowMobilityOther] = useState(false);
   const [showReferredByOther, setShowReferredByOther] = useState(false);
+  const [sameAsPermanent, setSameAsPermanent] = useState(false);
+  
   const navigate = useNavigate();
   const [updatePatient, { isLoading }] = useUpdatePatientMutation();
   const [assignPatient, { isLoading: isAssigning }] = useAssignPatientMutation();
@@ -1013,13 +1045,18 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       : null;
   });
 
+
+  
+ 
+
+
   // Update selectedProformaId when patientProformas loads (handles async data loading)
   useEffect(() => {
     if (patientProformas.length > 0 && !selectedProformaId) {
       // If we don't have a selected proforma yet, select the first one
       const firstProformaId = patientProformas[0]?.id;
       if (firstProformaId) {
-        
+
         setSelectedProformaId(firstProformaId.toString());
       }
     } else if (patientProformas.length > 0 && selectedProformaId) {
@@ -1027,7 +1064,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       const proformaExists = patientProformas.some(p => p.id?.toString() === selectedProformaId);
       if (!proformaExists && patientProformas[0]?.id) {
         // If selected proforma no longer exists, select the first one
-        
+
         setSelectedProformaId(patientProformas[0].id.toString());
       }
     }
@@ -1040,25 +1077,25 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     refetch: refetchSelectedProforma
   } = useGetClinicalProformaByIdQuery(
     selectedProformaId,
-    { 
+    {
       skip: !selectedProformaId,
       refetchOnMountOrArgChange: true // Always refetch when ID changes
     }
   );
 
   const selectedProforma = selectedProformaData?.data?.proforma || selectedProformaData?.data?.clinical_proforma;
-  
+
   // Debug logging for selected proforma
   useEffect(() => {
     if (selectedProforma) {
-      
+
     }
   }, [selectedProforma]);
 
   // Debug logging to help troubleshoot ADL data (after all variables are defined)
   useEffect(() => {
     const hasAdlFilesCheck = patientAdlFiles.length > 0 || selectedProforma?.adl_file_id;
-    
+
   }, [adlData, patientAdlFiles.length, selectedProforma?.adl_file_id]);
 
   // Auto-expand clinical card when selected proforma loads
@@ -1123,7 +1160,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
   const selectedAdlFile = selectedAdlFileData?.data?.adlFile || selectedAdlFileData?.data?.file;
 
- 
+
   // Initialize form data from patient and formData props
   // Use a function to ensure we get the latest patient data on initialization
   const [formData, setFormData] = useState(() => {
@@ -1132,7 +1169,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       if (val === null || val === undefined) return fallback;
       return val;
     };
-    
+
     // Merge patient data with initialFormData, prioritizing patient data
     const merged = {
       // Basic info - use patient data first, then initialFormData, then empty string
@@ -1172,7 +1209,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       education: getVal(patient?.education, getVal(initialFormData?.education)),
       locality: getVal(patient?.locality, getVal(initialFormData?.locality)),
       locality_other: getVal(patient?.locality_other, getVal(initialFormData?.locality_other)),
-      income: getVal(patient?.income, getVal(initialFormData?.income)),
+      patient_income: getVal(patient?.patient_income, getVal(initialFormData?.patient_income)),
+      family_income: getVal(patient?.family_income, getVal(initialFormData?.family_income)),
       religion: getVal(patient?.religion, getVal(initialFormData?.religion)),
       religion_other: getVal(patient?.religion_other, getVal(initialFormData?.religion_other)),
       family_type: getVal(patient?.family_type, getVal(initialFormData?.family_type)),
@@ -1209,7 +1247,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       permanent_state: getVal(patient?.permanent_state, getVal(initialFormData?.permanent_state)),
       permanent_pin_code: getVal(patient?.permanent_pin_code, getVal(initialFormData?.permanent_pin_code)),
       permanent_country: getVal(patient?.permanent_country, getVal(initialFormData?.permanent_country)),
-      
+
       // Present Address fields
       present_address_line_1: getVal(patient?.present_address_line_1, getVal(initialFormData?.present_address_line_1)),
       present_city_town_village: getVal(patient?.present_city_town_village, getVal(initialFormData?.present_city_town_village)),
@@ -1217,7 +1255,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       present_state: getVal(patient?.present_state, getVal(initialFormData?.present_state)),
       present_pin_code: getVal(patient?.present_pin_code, getVal(initialFormData?.present_pin_code)),
       present_country: getVal(patient?.present_country, getVal(initialFormData?.present_country)),
-      
+
       // Local Address field
       local_address: getVal(patient?.local_address, getVal(initialFormData?.local_address)),
 
@@ -1233,18 +1271,18 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   // This ensures ALL existing data is populated when editing
   useEffect(() => {
     if (patient && (patient.id || Object.keys(patient).length > 0)) {
-      
+
       setFormData(prev => {
         // Populate ALL fields from patient data, handling null/undefined values
         // Use patient value if available (even if null), otherwise keep previous value
         const updated = { ...prev };
-        
+
         // Helper to safely get value (handles null, undefined, empty string)
         const getValue = (val, fallback = '') => {
           if (val === null || val === undefined) return fallback;
           return val;
         };
-        
+
         // Basic info - always update if patient has these fields
         if ('name' in patient) updated.name = getValue(patient.name);
         if ('sex' in patient) updated.sex = getValue(patient.sex);
@@ -1255,12 +1293,12 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('contact_number' in patient) updated.contact_number = getValue(patient.contact_number);
         if ('father_name' in patient) updated.father_name = getValue(patient.father_name);
         if ('category' in patient) updated.category = getValue(patient.category);
-        
+
         // Dates
         if ('date' in patient) updated.date = getValue(patient.date);
         if ('seen_in_walk_in_on' in patient) updated.seen_in_walk_in_on = getValue(patient.seen_in_walk_in_on);
         if ('worked_up_on' in patient) updated.worked_up_on = getValue(patient.worked_up_on);
-        
+
         // Quick Entry fields
         if ('department' in patient) updated.department = getValue(patient.department);
         if ('unit_consit' in patient) updated.unit_consit = getValue(patient.unit_consit);
@@ -1268,14 +1306,14 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('serial_no' in patient) updated.serial_no = getValue(patient.serial_no);
         if ('file_no' in patient) updated.file_no = getValue(patient.file_no);
         if ('unit_days' in patient) updated.unit_days = getValue(patient.unit_days);
-        
+
         // Personal Information
         if ('age_group' in patient) updated.age_group = getValue(patient.age_group);
         if ('marital_status' in patient) updated.marital_status = getValue(patient.marital_status);
         if ('year_of_marriage' in patient) updated.year_of_marriage = getValue(patient.year_of_marriage);
         if ('no_of_children_male' in patient) updated.no_of_children_male = getValue(patient.no_of_children_male);
         if ('no_of_children_female' in patient) updated.no_of_children_female = getValue(patient.no_of_children_female);
-        
+
         // Occupation & Education
         if ('occupation' in patient) updated.occupation = getValue(patient.occupation);
         if ('occupation_other' in patient) {
@@ -1293,7 +1331,9 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
             setLocalityOther(patient.locality_other);
           }
         }
-        if ('income' in patient) updated.income = getValue(patient.income);
+       
+        if ('patient_income' in patient) updated.patient_income = getValue(patient.patient_income);
+        if ('family_income' in patient) updated.family_income = getValue(patient.family_income);
         if ('religion' in patient) updated.religion = getValue(patient.religion);
         if ('religion_other' in patient) {
           updated.religion_other = getValue(patient.religion_other);
@@ -1308,7 +1348,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
             setFamilyTypeOther(patient.family_type_other);
           }
         }
-        
+
         // Head of Family
         if ('head_name' in patient) updated.head_name = getValue(patient.head_name);
         if ('head_age' in patient) updated.head_age = getValue(patient.head_age);
@@ -1322,7 +1362,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('head_education' in patient) updated.head_education = getValue(patient.head_education);
         if ('head_occupation' in patient) updated.head_occupation = getValue(patient.head_occupation);
         if ('head_income' in patient) updated.head_income = getValue(patient.head_income);
-        
+
         // Referral & Mobility
         if ('distance_from_hospital' in patient) updated.distance_from_hospital = getValue(patient.distance_from_hospital);
         if ('mobility' in patient) updated.mobility = getValue(patient.mobility);
@@ -1339,7 +1379,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
             setReferredByOther(patient.referred_by_other);
           }
         }
-        
+
         // Address
         if ('address_line' in patient) updated.address_line = getValue(patient.address_line);
         if ('country' in patient) updated.country = getValue(patient.country);
@@ -1347,7 +1387,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('district' in patient) updated.district = getValue(patient.district);
         if ('city' in patient) updated.city = getValue(patient.city);
         if ('pin_code' in patient) updated.pin_code = getValue(patient.pin_code);
-        
+
         // Permanent Address
         if ('permanent_address_line_1' in patient) updated.permanent_address_line_1 = getValue(patient.permanent_address_line_1);
         if ('permanent_city_town_village' in patient) updated.permanent_city_town_village = getValue(patient.permanent_city_town_village);
@@ -1355,7 +1395,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('permanent_state' in patient) updated.permanent_state = getValue(patient.permanent_state);
         if ('permanent_pin_code' in patient) updated.permanent_pin_code = getValue(patient.permanent_pin_code);
         if ('permanent_country' in patient) updated.permanent_country = getValue(patient.permanent_country);
-        
+
         // Present Address
         if ('present_address_line_1' in patient) updated.present_address_line_1 = getValue(patient.present_address_line_1);
         if ('present_city_town_village' in patient) updated.present_city_town_village = getValue(patient.present_city_town_village);
@@ -1363,18 +1403,18 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('present_state' in patient) updated.present_state = getValue(patient.present_state);
         if ('present_pin_code' in patient) updated.present_pin_code = getValue(patient.present_pin_code);
         if ('present_country' in patient) updated.present_country = getValue(patient.present_country);
-        
+
         // Local Address
         if ('local_address' in patient) updated.local_address = getValue(patient.local_address);
-        
+
         // Assignment
         if ('assigned_doctor_id' in patient) {
           updated.assigned_doctor_id = patient.assigned_doctor_id ? String(patient.assigned_doctor_id) : '';
         }
         if ('assigned_doctor_name' in patient) updated.assigned_doctor_name = getValue(patient.assigned_doctor_name);
         if ('assigned_room' in patient) updated.assigned_room = getValue(patient.assigned_room);
-        
-       
+
+
         return updated;
       });
     }
@@ -1390,6 +1430,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     currentCRNumber,
     { skip: !currentCRNumber || currentCRNumber.length < 3 || currentCRNumber === patient?.cr_no }
   );
+
+
 
   // Check if fields with "others"/"other" are selected to show custom inputs
   useEffect(() => {
@@ -1499,6 +1541,33 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     }
   }, [formData.cr_no, crExists, isCheckingCR, currentCRNumber, patient?.cr_no]);
 
+
+
+  // Sync present address with permanent address when sameAsPermanent is checked
+  useEffect(() => {
+    if (sameAsPermanent) {
+      setFormData(prev => ({
+        ...prev,
+        present_address_line_1: prev.permanent_address_line_1 || '',
+        present_city_town_village: prev.permanent_city_town_village || '',
+        present_district: prev.permanent_district || '',
+        present_state: prev.permanent_state || '',
+        present_pin_code: prev.permanent_pin_code || '',
+        present_country: prev.permanent_country || ''
+      }));
+    }
+  }, [
+    sameAsPermanent,
+    formData.permanent_address_line_1,
+    formData.permanent_city_town_village,
+    formData.permanent_district,
+    formData.permanent_state,
+    formData.permanent_pin_code,
+    formData.permanent_country
+  ]);
+
+
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -1558,11 +1627,11 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     if (name === 'age') {
       const age = parseInt(value);
       if (!isNaN(age)) {
-        const ageGroup = 
+        const ageGroup =
           age <= 15 ? '0-15' :
-          age <= 30 ? '15-30' :
-          age <= 45 ? '30-45' :
-          age <= 60 ? '45-60' : '60+';
+            age <= 30 ? '15-30' :
+              age <= 45 ? '30-45' :
+                age <= 60 ? '45-60' : '60+';
         setFormData(prev => ({ ...prev, age_group: ageGroup }));
       }
     }
@@ -1571,6 +1640,18 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   const handlePatientChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // When assigned_doctor_id changes, update assigned_doctor_name
+    if (name === 'assigned_doctor_id' && value) {
+      const selectedDoctor = (usersData?.data?.users || []).find(u => String(u.id) === value);
+      if (selectedDoctor) {
+        setFormData(prev => ({ 
+          ...prev, 
+          assigned_doctor_id: value,
+          assigned_doctor_name: selectedDoctor.name 
+        }));
+      }
+    }
 
     // Clear any existing CR number error when user starts typing
     if (name === 'cr_no') {
@@ -1705,7 +1786,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         education: formData.education || null,
 
         // Financial Information
-        income: parseFloatSafe(formData.income),
+        patient_income: parseFloatSafe(formData.patient_income),
+        family_income: parseFloatSafe(formData.family_income),
 
         // Family Information
         // If "others"/"other" is selected, use the custom value, otherwise use the selected option
@@ -1762,7 +1844,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         permanent_state: formData.permanent_state || null,
         permanent_pin_code: formData.permanent_pin_code || null,
         permanent_country: formData.permanent_country || null,
-        
+
         // Present Address fields
         present_address_line_1: formData.present_address_line_1 || null,
         present_city_town_village: formData.present_city_town_village || null,
@@ -1770,14 +1852,14 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         present_state: formData.present_state || null,
         present_pin_code: formData.present_pin_code || null,
         present_country: formData.present_country || null,
-        
+
         // Local Address field
         local_address: formData.local_address || null,
 
         // Additional fields
         category: formData.category || null,
-        // assigned_doctor_id is UUID (string), not integer
-        ...(formData.assigned_doctor_id && { assigned_doctor_id: String(formData.assigned_doctor_id) }),
+        // assigned_doctor_id is integer
+        ...(formData.assigned_doctor_id && { assigned_doctor_id: parseInt(formData.assigned_doctor_id, 10) }),
       };
 
       // Update patient record (backend handles assigned_doctor_id via patient_visits)
@@ -1789,7 +1871,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
 
       toast.success('Patient updated successfully!');
-      if (patient.id){
+      if (patient.id) {
         await cr
       }
       navigate('/patients');
@@ -1877,10 +1959,11 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                         icon={<FiCalendar className="w-4 h-4" />}
                         label="Date"
                         name="date"
-                        value={formData.date || ''}
+                        value={formatDateForDatePicker(formData.date)}
                         onChange={handleChange}
                         defaultToday={false}
                       />
+
                       <IconInput
                         icon={<FiUser className="w-4 h-4" />}
                         label="Name"
@@ -2125,7 +2208,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           icon={<FiCalendar className="w-4 h-4" />}
                           label="Seen in Walk-in-on"
                           name="seen_in_walk_in_on"
-                          value={formData.seen_in_walk_in_on}
+                          value={formatDateForDatePicker(formData.seen_in_walk_in_on)}
                           onChange={handleChange}
                           defaultToday={true}
                         />
@@ -2133,7 +2216,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           icon={<FiCalendar className="w-4 h-4" />}
                           label="Worked up on"
                           name="worked_up_on"
-                          value={formData.worked_up_on}
+                          value={formatDateForDatePicker(formData.worked_up_on)}
                           onChange={handleChange}
                           defaultToday={true}
                         />
@@ -2293,18 +2376,30 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           className="bg-gradient-to-r from-green-50 to-emerald-50"
                         />
 
+
                         <IconInput
                           icon={<FiTrendingUp className="w-4 h-4" />}
-                          label="Income (₹)"
-                          name="income"
-                          value={formData.income}
+                          label="Family Income (₹)"
+                          name="family_income"
+                          value={formData.family_income}
                           onChange={handleChange}
+
                           type="number"
-                          placeholder="Monthly income"
+                          placeholder="Family income"
+                          min="0"
+                          className="bg-gradient-to-r from-teal-50 to-cyan-50"
+
+                        />
+                        <IconInput
+                          icon={<FiTrendingUp className="w-4 h-4" />}
+                          label="Patient Income (₹)"
+                          name="patient_income"
+                          value={formData.patient_income}
+                          type="number"
+                          placeholder="Patient income"
                           min="0"
                           className="bg-gradient-to-r from-teal-50 to-cyan-50"
                         />
-
                         <SelectWithOther
                           label="Religion"
                           name="religion"
@@ -2353,34 +2448,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           customFieldName="locality_other"
                           inputLabel="Specify Locality"
                         />
-                        <Select
-                          name="assigned_doctor_id"
-                          label="Assigned Doctor"
-                          value={formData.assigned_doctor_name}
-                          onChange={handlePatientChange}
-                          options={(usersData?.data?.users || [])
-                            .map(u => ({
-                              value: String(u.id),
-                              label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
-                            }))}
-                          placeholder="Select doctor (optional)"
-                          searchable={true}
-                          className="bg-gradient-to-r from-violet-50 to-purple-50"
-                          containerClassName="relative z-[9999]"
-                          dropdownZIndex={2147483647}
-                        />
-
-
-                        <IconInput
-                          icon={<FiHome className="w-4 h-4" />}
-                          label="Assigned Room"
-                          name="assigned_room"
-                          value={formData.assigned_room || ''}
-                          onChange={handleChange}
-                          placeholder="Enter assigned room"
-                          className="bg-gradient-to-r from-teal-50 to-cyan-50"
-                        />
-
+                        
                         <IconInput
                           icon={<FiUser className="w-4 h-4" />}
                           label="Family Head Name"
@@ -2499,7 +2567,270 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           customFieldName="referred_by_other"
                           inputLabel="Specify Referred By"
                         />
+                         {/* <Select
+                           name="assigned_doctor_id"
+                           label="Assigned Doctor"
+                           value={formData.assigned_doctor_id || ''}
+                           onChange={handlePatientChange}
+                           options={(usersData?.data?.users || [])
+                             .map(u => ({
+                               value: String(u.id),
+                               label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
+                             }))}
+                           placeholder="Select doctor (optional)"
+                           searchable={true}
+                           className="bg-gradient-to-r from-violet-50 to-purple-50"
+                           containerClassName="relative z-[9999]"
+                           dropdownZIndex={2147483647}
+                         />
+
+
+                        <IconInput
+                          icon={<FiHome className="w-4 h-4" />}
+                          label="Assigned Room"
+                          name="assigned_room"
+                          value={formData.assigned_room || ''}
+                          onChange={handleChange}
+                          placeholder="Enter assigned room"
+                          className="bg-gradient-to-r from-teal-50 to-cyan-50"
+                        /> */}
+
                       </div>
+
+                         {/* Permanent Address Section */}
+                         <div className="space-y-6 pt-6 border-t border-white/30">
+                           <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                             <div className="p-2.5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                               <FiMapPin className="w-5 h-5 text-blue-600" />
+                             </div>
+                             Permanent Address
+                           </h4>
+
+                           <div className="space-y-6">
+                             <IconInput
+                               icon={<FiHome className="w-4 h-4" />}
+                               label="Address Line"
+                               name="permanent_address_line_1"
+                               value={formData.permanent_address_line_1 || ''}
+                               onChange={handleChange}
+                               placeholder="Enter house number, street, locality"
+                               className=""
+                             />
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                               <IconInput
+                                 icon={<FiHome className="w-4 h-4" />}
+                                 label="City/Town/Village"
+                                 name="permanent_city_town_village"
+                                 value={formData.permanent_city_town_village || ''}
+                                 onChange={handleChange}
+                                 placeholder="Enter city, town or village"
+                                 className=""
+                               />
+                               <IconInput
+                                 icon={<FiLayers className="w-4 h-4" />}
+                                 label="District"
+                                 name="permanent_district"
+                                 value={formData.permanent_district || ''}
+                                 onChange={handleChange}
+                                 placeholder="Enter district"
+                                 className=""
+                               />
+                               <IconInput
+                                 icon={<FiMapPin className="w-4 h-4" />}
+                                 label="State"
+                                 name="permanent_state"
+                                 value={formData.permanent_state || ''}
+                                 onChange={handleChange}
+                                 placeholder="Enter state"
+                                 className=""
+                               />
+                               <IconInput
+                                 icon={<FiHash className="w-4 h-4" />}
+                                 label="Pin Code"
+                                 name="permanent_pin_code"
+                                 value={formData.permanent_pin_code || ''}
+                                 onChange={handleChange}
+                                 placeholder="Enter pin code"
+                                 type="number"
+                                 className=""
+                               />
+                               <IconInput
+                                 icon={<FiGlobe className="w-4 h-4" />}
+                                 label="Country"
+                                 name="permanent_country"
+                                 value={formData.permanent_country || ''}
+                                 onChange={handleChange}
+                                 placeholder="Enter country"
+                                 className=""
+                               />
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Present Address Section */}
+                         <div className="space-y-6 pt-6 border-t border-white/30">
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                              <div className="p-2.5 bg-gradient-to-br from-orange-500/20 to-amber-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                                <FiMapPin className="w-5 h-5 text-orange-600" />
+                              </div>
+                              Present Address
+                            </h4>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={sameAsPermanent}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setSameAsPermanent(checked);
+                                  if (checked) {
+                                    // Copy permanent address to present address
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      present_address_line_1: prev.permanent_address_line_1 || '',
+                                      present_city_town_village: prev.permanent_city_town_village || '',
+                                      present_district: prev.permanent_district || '',
+                                      present_state: prev.permanent_state || '',
+                                      present_pin_code: prev.permanent_pin_code || '',
+                                      present_country: prev.permanent_country || ''
+                                    }));
+                                  } else {
+                                    // Clear present address fields when unchecked
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      present_address_line_1: '',
+                                      present_city_town_village: '',
+                                      present_district: '',
+                                      present_state: '',
+                                      present_pin_code: '',
+                                      present_country: ''
+                                    }));
+                                  }
+                                }}
+                                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-primary-600 transition-colors">
+                                Same as Permanent Address
+                              </span>
+                            </label>
+                          </div>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Address Line"
+                              name="present_address_line_1"
+                              value={formData.present_address_line_1 || ''}
+                              onChange={handleChange}
+                              placeholder="Enter house number, street, locality"
+                              disabled={sameAsPermanent}
+                              className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="City/Town/Village"
+                                name="present_city_town_village"
+                                value={formData.present_city_town_village || ''}
+                                onChange={handleChange}
+                                placeholder="Enter city, town or village"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiLayers className="w-4 h-4" />}
+                                label="District"
+                                name="present_district"
+                                value={formData.present_district || ''}
+                                onChange={handleChange}
+                                placeholder="Enter district"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiMapPin className="w-4 h-4" />}
+                                label="State"
+                                name="present_state"
+                                value={formData.present_state || ''}
+                                onChange={handleChange}
+                                placeholder="Enter state"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiHash className="w-4 h-4" />}
+                                label="Pin Code"
+                                name="present_pin_code"
+                                value={formData.present_pin_code || ''}
+                                onChange={handleChange}
+                                placeholder="Enter pin code"
+                                type="number"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                              <IconInput
+                                icon={<FiGlobe className="w-4 h-4" />}
+                                label="Country"
+                                name="present_country"
+                                value={formData.present_country || ''}
+                                onChange={handleChange}
+                                placeholder="Enter country"
+                                disabled={sameAsPermanent}
+                                className={sameAsPermanent ? "disabled:bg-gray-100 disabled:cursor-not-allowed" : ""}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Local Address Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                              <FiNavigation className="w-5 h-5 text-purple-600" />
+                            </div>
+                            Local Address
+                          </h4>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Local Address"
+                              name="local_address"
+                              value={formData.local_address || ''}
+                              onChange={handleChange}
+                              placeholder="Enter local address"
+                              className=""
+                            />
+                          </div>
+
+                          <Select
+                                name="assigned_doctor_id"
+                                label="Assigned Doctor"
+                                value={formData.assigned_doctor_id}
+                                onChange={handlePatientChange}
+                                options={(usersData?.data?.users || [])
+                                  .map(u => ({
+                                    value: String(u.id),
+                                    label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
+                                  }))}
+                                placeholder="Select doctor (optional)"
+                                searchable={true}
+                                className="bg-gradient-to-r from-violet-50 to-purple-50"
+                                containerClassName="relative z-[9999]"
+                                dropdownZIndex={2147483647}
+                              />
+
+
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="Assigned Room"
+                                name="assigned_room"
+                                value={formData.assigned_room || ''}
+                                onChange={handleChange}
+                                placeholder="Enter assigned room"
+                                className="bg-gradient-to-r from-teal-50 to-cyan-50"
+                              />
+                        </div>
                     </div>
 
                     {/* Divider */}
@@ -2597,8 +2928,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                   {patientAdlFiles.length > 0
                     ? `${patientAdlFiles.length} file${patientAdlFiles.length > 1 ? 's' : ''} found`
                     : selectedProforma?.adl_file_id
-                    ? 'ADL file linked to proforma'
-                    : 'No ADL files'}
+                      ? 'ADL file linked to proforma'
+                      : 'No ADL files'}
                 </p>
               </div>
             </div>
@@ -2615,8 +2946,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <div className="space-y-6">
                   {patientAdlFiles.map((file, index) => {
                     // Debug logging for each file
-                    
-                    
+
+
                     return (
                       <EditADL
                         key={file.id || `adl-${index}`}
@@ -2681,23 +3012,23 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <div className="space-y-6">
                   {patientProformas.map((proforma, index) => (
                     <>
-                       {/* <PrescriptionCard
+                      {/* <PrescriptionCard
                       key={proforma.id || index}
                       proforma={proforma}
                       index={index}
                       patientId={patient?.id}
                     /> */}
-                    <PrescriptionEdit
-                      key={proforma.id || index}
-                      proforma={proforma}
-                      index={index}
-                      patientId={patient?.id}
-                    />
+                      <PrescriptionEdit
+                        key={proforma.id || index}
+                        proforma={proforma}
+                        index={index}
+                        patientId={patient?.id}
+                      />
 
-                    
+
                     </>
-                 
-                    
+
+
                   ))}
                 </div>
               ) : (

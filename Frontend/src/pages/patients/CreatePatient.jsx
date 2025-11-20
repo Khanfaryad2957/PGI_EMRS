@@ -459,7 +459,8 @@ const CreatePatient = () => {
         serial_no: formData.serial_no || null,
         file_no: formData.file_no || null,
         unit_days: formData.unit_days || null,
-
+        patient_income: formData.patient_income || null,
+        family_income: formData.family_income || null,
         // Address fields
         address_line: formData.address_line || null,
         country: formData.country || null,
@@ -525,6 +526,7 @@ const CreatePatient = () => {
 
   // Handler for Step 2: Update patient with remaining data
   const handleSubmit = async (e) => {
+    debugger  
     e.preventDefault();
 
     if (!patientId) {
@@ -546,7 +548,7 @@ const CreatePatient = () => {
       };
 
       const assignedDoctor = usersData?.data?.users?.find(
-        user => user.id === formData.assigned_doctor_id
+        user => user.id === parseInt(formData.assigned_doctor_id, 10)
       );
 
       const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -573,8 +575,9 @@ const CreatePatient = () => {
         education: formData.education || null,
 
         // Financial Information
-        income: parseFloatSafe(formData.income),
-
+        // income: parseFloatSafe(formData.income),
+        patient_income: parseFloatSafe(formData.patient_income),
+        family_income: parseFloatSafe(formData.family_income),
         // Family Information
         // If "others"/"other" is selected, use the custom value, otherwise use the selected option
         religion: formData.religion === 'others'
@@ -1204,9 +1207,20 @@ const CreatePatient = () => {
 
                               <IconInput
                                 icon={<FiTrendingUp className="w-4 h-4" />}
-                                label="Income (₹)"
-                                name="income"
-                                value={formData.income}
+                                label="Exact Income of the Patient (₹)"
+                                name="patient_income"
+                                value={formData.patient_income}
+                                onChange={handleChange}
+                                type="number"
+                                placeholder="Monthly income"
+                                min="0"
+                                className="bg-gradient-to-r from-teal-50 to-cyan-50"
+                              />
+                               <IconInput
+                                icon={<FiTrendingUp className="w-4 h-4" />}
+                                label="Exact Income of the Family (₹)"
+                                name="family_income"
+                                value={formData.family_income}
                                 onChange={handleChange}
                                 type="number"
                                 placeholder="Monthly income"
@@ -1263,33 +1277,7 @@ const CreatePatient = () => {
                                 inputLabel="Specify Locality"
                               />
 
-                              <Select
-                                name="assigned_doctor_id"
-                                label="Assigned Doctor"
-                                value={formData.assigned_doctor_id}
-                                onChange={handlePatientChange}
-                                options={(usersData?.data?.users || [])
-                                  .map(u => ({
-                                    value: String(u.id),
-                                    label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
-                                  }))}
-                                placeholder="Select doctor (optional)"
-                                searchable={true}
-                                className="bg-gradient-to-r from-violet-50 to-purple-50"
-                                containerClassName="relative z-[9999]"
-                                dropdownZIndex={2147483647}
-                              />
-
-
-                              <IconInput
-                                icon={<FiHome className="w-4 h-4" />}
-                                label="Assigned Room"
-                                name="assigned_room"
-                                value={formData.assigned_room || ''}
-                                onChange={handleChange}
-                                placeholder="Enter assigned room"
-                                className="bg-gradient-to-r from-teal-50 to-cyan-50"
-                              />
+                             
 
                               <IconInput
                                 icon={<FiUser className="w-4 h-4" />}
@@ -1614,6 +1602,34 @@ const CreatePatient = () => {
                               className=""
                             />
                           </div>
+
+                          <Select
+                                name="assigned_doctor_id"
+                                label="Assigned Doctor"
+                                value={formData.assigned_doctor_id}
+                                onChange={handlePatientChange}
+                                options={(usersData?.data?.users || [])
+                                  .map(u => ({
+                                    value: String(u.id),
+                                    label: `${u.name} - ${isJR(u.role) ? 'Resident' : isSR(u.role) ? 'Faculty' : u.role}`
+                                  }))}
+                                placeholder="Select doctor (optional)"
+                                searchable={true}
+                                className="bg-gradient-to-r from-violet-50 to-purple-50"
+                                containerClassName="relative z-[9999]"
+                                dropdownZIndex={2147483647}
+                              />
+
+
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="Assigned Room"
+                                name="assigned_room"
+                                value={formData.assigned_room || ''}
+                                onChange={handleChange}
+                                placeholder="Enter assigned room"
+                                className="bg-gradient-to-r from-teal-50 to-cyan-50"
+                              />
                         </div>
 
                             <div className="flex flex-col sm:flex-row justify-end gap-4">

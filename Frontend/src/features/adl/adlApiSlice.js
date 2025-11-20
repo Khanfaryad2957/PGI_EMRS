@@ -58,10 +58,6 @@ export const adlApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, id) => [{ type: 'ADL', id }, 'ADL', 'Stats'],
     }),
-    getFileMovementHistory: builder.query({
-      query: (id) => `/adl-files/${id}/movement-history`,
-      providesTags: (result, error, id) => [{ type: 'ADL', id: `movements-${id}` }],
-    }),
     getFilesToRetrieve: builder.query({
       query: () => '/adl-files/to-retrieve',
       providesTags: ['ADL'],
@@ -91,7 +87,6 @@ export const {
   useRetrieveFileMutation,
   useReturnFileMutation,
   useArchiveFileMutation,
-  useGetFileMovementHistoryQuery,
   useGetFilesToRetrieveQuery,
   useGetActiveFilesQuery,
   useGetADLStatsQuery,

@@ -2,12 +2,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
+import Select from '../../components/Select';
 import { formatDate } from '../../utils/formatters';
 import {
   getFileStatusLabel, getCaseSeverityLabel,
   formatAddress, formatCurrency, formatDateTime
 } from '../../utils/enumMappings';
-import { isAdmin, isJrSr, isMWO, PATIENT_REGISTRATION_FORM } from '../../utils/constants';
+import { isAdmin, isJrSr, isMWO, PATIENT_REGISTRATION_FORM, isJR, isSR } from '../../utils/constants';
 import {
   FiUser, FiUsers, FiBriefcase, FiDollarSign, FiHome, FiMapPin, FiPhone,
   FiCalendar, FiGlobe, FiFileText, FiHash, FiClock,
@@ -20,6 +21,8 @@ import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx-js-style';
 
 import { useGetPrescriptionsByProformaIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
+
+
 const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
   // Filter out non-DOM props that shouldn't be passed to the input element
   const {
@@ -121,7 +124,8 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
       no_of_children_female: formData?.no_of_children_female || patient?.no_of_children_female || '',
       occupation: formData?.occupation || patient?.occupation || '',
       education: formData?.education || formData?.education_level || patient?.education || patient?.education_level || '',
-      income: formData?.income || formData?.patient_income || patient?.income || patient?.patient_income || '',
+      patient_income: formData?.patient_income || patient?.patient_income || '',
+      family_income: formData?.family_income || patient?.family_income || '',
       religion: formData?.religion || patient?.religion || '',
       family_type: formData?.family_type || patient?.family_type || '',
       locality: formData?.locality || patient?.locality || '',
@@ -159,7 +163,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
     isJrSr(userRole)
   );
   const canViewClinicalProforma = canViewAllSections;
- 
+
   const canViewADLFile = canViewAllSections;
   const canViewPrescriptions = canViewAllSections;
 
@@ -259,16 +263,16 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
   // Helper function to apply header styles with different colors
   const applyHeaderStyles = (ws, colorRanges) => {
     if (!ws['!ref']) return;
-    
+
     const range = XLSX.utils.decode_range(ws['!ref']);
     const numCols = range.e.c + 1;
-    
+
     // Apply styles to each header cell
     for (let col = 0; col < numCols; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-      
+
       if (!ws[cellAddress]) continue;
-      
+
       // Find which color range this column belongs to
       let headerColor = '2E86AB'; // Default blue
       for (const range of colorRanges) {
@@ -277,7 +281,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
           break;
         }
       }
-      
+
       // Apply header styling with bold, colored background, and white text
       ws[cellAddress].s = {
         font: {
@@ -301,7 +305,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
         }
       };
     }
-    
+
     // Set column widths for better readability
     const colWidths = [];
     for (let col = 0; col < numCols; col++) {
@@ -337,10 +341,10 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
       // Sheet 1: Patient Basic Details (always included)
       // Use PATIENT_REGISTRATION_FORM labels as Excel headers
       const patientExportData = {};
-      
+
       PATIENT_REGISTRATION_FORM.forEach(field => {
         const value = displayData[field.value];
-        
+
         // Handle special cases
         if (field.value === 'mobile_no') {
           // Use contact_number if mobile_no is not available
@@ -351,10 +355,14 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
         } else if (field.value === 'seen_in_walk_in_on' || field.value === 'worked_up_on') {
           // Format date fields
           patientExportData[field.label] = value ? formatDate(value) : 'N/A';
-        } else if (field.value === 'income') {
-          // Use patient_income if income is not available
+        } else if (field.value === 'patient_income') {
+          // Use patient_income if patient_income is not available
           const incomeValue = value || displayData.patient_income || '';
           patientExportData[field.label] = incomeValue ? (typeof incomeValue === 'number' ? `₹${incomeValue}` : incomeValue) : 'N/A';
+        } else if (field.value === 'family_income') {
+          // Use family_income if family_income is not available
+          const familyIncomeValue = value || displayData.family_income || '';
+          patientExportData[field.label] = familyIncomeValue ? (typeof familyIncomeValue === 'number' ? `₹${familyIncomeValue}` : familyIncomeValue) : 'N/A';
         } else if (field.value === 'education') {
           // Use education_level if education is not available
           patientExportData[field.label] = value || displayData.education_level || 'N/A';
@@ -362,17 +370,17 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
           // Format assigned doctor with role if available
           const doctorName = value || displayData.assigned_doctor_name || '';
           const doctorRole = displayData.assigned_doctor_role || '';
-          patientExportData[field.label] = doctorName 
-            ? (doctorRole ? `${doctorName} (${doctorRole})` : doctorName) 
+          patientExportData[field.label] = doctorName
+            ? (doctorRole ? `${doctorName} (${doctorRole})` : doctorName)
             : 'Not assigned';
         } else {
           // Default: use value or 'N/A'
           patientExportData[field.label] = (value !== null && value !== undefined && value !== '') ? value : 'N/A';
         }
       });
-      
+
       const ws1 = XLSX.utils.json_to_sheet([patientExportData]);
-      
+
       // Apply header styling with different colors for different sections
       // Color ranges based on PATIENT_REGISTRATION_FORM structure
       const totalFields = PATIENT_REGISTRATION_FORM.length;
@@ -386,7 +394,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
         // { start: 37, end: 42, color: '6610F2' }, // Address Details (Indigo) - Address Line to Pin Code
         // { start: 43, end: totalFields - 1, color: 'E83E8C' }, // Additional Fields (Pink) - Assigned Doctor fields
       ]);
-      
+
       XLSX.utils.book_append_sheet(wb, ws1, 'Patient Details');
 
       // Sheet 2: Clinical Proformas (only if user has permission and is not MWO)
@@ -467,7 +475,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
 
       // Write the file
       XLSX.writeFile(wb, `${filename}.xlsx`);
-      
+
       // Show appropriate success message based on role
       if (isMWOUser) {
         toast.success('Patient details exported to Excel successfully (Patient Details only)');
@@ -486,12 +494,12 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
     <div className="space-y-6">
       {/* Card 1: Patient Details */}
       <Card className="shadow-lg border-0 bg-white">
-        
+
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('patient')}
         >
-        
+
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 rounded-lg">
               <FiUser className="h-6 w-6 text-blue-600" />
@@ -500,7 +508,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
               <h3 className="text-xl font-bold text-gray-900">Patient Details</h3>
               <p className="text-sm text-gray-500 mt-1">{patient.name} - {patient.cr_no || 'N/A'}</p>
             </div>
-            
+
           </div>
           {expandedCards.patient ? (
             <FiChevronUp className="h-6 w-6 text-gray-500" />
@@ -515,12 +523,12 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
               {/* Quick Entry Section with Glassmorphism */}
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
-                
+
                 <Card
                   title={
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-lg">
-                        
+
                         <FiEdit3 className="w-6 h-6 text-indigo-600" />
                       </div>
                       <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">OUT PATIENT CARD</span>
@@ -555,13 +563,10 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                         icon={<FiCalendar className="w-4 h-4" />}
                         label="Date"
                         name="date"
-                        value={displayData.date || ''}
-                        defaultToday={false}
-                        // loading={isCheckingCR && formData.cr_no && formData.cr_no.length >= 3}
+                        value={displayData.date ? formatDate(displayData.date) : ''}
                         disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                        className="disabled:bg-gray-200 disabled:cursor-not-allowed disabled:text-gray-900"
                       />
-
 
                       <IconInput
                         icon={<FiUser className="w-4 h-4" />}
@@ -958,7 +963,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                           className="disabled:bg-gray-200 disabled:cursor-not-allowed"
                         />
 
-                        <IconInput
+                        {/* <IconInput
                           icon={<FiTrendingUp className="w-4 h-4" />}
                           label="Income (₹)"
                           name="income"
@@ -966,6 +971,30 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
 
                           type="number"
                           placeholder="Monthly income"
+                          min="0"
+                          disabled={true}
+                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                        /> */}
+
+                        <IconInput
+                          icon={<FiTrendingUp className="w-4 h-4" />}
+                          label="Family Income (₹)"
+                          name="family_income"
+                          value={displayData.family_income || ''}
+
+                          type="number"
+                          placeholder="Family income"
+                          min="0"
+                          disabled={true}
+                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                        />
+                        <IconInput
+                          icon={<FiTrendingUp className="w-4 h-4" />}
+                          label="Patient Income (₹)"
+                          name="patient_income"
+                          value={displayData.income || displayData.patient_income || ''}
+                          type="number"
+                          placeholder="Patient income"
                           min="0"
                           disabled={true}
                           className="disabled:bg-gray-200 disabled:cursor-not-allowed"
@@ -1131,6 +1160,194 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                           inputLabel="Specify Referred By"
                         />
                       </div>
+
+                         {/* Permanent Address Section */}
+                         <div className="space-y-6 pt-6 border-t border-white/30">
+                           <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                             <div className="p-2.5 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                               <FiMapPin className="w-5 h-5 text-blue-600" />
+                             </div>
+                             Permanent Address
+                           </h4>
+
+                           <div className="space-y-6">
+                             <IconInput
+                               icon={<FiHome className="w-4 h-4" />}
+                               label="Address Line"
+                               name="permanent_address_line_1"
+                               value={formData.permanent_address_line_1 || ''}
+                               placeholder="Enter house number, street, locality"
+                               disabled={true}
+                               className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                             />
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                               <IconInput
+                                 icon={<FiHome className="w-4 h-4" />}
+                                 label="City/Town/Village"
+                                 name="permanent_city_town_village"
+                                 value={formData.permanent_city_town_village || ''}
+                                 placeholder="Enter city, town or village"
+                                 disabled={true}
+                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                               />
+                               <IconInput
+                                 icon={<FiLayers className="w-4 h-4" />}
+                                 label="District"
+                                 name="permanent_district"
+                                 value={formData.permanent_district || ''}
+                                 placeholder="Enter district"
+                                 disabled={true}
+                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                               />
+                               <IconInput
+                                 icon={<FiMapPin className="w-4 h-4" />}
+                                 label="State"
+                                 name="permanent_state"
+                                 value={formData.permanent_state || ''}
+                                 placeholder="Enter state"
+                                 disabled={true}
+                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                               />
+                               <IconInput
+                                 icon={<FiHash className="w-4 h-4" />}
+                                 label="Pin Code"
+                                 name="permanent_pin_code"
+                                 value={formData.permanent_pin_code || ''}
+                                 placeholder="Enter pin code"
+                                 type="number"
+                                 disabled={true}
+                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                               />
+                               <IconInput
+                                 icon={<FiGlobe className="w-4 h-4" />}
+                                 label="Country"
+                                 name="permanent_country"
+                                 value={formData.permanent_country || ''}
+                                 placeholder="Enter country"
+                                 disabled={true}
+                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                               />
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Present Address Section */}
+                         <div className="space-y-6 pt-6 border-t border-white/30">
+                           <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                             <div className="p-2.5 bg-gradient-to-br from-orange-500/20 to-amber-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                               <FiMapPin className="w-5 h-5 text-orange-600" />
+                             </div>
+                             Present Address
+                           </h4>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Address Line"
+                              name="present_address_line_1"
+                              value={formData.present_address_line_1 || ''}
+                              placeholder="Enter house number, street, locality"
+                              disabled={true}
+                              className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="City/Town/Village"
+                                name="present_city_town_village"
+                                value={formData.present_city_town_village || ''}
+                                // onChange={handleChange}
+                                placeholder="Enter city, town or village"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                              <IconInput
+                                icon={<FiLayers className="w-4 h-4" />}
+                                label="District"
+                                name="present_district"
+                                value={formData.present_district || ''}
+                                // onChange={handleChange}
+                                placeholder="Enter district"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                              <IconInput
+                                icon={<FiMapPin className="w-4 h-4" />}
+                                label="State"
+                                name="present_state"
+                                value={formData.present_state || ''}
+                                // onChange={handleChange}
+                                placeholder="Enter state"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                              <IconInput
+                                icon={<FiHash className="w-4 h-4" />}
+                                label="Pin Code"
+                                name="present_pin_code"
+                                value={formData.present_pin_code || ''}
+                                // onChange={handleChange}
+                                placeholder="Enter pin code"
+                                type="number"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                              <IconInput
+                                icon={<FiGlobe className="w-4 h-4" />}
+                                label="Country"
+                                name="present_country"
+                                value={formData.present_country || ''}
+                                // onChange={handleChange}
+                                placeholder="Enter country"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Local Address Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                              <FiNavigation className="w-5 h-5 text-purple-600" />
+                            </div>
+                            Local Address
+                          </h4>
+
+                          <div className="space-y-6">
+                            <IconInput
+                              icon={<FiHome className="w-4 h-4" />}
+                              label="Local Address"
+                              name="local_address"
+                              value={formData.local_address || ''}
+                              placeholder="Enter local address"
+                              disabled={true}
+                              className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                            />
+                          </div>
+
+                          <IconInput
+                                icon={<FiUser className="w-4 h-4" />}
+                                label="Assigned Doctor"
+                                name="assigned_doctor_name"
+                                value={formData.assigned_doctor_name || displayData.assigned_doctor_name || ''}
+                                placeholder="Assigned doctor name"
+                                disabled={true}
+                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+
+
+                              <IconInput
+                                icon={<FiHome className="w-4 h-4" />}
+                                label="Assigned Room"
+                                name="assigned_room"
+                                value={formData.assigned_room || ''}
+                                placeholder="Enter assigned room"
+                                disabled={true}
+                                className="disabled:bg-gray-200 disabled:cursor-not-allowed"
+                              />
+                        </div>
                     </div>
 
                     {/* Divider */}
@@ -1146,7 +1363,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
           </div>
         )}
         <div className="flex mt-4 flex-col sm:flex-row justify-end gap-4">
-          
+
           <Button
             type="button"
             variant="outline"
@@ -1211,7 +1428,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                           <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
                           <span className="text-sm text-gray-500">{proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}</span>
                         </div>
-                        {proforma.id &&  (
+                        {proforma.id && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

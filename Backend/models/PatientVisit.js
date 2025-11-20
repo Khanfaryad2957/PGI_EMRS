@@ -21,21 +21,16 @@ class PatientVisit {
     } catch (error) {
       console.error('[PatientVisit.assignPatient] Error:', error);
       
-      // Check for UUID type errors
-      const isUUIDError = error.message && (
-        error.message.includes('invalid input syntax for type uuid') ||
+      // Check for integer type errors
+      const isTypeError = error.message && (
         error.message.includes('invalid input syntax for type integer') ||
         error.message.includes('type mismatch') ||
         error.code === '22P02' // PostgreSQL invalid input syntax error code
       );
 
-      if (isUUIDError) {
-        if (error.message.includes('invalid input syntax for type uuid')) {
-          throw new Error(`Invalid patient_id format: Expected UUID but received "${patient_id}". The patient_visits table uses UUID for patient_id. Please ensure the patient record has a valid UUID.`);
-        }
-        
+      if (isTypeError) {
         if (error.message.includes('invalid input syntax for type integer')) {
-          throw new Error(`Database schema mismatch: The patient_visits.patient_id column is still INT type, but you're trying to insert a UUID. Please run the migration script to convert it to UUID. Error: ${error.message}`);
+          throw new Error(`Invalid patient_id format: Expected integer but received "${patient_id}". The patient_visits table uses integer for patient_id. Please ensure the patient record has a valid integer ID.`);
         }
         
         throw new Error(`Type mismatch error: ${error.message}`);

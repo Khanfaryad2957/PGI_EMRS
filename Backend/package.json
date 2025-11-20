@@ -9,7 +9,6 @@
     "test": "jest",
     "migrate": "node database/supabaseMigrate.js migrate",
     "migrate:status": "node database/supabaseMigrate.js status",
-    "migrate:encryption": "node database/apply_encryption_migration.js",
     "seed": "node database/supabaseSeed.js seed",
     "seed:clear": "node database/supabaseSeed.js clear",
     "db:setup": "npm run migrate && npm run seed",

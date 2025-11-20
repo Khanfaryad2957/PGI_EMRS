@@ -1,3 +1,9 @@
+import { useState, useEffect } from 'react';
+import { useGetClinicalOptionsQuery, useAddClinicalOptionMutation, useDeleteClinicalOptionMutation } from '../features/clinical/clinicalApiSlice';
+import { FiX, FiSave, FiPlus, FiHeart, FiActivity, FiUser, FiClipboard, FiList, FiCheckSquare, FiFileText } from 'react-icons/fi';
+import Input from './Input';
+import Button from './Button';
+
 export const CheckboxGroup = ({ label, name, value = [], onChange, options = [], rightInlineExtra = null }) => {
     const [localOptions, setLocalOptions] = useState(options);
     const [showAdd, setShowAdd] = useState(false);
