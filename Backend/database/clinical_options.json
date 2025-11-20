@@ -1,0 +1,162 @@
+{
+  "mood": [
+    "Anxious",
+    "Sad",
+    "Cheerful",
+    "Agitated",
+    "Fearful",
+    "Irritable"
+  ],
+  "behaviour": [
+    "Suspiciousness",
+    "Talking/Smiling to self",
+    "Hallucinatory behaviour",
+    "Increased goal-directed activity",
+    "Compulsions",
+    "Apathy",
+    "Anhedonia",
+    "Avolution",
+    "Stupor",
+    "Posturing",
+    "Stereotypy",
+    "Ambitendency",
+    "Disinhibition",
+    "Impulsivity",
+    "Anger outbursts",
+    "Suicide/self-harm attempts"
+  ],
+  "speech": [
+    "Irrelevant",
+    "Incoherent",
+    "Pressure",
+    "Alogia",
+    "Mutism"
+  ],
+  "thought": [
+    "Reference",
+    "Persecution",
+    "Grandiose",
+    "Love Infidelity",
+    "Bizarre",
+    "Pessimism",
+    "Worthlessness",
+    "Guilt",
+    "Poverty",
+    "Nihilism",
+    "Hypochondriasis",
+    "Wish to die",
+    "Active suicidal ideation",
+    "Plans",
+    "Worries",
+    "Obsessions",
+    "Phobias",
+    "Panic attacks"
+  ],
+  "perception": [
+    "Hallucination - Auditory",
+    "Hallucination - Visual",
+    "Hallucination - Tactile",
+    "Hallucination - Olfactory",
+    "Passivity",
+    "Depersonalization",
+    "Derealization"
+  ],
+  "somatic": [
+    "Pains",
+    "Numbness",
+    "Weakness",
+    "Fatigue",
+    "Tremors",
+    "Palpitations",
+    "Dyspnoea",
+    "Dizziness"
+  ],
+  "bio_functions": [
+    "Sleep",
+    "Appetite",
+    "Bowel/Bladder",
+    "Self-care"
+  ],
+  "adjustment": [
+    "Work output",
+    "Socialization"
+  ],
+  "cognitive_function": [
+    "Disorientation",
+    "Inattention",
+    "Impaired Memory",
+    "Intelligence"
+  ],
+  "fits": [
+    "Epileptic",
+    "Dissociative",
+    "Mixed",
+    "Not clear"
+  ],
+  "sexual_problem": [
+    "Dhat",
+    "Poor erection",
+    "Early ejaculation",
+    "Decreased desire",
+    "Perversion",
+    "Homosexuality",
+    "Gender dysphoria"
+  ],
+  "substance_use": [
+    "Alcohol",
+    "Opioid",
+    "Cannabis",
+    "Benzodiazepines",
+    "Tobacco"
+  ],
+  "associated_medical_surgical": [
+    "Hypertension",
+    "Diabetes",
+    "Dyslipidemia",
+    "Thyroid dysfunction"
+  ],
+  "mse_behaviour": [
+    "Uncooperative",
+    "Unkempt",
+    "Fearful",
+    "Odd",
+    "Suspicious",
+    "Retarded",
+    "Excited",
+    "Aggressive",
+    "Apathetic",
+    "Catatonic",
+    "Demonstrative"
+  ],
+  "mse_affect": [
+    "Sad",
+    "Anxious",
+    "Elated",
+    "Inappropriate",
+    "Blunted",
+    "Labile"
+  ],
+  "mse_thought": [
+    "Depressive",
+    "Suicidal",
+    "Obsessions",
+    "Hypochondriacal",
+    "Preoccupations",
+    "Worries"
+  ],
+  "mse_perception": [
+    "Hallucinations - Auditory",
+    "Hallucinations - Visual",
+    "Hallucinations - Tactile",
+    "Hallucinations - Olfactory",
+    "Illusions",
+    "Depersonalization",
+    "Derealization"
+  ],
+  "mse_cognitive_function": [
+    "Impaired",
+    "Not impaired"
+  ],
+  "past_history": [],
+  "family_history": []
+}

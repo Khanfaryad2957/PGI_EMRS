@@ -10,7 +10,7 @@ import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Textarea from '../../components/Textarea';
 import Button from '../../components/Button';
-import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText } from 'react-icons/fi';
+import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText, FiUser, FiClipboard } from 'react-icons/fi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) => {
@@ -50,7 +50,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
   // Force refetch proforma when clinicalProformaId changes (e.g., after update)
   useEffect(() => {
     if (clinicalProformaId && refetchProforma) {
-      console.log('[CreateADL] Refetching proforma to get latest adl_file_id...');
+      
       refetchProforma();
     }
   }, [clinicalProformaId, refetchProforma]);
@@ -59,7 +59,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
   const prevAdlFileIdRef = useRef(null);
   useEffect(() => {
     if (existingAdlFileId && existingAdlFileId !== prevAdlFileIdRef.current && refetchAdl) {
-      console.log('[CreateADL] ADL file ID changed, refetching ADL file data for ID:', existingAdlFileId);
+     
       prevAdlFileIdRef.current = existingAdlFileId;
       refetchAdl();
       // Reset lastPopulatedAdlFileId to allow form to repopulate with new data
@@ -67,17 +67,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     }
   }, [existingAdlFileId, refetchAdl]);
   
-  // Debug logging
-  useEffect(() => {
-    console.log('[CreateADL] Component state:', {
-      clinicalProformaId,
-      existingProforma,
-      existingAdlFileId,
-      existingAdlFile,
-      isLoadingProforma,
-      isLoadingAdl
-    });
-  }, [clinicalProformaId, existingProforma, existingAdlFileId, existingAdlFile, isLoadingProforma, isLoadingAdl]);
+ 
 
   // Card expand/collapse state
   const [expandedCards, setExpandedCards] = useState({
@@ -123,6 +113,10 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     // Complaints
     complaints_patient: [{ complaint: '', duration: '' }],
     complaints_informant: [{ complaint: '', duration: '' }],
+    // Illness Details
+    onset_duration: '',
+    precipitating_factor: '',
+    course: '',
     // Past History
     past_history_medical: '',
     past_history_psychiatric_dates: '',
@@ -150,6 +144,8 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     family_history_mother_death_cause: '',
     // Family History - Siblings
     family_history_siblings: [{ age: '', sex: '', education: '', occupation: '', marital_status: '' }],
+    // Family History of Mental Illness
+    family_history: '',
     // Diagnostic Formulation
     diagnostic_formulation_summary: '',
     diagnostic_formulation_features: '',
@@ -214,6 +210,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     mse_thought_flow: '',
     mse_thought_form: '',
     mse_thought_content: '',
+    mse_thought_possession: '',
     // MSE - Cognitive
     mse_cognitive_consciousness: '',
     mse_cognitive_orientation_time: '',
@@ -302,8 +299,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     // Only populate if we have data and haven't populated this specific ADL file yet
     if (existingAdlFile && existingAdlFile.id && Object.keys(existingAdlFile).length > 0 && 
         existingAdlFile.id !== lastPopulatedAdlFileId) {
-      console.log('[CreateADL] Populating form with existing ADL file data. ADL File ID:', existingAdlFile.id);
-      console.log('[CreateADL] Existing ADL file keys:', Object.keys(existingAdlFile));
+     
       
       // Helper function to format date fields from ISO string to yyyy-MM-dd
       const formatDateField = (value) => {
@@ -418,14 +414,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
           }
         });
         
-        console.log('[CreateADL] Form data updated with existing ADL file. Sample fields:', {
-          history_narrative: updated.history_narrative,
-          provisional_diagnosis: updated.provisional_diagnosis,
-          treatment_plan: updated.treatment_plan,
-          consultant_comments: updated.consultant_comments,
-          informants: updated.informants?.length,
-          complaints_patient: updated.complaints_patient?.length
-        });
+      
         
         // Mark this ADL file as populated
         setLastPopulatedAdlFileId(existingAdlFile.id);
@@ -447,13 +436,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
     e.preventDefault();
     e.stopPropagation(); // CRITICAL: Prevent event from bubbling to parent form
     
-    // Add debugging
-    console.log('[CreateADL.handleSubmit] Starting submission...');
-    console.log('[CreateADL.handleSubmit] clinicalProformaId:', clinicalProformaId);
-    console.log('[CreateADL.handleSubmit] existingProforma:', existingProforma);
-    console.log('[CreateADL.handleSubmit] existingAdlFileId:', existingAdlFileId);
-    console.log('[CreateADL.handleSubmit] existingAdlFile:', existingAdlFile);
-    console.log('[CreateADL.handleSubmit] patientId:', patientId);
+    
     
     try {
       // Prepare data for submission - convert arrays to JSON strings
@@ -475,29 +458,29 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
       };
 
       const submissionData = prepareDataForSubmission(formData);
-      console.log('[CreateADL.handleSubmit] Prepared submission data keys:', Object.keys(submissionData));
+      
       
       // CRITICAL: Refetch proforma to ensure we have the latest adl_file_id
       // This handles the case where the clinical proforma was just updated and adl_file_id was created
       let latestAdlFileId = existingAdlFileId;
       if (clinicalProformaId && refetchProforma) {
         try {
-          console.log('[CreateADL.handleSubmit] Refetching proforma to get latest adl_file_id...');
+        
           const refetchedProformaData = await refetchProforma();
           const refetchedProforma = refetchedProformaData?.data?.proforma || refetchedProformaData?.data?.clinical_proforma;
           if (refetchedProforma?.adl_file_id) {
             latestAdlFileId = refetchedProforma.adl_file_id;
-            console.log('[CreateADL.handleSubmit] Found adl_file_id from refetch:', latestAdlFileId);
+           
           }
         } catch (refetchError) {
-          console.warn('[CreateADL.handleSubmit] Could not refetch proforma:', refetchError);
+         
         }
       }
       
       // If ADL file ID exists (even if the full file object isn't loaded yet), update it
       // The backend will handle the update even if we don't have the full existingAdlFile object
       if (latestAdlFileId) {
-        console.log('[CreateADL.handleSubmit] Updating existing ADL file with ID:', latestAdlFileId);
+        
         // Update existing ADL file
         const updateData = {
           id: latestAdlFileId,
@@ -507,16 +490,15 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
         delete updateData.patient_id;
         delete updateData.clinical_proforma_id;
         
-        console.log('[CreateADL.handleSubmit] Update payload keys:', Object.keys(updateData));
-        console.log('[CreateADL.handleSubmit] Update payload sample:', JSON.stringify(updateData).substring(0, 500));
+       
         const result = await updateADLFile(updateData).unwrap();
-        console.log('[CreateADL.handleSubmit] Update successful:', result);
+        
         toast.success('ADL File updated successfully!');
         
         // Refetch ADL file data to show updated values
         if (refetchAdl) {
           const refetchedAdlData = await refetchAdl();
-          console.log('[CreateADL.handleSubmit] Refetched ADL file data:', refetchedAdlData);
+         
           // Reset lastPopulatedAdlFileId so form can be repopulated with latest data
           if (latestAdlFileId) {
             setLastPopulatedAdlFileId(null); // Reset to allow repopulation
@@ -542,20 +524,20 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
           }
         } else {
           // If embedded, just show success message and keep form open
-          console.log('[CreateADL.handleSubmit] Form is embedded, keeping it open');
+          
           // Don't do anything - form stays open
         }
       } else if (clinicalProformaId) {
-        console.log('[CreateADL.handleSubmit] Creating new ADL file for clinical proforma:', clinicalProformaId);
+       
         // Create new ADL file
         const createData = {
           patient_id: patientId,
           clinical_proforma_id: clinicalProformaId,
           ...submissionData
         };
-        console.log('[CreateADL.handleSubmit] Create payload:', createData);
+       
         const result = await createADLFile(createData).unwrap();
-        console.log('[CreateADL.handleSubmit] Create successful:', result);
+       
         toast.success('ADL File created successfully!');
         
         // Refetch proforma to get the new adl_file_id
@@ -577,7 +559,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
           }
         } else {
           // If embedded, just show success message and keep form open
-          console.log('[CreateADL.handleSubmit] Form is embedded, keeping it open');
+          
           // Don't do anything - form stays open
         }
       } else {
@@ -597,7 +579,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
       // CRITICAL: Don't navigate on error if embedded - keep form open so user can fix and retry
       if (!returnTab) {
         // Only navigate away on error if not embedded
-        console.log('[CreateADL.handleSubmit] Error occurred, but form is embedded so keeping it open');
+        
       }
     }
   };
@@ -611,6 +593,8 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
       <div className="w-full px-6 py-8 space-y-8">
         <div className="flex items-center justify-between mb-6">
           <div>
+
+            
             {/* <h1 className="text-3xl font-bold text-gray-900">Create ADL File</h1> */}
             {patient && (
               <p className="text-gray-600 mt-1">
@@ -633,96 +617,56 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
           e.stopPropagation(); // Prevent bubbling to parent forms when embedded
           handleSubmit(e);
         }} action="#" method="post">
-          {/* History of Present Illness */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-            <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-              onClick={() => toggleCard('history')}
-            >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <FiFileText className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">History of Present Illness</h3>
-                  <p className="text-sm text-gray-500 mt-1">Spontaneous narrative, specific enquiry, drug intake, treatment</p>
-                </div>
-              </div>
-              {expandedCards.history ? (
-                <FiChevronUp className="h-6 w-6 text-gray-500" />
-              ) : (
-                <FiChevronDown className="h-6 w-6 text-gray-500" />
-              )}
-            </div>
+          
+          
 
-            {expandedCards.history && (
-              <div className="p-6 space-y-6">
-                <Textarea
-                  label="A. Spontaneous narrative account"
-                  name="history_narrative"
-                  value={formData.history_narrative}
-                  onChange={handleChange}
-                  placeholder="Patient's spontaneous account of the illness..."
-                  rows={4}
-                />
-                
-                <Textarea
-                  label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
-                  name="history_specific_enquiry"
-                  value={formData.history_specific_enquiry}
-                  onChange={handleChange}
-                  placeholder="Detailed specific enquiries..."
-                  rows={5}
-                />
-                
-                <Textarea
-                  label="C. Intake of dependence producing and prescription drugs"
-                  name="history_drug_intake"
-                  value={formData.history_drug_intake}
-                  onChange={handleChange}
-                  placeholder="List all dependence producing substances and prescription drugs..."
-                  rows={3}
-                />
-                
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-gray-800 mb-3">D. Treatment received so far in this illness</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Place"
-                      name="history_treatment_place"
-                      value={formData.history_treatment_place}
-                      onChange={handleChange}
-                      placeholder="Location of treatment"
-                    />
-                    <Input
-                      label="Dates"
-                      name="history_treatment_dates"
-                      value={formData.history_treatment_dates}
-                      onChange={handleChange}
-                      placeholder="Treatment dates"
-                    />
-                    <Textarea
-                      label="Drugs"
-                      name="history_treatment_drugs"
-                      value={formData.history_treatment_drugs}
-                      onChange={handleChange}
-                      placeholder="Medications administered"
-                      rows={2}
-                      className="md:col-span-2"
-                    />
-                    <Textarea
-                      label="Response"
-                      name="history_treatment_response"
-                      value={formData.history_treatment_response}
-                      onChange={handleChange}
-                      placeholder="Patient's response to treatment"
-                      rows={2}
-                      className="md:col-span-2"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Informant Section */}
+          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <div className="p-6">
+              {/* Patient Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Patient Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <Input
+                          label="Date"
+                          name="date"
+                    value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Patient Name"
+                    value={patient?.name || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Age"
+                    value={patient?.age || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Sex"
+                    value={patient?.sex || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                  <Input
+                    label="Psy. No."
+                    value={patient?.psy_no || ''}
+                                onChange={handleChange}
+                    disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                        </div>
+                      </div>
+
+                    </div>
           </Card>
 
           {/* Informants */}
@@ -969,6 +913,130 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
                     <FiPlus className="w-4 h-4" />
                     Add Complaint
                   </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Onset, Precipitating Factor, and Course */}
+          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Textarea
+                  label="Onset"
+                  name="onset_duration"
+                  value={formData.onset_duration || ''}
+                  onChange={handleChange}
+                  placeholder="Describe the onset of the illness..."
+                  rows={4}
+                />
+                <Textarea
+                  label="Precipitating Factor"
+                  name="precipitating_factor"
+                  value={formData.precipitating_factor || ''}
+                  onChange={handleChange}
+                  placeholder="Describe any precipitating factors..."
+                  rows={4}
+                />
+                <Textarea
+                  label="Course"
+                  name="course"
+                  value={formData.course || ''}
+                  onChange={handleChange}
+                  placeholder="Describe the course of the illness..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* History of Present Illness */}
+          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <div
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              onClick={() => toggleCard('history')}
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <FiFileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">History of Present Illness</h3>
+                  <p className="text-sm text-gray-500 mt-1">Spontaneous narrative, specific enquiry, drug intake, treatment</p>
+                </div>
+              </div>
+              {expandedCards.history ? (
+                <FiChevronUp className="h-6 w-6 text-gray-500" />
+              ) : (
+                <FiChevronDown className="h-6 w-6 text-gray-500" />
+              )}
+            </div>
+
+            {expandedCards.history && (
+              <div className="p-6 space-y-6">
+                <Textarea
+                  label="A. Spontaneous narrative account"
+                  name="history_narrative"
+                  value={formData.history_narrative}
+                  onChange={handleChange}
+                  placeholder="Patient's spontaneous account of the illness..."
+                  rows={4}
+                />
+                
+                <Textarea
+                  label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
+                  name="history_specific_enquiry"
+                  value={formData.history_specific_enquiry}
+                  onChange={handleChange}
+                  placeholder="Detailed specific enquiries..."
+                  rows={5}
+                />
+                
+                <Textarea
+                  label="C. Intake of dependence producing and prescription drugs"
+                  name="history_drug_intake"
+                  value={formData.history_drug_intake}
+                  onChange={handleChange}
+                  placeholder="List all dependence producing substances and prescription drugs..."
+                  rows={3}
+                />
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">D. Treatment received so far in this illness</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Place"
+                      name="history_treatment_place"
+                      value={formData.history_treatment_place}
+                      onChange={handleChange}
+                      placeholder="Location of treatment"
+                    />
+                    <Input
+                      label="Dates"
+                      name="history_treatment_dates"
+                      value={formData.history_treatment_dates}
+                      onChange={handleChange}
+                      placeholder="Treatment dates"
+                    />
+                    <Textarea
+                      label="Drugs"
+                      name="history_treatment_drugs"
+                      value={formData.history_treatment_drugs}
+                      onChange={handleChange}
+                      placeholder="Medications administered"
+                      rows={2}
+                      className="md:col-span-2"
+                    />
+                    <Textarea
+                      label="Response"
+                      name="history_treatment_response"
+                      value={formData.history_treatment_response}
+                      onChange={handleChange}
+                      placeholder="Patient's response to treatment"
+                      rows={2}
+                      className="md:col-span-2"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1302,6 +1370,114 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
                     Add Sibling
                   </Button>
                 </div>
+
+                {/* Family Tree Visualization */}
+                <div className="border-t pt-8 mt-8">
+                  <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                    <h4 className="text-lg font-bold text-gray-900 mb-6 text-center">Family Tree</h4>
+                    <div className="relative flex flex-col items-center py-4" style={{ minHeight: '350px' }}>
+                      {/* Parents Row */}
+                      <div className="flex justify-center gap-16 mb-8 relative w-full">
+                        {/* Father */}
+                        <div className="relative">
+                          <div className="bg-white border-2 border-blue-400 rounded-lg p-4 shadow-md min-w-[150px] text-center">
+                            <div className="text-xs font-semibold text-blue-700 mb-1">Father</div>
+                            <div className="text-sm font-bold text-gray-900">
+                              {formData.family_history_father_age ? `Age: ${formData.family_history_father_age}` : 'N/A'}
+                            </div>
+                            {formData.family_history_father_occupation && (
+                              <div className="text-xs text-gray-600 mt-1 truncate">{formData.family_history_father_occupation}</div>
+                            )}
+                            {formData.family_history_father_deceased && (
+                              <div className="text-xs text-red-600 mt-1 font-semibold">Deceased</div>
+                            )}
+                          </div>
+                          {/* Vertical line down from father */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-blue-400"></div>
+                          {/* Horizontal line to center */}
+                          <div className="absolute top-full left-1/2 w-1/2 h-0.5 bg-blue-400" style={{ marginTop: '32px' }}></div>
+                        </div>
+
+                        {/* Mother */}
+                        <div className="relative">
+                          <div className="bg-white border-2 border-pink-400 rounded-lg p-4 shadow-md min-w-[150px] text-center">
+                            <div className="text-xs font-semibold text-pink-700 mb-1">Mother</div>
+                            <div className="text-sm font-bold text-gray-900">
+                              {formData.family_history_mother_age ? `Age: ${formData.family_history_mother_age}` : 'N/A'}
+                            </div>
+                            {formData.family_history_mother_occupation && (
+                              <div className="text-xs text-gray-600 mt-1 truncate">{formData.family_history_mother_occupation}</div>
+                            )}
+                            {formData.family_history_mother_deceased && (
+                              <div className="text-xs text-red-600 mt-1 font-semibold">Deceased</div>
+                            )}
+                          </div>
+                          {/* Vertical line down from mother */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-pink-400"></div>
+                          {/* Horizontal line to center */}
+                          <div className="absolute top-full right-1/2 w-1/2 h-0.5 bg-pink-400" style={{ marginTop: '32px' }}></div>
+                        </div>
+                      </div>
+
+                      {/* Vertical line connecting parents to patient */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-gray-400" style={{ top: '120px', height: '40px' }}></div>
+
+                      {/* Patient Row */}
+                      <div className="relative z-10 mb-8">
+                        <div className="bg-gradient-to-br from-primary-500 to-indigo-600 text-white border-2 border-primary-600 rounded-lg p-4 shadow-lg min-w-[180px] text-center">
+                          <div className="text-xs font-semibold mb-1 opacity-90">Patient</div>
+                          <div className="text-sm font-bold">
+                            {patient?.name || 'Patient Name'}
+                          </div>
+                          {patient?.age && (
+                            <div className="text-xs mt-1 opacity-90">Age: {patient.age}</div>
+                          )}
+                          {patient?.sex && (
+                            <div className="text-xs opacity-90">Sex: {patient.sex}</div>
+                          )}
+                        </div>
+                        {/* Vertical line down from patient to siblings */}
+                        {(formData.family_history_siblings && formData.family_history_siblings.length > 0) && (
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-gray-400"></div>
+                        )}
+                      </div>
+
+                      {/* Siblings Row */}
+                      {formData.family_history_siblings && formData.family_history_siblings.length > 0 && (
+                        <div className="relative w-full">
+                          {/* Horizontal connecting line for siblings */}
+                          {formData.family_history_siblings.length > 1 && (
+                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full max-w-[600px] h-0.5 bg-gray-400" style={{ top: '-32px' }}></div>
+                          )}
+                          {/* Single sibling - vertical line only */}
+                          {formData.family_history_siblings.length === 1 && (
+                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-gray-400" style={{ top: '-32px' }}></div>
+                          )}
+                          <div className="flex justify-center gap-4 flex-wrap pt-8">
+                            {formData.family_history_siblings.map((sibling, index) => (
+                              <div key={index} className="relative">
+                                {/* Vertical line from horizontal line to sibling */}
+                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-gray-400"></div>
+                                <div className="bg-white border-2 border-gray-300 rounded-lg p-3 shadow-md min-w-[130px] text-center">
+                                  <div className="text-xs font-semibold text-gray-700 mb-1">Sibling {index + 1}</div>
+                                  {sibling.age && (
+                                    <div className="text-xs font-bold text-gray-900">Age: {sibling.age}</div>
+                                  )}
+                                  {sibling.sex && (
+                                    <div className="text-xs text-gray-600 mt-1">Sex: {sibling.sex}</div>
+                                  )}
+                                  {sibling.occupation && (
+                                    <div className="text-xs text-gray-600 mt-1 truncate">{sibling.occupation}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </Card>
@@ -1363,6 +1539,21 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
                       className="md:col-span-2"
                     />
                   </div>
+                </div>
+
+                <div className="border-t pt-6">
+                  <h4 className="font-semibold text-gray-800 mb-3">Family History of Mental Illness</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    <strong>Family history of mental illness</strong> including mental retardation, epilepsy, alcoholism, drug dependence, suicide, renouncing world in grandparents, uncles, aunts, first cousins, siblings and children.
+                  </p>
+                  <Textarea
+                    label="Family History of Mental Illness"
+                    name="family_history"
+                    value={formData.family_history || ''}
+                    onChange={handleChange}
+                    placeholder="Describe family history of mental illness, including details about grandparents, uncles, aunts, first cousins, siblings, and children..."
+                    rows={5}
+                  />
                 </div>
 
                 <div className="border-t pt-6">
@@ -2405,6 +2596,7 @@ const CreateADL = ({ patientId, clinicalProformaId, returnTab, onSuccess }  ) =>
                     <Textarea label="Flow" name="mse_thought_flow" value={formData.mse_thought_flow} onChange={handleChange} rows={2} />
                     <Textarea label="Form" name="mse_thought_form" value={formData.mse_thought_form} onChange={handleChange} rows={2} />
                     <Textarea label="Content" name="mse_thought_content" value={formData.mse_thought_content} onChange={handleChange} rows={3} />
+                    <Textarea label="Possession" name="mse_thought_possession" value={formData.mse_thought_possession || ''} onChange={handleChange} rows={2} />
                   </div>
                 </div>
 

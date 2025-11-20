@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FiUser, FiPhone,  FiClock, FiEye,
   FiRefreshCw, FiPlusCircle, FiFileText, FiUsers,  FiShield
@@ -13,8 +13,8 @@ import { selectCurrentUser } from '../../features/auth/authSlice';
 import { isAdmin, isMWO, isJrSr } from '../../utils/constants';
 
 // Component to check for existing proforma and render patient row
-const PatientRow = ({ patient, activeTab, navigate }) => {
-  const { data: proformaData, refetch: refetchProformas } = useGetClinicalProformaByPatientIdQuery(
+const PatientRow = ({ patient, isNewPatient, navigate }) => {
+  const { data: proformaData, isLoading: isLoadingProformas, refetch: refetchProformas } = useGetClinicalProformaByPatientIdQuery(
     patient.id, 
     { 
       skip: !patient.id,
@@ -24,10 +24,6 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
     }
   );
  
-  const proformas = proformaData?.data?.proformas || [];
-  const hasExistingProforma = proformas.length > 0;
-  const latestProformaId = hasExistingProforma ? proformas[0].id : null;
-  
   // Refetch proformas when component becomes visible (e.g., after returning from deletion)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -39,6 +35,34 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [patient.id, refetchProformas]);
+
+  const proformas = proformaData?.data?.proformas || [];
+  const hasExistingProforma = proformas.length > 0;
+  const latestProformaId = hasExistingProforma ? proformas[0].id : null;
+  
+  // Check if patient has a proforma created today
+  const toISTDateString = (dateInput) => {
+    try {
+      if (!dateInput) return '';
+      const d = new Date(dateInput);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    } catch (_) {
+      return '';
+    }
+  };
+  
+  const todayDateString = toISTDateString(new Date());
+  const hasProformaToday = proformas.some(proforma => {
+    const proformaDate = toISTDateString(proforma.created_at || proforma.visit_date || proforma.date);
+    return proformaDate === todayDateString;
+  });
+  
+  // Hide card if proforma is completed today (but only if we have loaded proforma data)
+  // If still loading, show the card to avoid flickering
+  if (!isLoadingProformas && hasProformaToday) {
+    return null;
+  }
 
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleTimeString('en-IN', {
@@ -64,8 +88,13 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
       : 'bg-green-100 text-green-800';
   };
 
+  // Color coding: New patients = blue border, Existing patients = green border
+  const borderColor = isNewPatient 
+    ? 'border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/50 to-white' 
+    : 'border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-white';
+  
   return (
-    <div className="p-5 sm:p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-200 last:border-b-0 bg-white rounded-lg mb-3 shadow-sm hover:shadow-md">
+    <div className={`p-5 sm:p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 rounded-lg mb-4 shadow-sm hover:shadow-md ${borderColor}`}>
       <div className="flex flex-col lg:flex-row lg:items-start gap-5 lg:gap-6">
         {/* Patient Information Section */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -96,6 +125,14 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             </div>
             {/* Badges */}
             <div className="flex flex-wrap gap-2 shrink-0">
+              {/* Patient Type Badge */}
+              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm ${
+                isNewPatient 
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                  : 'bg-green-100 text-green-800 border border-green-300'
+              }`}>
+                {isNewPatient ? 'New Patient' : 'Existing Patient'}
+              </span>
               {patient.age_group && (
                 <span className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-sm ${getAgeGroupColor(patient.age_group)}`}>
                   {patient.age_group}
@@ -153,7 +190,7 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/patients/${patient.id}?edit=false&returnTab=${activeTab}`)}
+              onClick={() => navigate(`/patients/${patient.id}?edit=false`)}
               className="flex items-center justify-center gap-2 w-full lg:w-full px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md"
             >
               <FiEye className="w-4 h-4 flex-shrink-0" />
@@ -185,16 +222,9 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             <Button
                 variant="outline"
                 size="sm"
+                
                 onClick={() => {
-                  // If proforma exists, pass its ID to update it; otherwise create new
-                  const urlParams = new URLSearchParams({
-                    patient_id: patient.id,
-                    returnTab: activeTab || ''
-                  });
-                  if (latestProformaId) {
-                    urlParams.set('clinical_proforma_id', latestProformaId);
-                  }
-                  navigate(`/clinical/new?${urlParams.toString()}`);
+                  navigate(`/patients/${patient.id}?edit=true&mode=create`)
                 }}
                 className="flex items-center justify-center gap-2 w-full lg:w-full px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md"
               >
@@ -206,7 +236,7 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/prescriptions/create?patient_id=${patient.id}&returnTab=${activeTab}`)}
+              onClick={() => navigate(`/prescriptions/create?patient_id=${patient.id}`)}
               className="flex items-center justify-center gap-2 w-full lg:w-full px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md"
             >
               <FiPlusCircle className="w-4 h-4 flex-shrink-0" />
@@ -222,13 +252,8 @@ const PatientRow = ({ patient, activeTab, navigate }) => {
 const ClinicalTodayPatients = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const currentUser = useSelector(selectCurrentUser);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  
-  // Get tab from URL params - single source of truth
-  const tabFromUrl = searchParams.get('tab');
-  const activeTab = tabFromUrl === 'existing' ? 'existing' : 'new';
   
   const [filters, setFilters] = useState({
     sex: '',
@@ -296,16 +321,6 @@ const ClinicalTodayPatients = () => {
     };
   }, [refetch]);
   
-  // Update URL when tab changes
-  const handleTabChange = (tab) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (tab === 'new') {
-      newSearchParams.delete('tab');
-    } else {
-      newSearchParams.set('tab', tab);
-    }
-    setSearchParams(newSearchParams, { replace: true });
-  };
 
 
  
@@ -344,25 +359,16 @@ const ClinicalTodayPatients = () => {
         toISTDateString(patient.visit_date) === targetDate);
 
       // Patient appears if created today OR has visit today
-      if (!createdToday && !hasVisitToday) return false;
-
-      // For patients created today: 
-      // - If filled_by_role is provided, it should be MWO (but don't filter if missing)
-      // - Only filter out if explicitly NOT MWO
-      if (createdToday && patient?.filled_by_role) {
-        // Only filter out if role exists and is explicitly NOT MWO
-        if (!isMWO(patient.filled_by_role)) {
-          return false;
-        }
-      }
-
-      return true;
+      // Show all patients created today regardless of who created them
+      // The role-based filtering happens later in the component
+      return createdToday || hasVisitToday;
     });
   };
 
   // Safely derive patients from API (handles both {data:{patients}} and {patients})
   const apiPatients = data?.data?.patients || data?.patients || [];
   const apiPagination = data?.data?.pagination || data?.pagination || undefined;
+
 
   // Deduplicate patients by ID to prevent duplicates
   // Use a Map to keep track of unique patients by their ID
@@ -400,8 +406,15 @@ const ClinicalTodayPatients = () => {
     return hasVisitToday && !createdToday;
   };
 
-  const todayPatients = filterTodayPatients(deduplicatedApiPatients).filter((p) => {
-    if (!currentUser) return false;
+  // First filter by date (today's patients)
+  const todayPatientsByDate = filterTodayPatients(deduplicatedApiPatients);
+
+  // Then filter by role-based access
+  const todayPatients = todayPatientsByDate.filter((p) => {
+    // If no current user, show nothing (shouldn't happen in protected route, but safety check)
+    if (!currentUser) {
+      return false;
+    }
     
     // Admin can see all patients
     if (isAdmin(currentUser.role)) return true;
@@ -439,19 +452,16 @@ const ClinicalTodayPatients = () => {
   });
 
   
-  // Separate patients into new and existing
-  const newPatients = todayPatients.filter(isNewPatient);
-  const existingPatients = todayPatients.filter(isExistingPatient);
+  // Combine all today's patients (both new and existing) - they'll be color-coded
+  const allTodayPatients = todayPatients;
   
-  // Filter patients based on active tab
-  const tabFilteredPatients = activeTab === 'new' ? newPatients : existingPatients;
-  
-  const filteredPatients = tabFilteredPatients.filter(patient => {
+  const filteredPatients = allTodayPatients.filter(patient => {
     return Object.entries(filters).every(([key, value]) => {
       if (!value) return true;
       return patient[key]?.toString().toLowerCase().includes(value.toLowerCase());
     });
   });
+
 
   if (isLoading) {
     return (
@@ -496,68 +506,32 @@ const ClinicalTodayPatients = () => {
       <div className="w-full px-4 sm:px-6 lg:px-8 space-y-6 py-6">
       
 
-        {/* Enhanced Tabs */}
-        <Card className="shadow-lg border border-gray-200/50 bg-white/90 backdrop-blur-sm overflow-hidden">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => handleTabChange('new')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all duration-200 relative ${
-                activeTab === 'new'
-                  ? 'text-primary-600 bg-gradient-to-br from-primary-50 to-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <FiUser className={`w-5 h-5 ${activeTab === 'new' ? 'text-primary-600' : 'text-gray-500'}`} />
-                <span>New Patient</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm transition-all ${
-                  activeTab === 'new' 
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {newPatients.length}
-                </span>
-              </div>
-              {activeTab === 'new' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"></div>
-              )}
-            </button>
-            <button
-              onClick={() => handleTabChange('existing')}
-              className={`flex-1 px-6 py-4 text-center font-semibold transition-all duration-200 relative ${
-                activeTab === 'existing'
-                  ? 'text-primary-600 bg-gradient-to-br from-primary-50 to-blue-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <FiUser className={`w-5 h-5 ${activeTab === 'existing' ? 'text-primary-600' : 'text-gray-500'}`} />
-                <span>Existing Patient</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm transition-all ${
-                  activeTab === 'existing' 
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {existingPatients.length}
-                </span>
-              </div>
-              {activeTab === 'existing' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 to-primary-700"></div>
-              )}
-            </button>
-          </div>
-        </Card>
-
         {/* Patients List */}
         <Card className="shadow-lg border border-gray-200/50 bg-white/90 backdrop-blur-sm">
           <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {activeTab === 'new' ? 'New Patients' : 'Existing Patients'}
-                <span className="ml-2 px-2.5 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                  {filteredPatients.length}
-                </span>
-              </h3>
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Today's Patients
+                  <span className="ml-2 px-2.5 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+                    {filteredPatients.length}
+                  </span>
+                </h3>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-blue-600"></div>
+                    <span className="text-gray-600 font-medium">
+                      New ({todayPatients.filter(isNewPatient).length})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-green-600"></div>
+                    <span className="text-gray-600 font-medium">
+                      Existing ({todayPatients.filter(isExistingPatient).length})
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -569,20 +543,18 @@ const ClinicalTodayPatients = () => {
               <p className="text-xl font-semibold text-gray-700 mb-2">No patients found</p>
               <p className="text-gray-500 text-center max-w-md">
                 {Object.values(filters).some(f => f) 
-                  ? `No ${activeTab === 'new' ? 'new' : 'existing'} patients match the current filters for today.`
-                  : activeTab === 'new'
-                  ? 'No new patients were registered by MWO today.'
-                  : 'No existing patients have visits scheduled for today.'
+                  ? 'No patients match the current filters for today.'
+                  : 'No patients were registered or have visits scheduled for today.'
                 }
               </p>
             </div>
           ) : (
-          <div className="divide-y-0 space-y-0">
+          <div className="p-6 space-y-4">
             {filteredPatients.map((patient) => (
               <PatientRow 
                 key={patient.id} 
                 patient={patient} 
-                activeTab={activeTab}
+                isNewPatient={isNewPatient(patient)}
                 navigate={navigate}
               />
             ))}
@@ -593,7 +565,12 @@ const ClinicalTodayPatients = () => {
           {filteredPatients.length > 0 && (
             <div className="px-6 py-5 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50">
               <div className="text-sm text-gray-700 font-medium">
-                Showing <span className="font-semibold text-gray-900">{filteredPatients.length}</span> {activeTab === 'new' ? 'new' : 'existing'} patient{filteredPatients.length !== 1 ? 's' : ''} for today
+                Showing <span className="font-semibold text-gray-900">{filteredPatients.length}</span> patient{filteredPatients.length !== 1 ? 's' : ''} for today
+                <span className="ml-3 text-gray-500">
+                  (<span className="text-blue-600 font-semibold">{todayPatients.filter(isNewPatient).length} new</span>
+                  {' / '}
+                  <span className="text-green-600 font-semibold">{todayPatients.filter(isExistingPatient).length} existing</span>)
+                </span>
               </div>
             </div>
           )}

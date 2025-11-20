@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useCreateClinicalProformaMutation, useUpdateClinicalProformaMutation, useGetAllClinicalProformasQuery, useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
@@ -50,9 +50,24 @@ const CheckboxGroup = ({ label, name, value = [], onChange, options = [], rightI
     mse_cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
   };
 
+  // Memoize merged options to prevent infinite loops
+  // Compare array contents, not references, to avoid infinite updates
+  const mergedOptions = useMemo(() => {
+    return Array.from(new Set([...(remoteOptions || []), ...(options || [])]));
+  }, [
+    // Use JSON.stringify to compare array contents, not references
+    remoteOptions ? JSON.stringify([...remoteOptions].sort()) : '',
+    options ? JSON.stringify([...options].sort()) : ''
+  ]);
+  
   useEffect(() => {
-    setLocalOptions(Array.from(new Set([...(remoteOptions || []), ...(options || [])])));
-  }, [remoteOptions, options]);
+    // Only update if the merged options are actually different
+    setLocalOptions(prev => {
+      const prevStr = JSON.stringify([...prev].sort());
+      const newStr = JSON.stringify([...mergedOptions].sort());
+      return prevStr === newStr ? prev : mergedOptions;
+    });
+  }, [mergedOptions]);
 
   const toggle = (opt) => {
     const exists = value.includes(opt);
@@ -411,8 +426,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   const patientIdFromQuery = searchParams.get('patient_id');
   const clinicalProformaIdFromQuery = searchParams.get('clinical_proforma_id'); // Get clinical_proforma_id from URL if provided
   const returnTab = searchParams.get('returnTab'); // Get returnTab from URL
-  console.log("patientIdFromQuery", patientIdFromQuery);
-  console.log("clinicalProformaIdFromQuery", clinicalProformaIdFromQuery);
+  
   
   // Priority order for clinicalProformaId:
   // 1. clinical_proforma_id from URL query params (most direct)
@@ -456,12 +470,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   // Use the clinical_proforma_id from URL first, then matched proforma ID, route param id, or prop proformaId
   const clinicalProformaId = clinicalProformaIdFromQuery || matchedProformaId || id || proformaId;
   
-  // Debug logging
-  console.log('[CreateClinicalProforma] clinicalProformaId:', clinicalProformaId);
-  console.log('[CreateClinicalProforma] clinicalProformaIdFromQuery:', clinicalProformaIdFromQuery);
-  console.log('[CreateClinicalProforma] matchedProformaId:', matchedProformaId);
-  console.log('[CreateClinicalProforma] id (route param):', id);
-  console.log('[CreateClinicalProforma] proformaId (prop):', proformaId);
+
 
   const [createProforma, { isLoading: isCreating }] = useCreateClinicalProformaMutation();
   const [updateProforma, { isLoading: isUpdating }] = useUpdateClinicalProformaMutation();
@@ -494,15 +503,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
     pollingInterval: 0, // Disable polling, but ensure refetch on ID change
   });
   
-  // Debug logging for query state
-  console.log('[CreateClinicalProforma] Query state:', {
-    clinicalProformaId,
-    skip: !clinicalProformaId,
-    isLoading: isLoadingExistingProforma,
-    isError: isErrorExistingProforma,
-    error: errorExistingProforma,
-    hasData: !!existingProformaData
-  });
+  
   
   const existingProforma = existingProformaData?.data?.proforma || existingProformaData?.data?.clinical_proforma;
   
@@ -876,7 +877,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
     
     // When ADL card is expanded, refetch proforma to get latest adl_file_id
     if (cardName === 'adl' && !expandedCards.adl && (savedProformaId || clinicalProformaId)) {
-      console.log('[CreateClinicalProforma] ADL card expanded, refetching proforma to get latest adl_file_id');
+      
       if (refetchProforma) {
         refetchProforma();
       }
@@ -884,7 +885,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
     
     // When prescription card is expanded, refetch prescriptions to get latest data
     if (cardName === 'prescription' && !expandedCards.prescription && (savedProformaId || clinicalProformaId)) {
-      console.log('[CreateClinicalProforma] Prescription card expanded, refetching prescriptions');
+    
       if (refetchPrescriptions) {
         refetchPrescriptions();
       }
@@ -894,7 +895,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   // Auto-expand ADL card if ADL file exists
   useEffect(() => {
     if (existingProforma?.adl_file_id) {
-      console.log('[CreateClinicalProforma] ADL file exists, auto-expanding ADL card');
+      
       setExpandedCards(prev => ({ ...prev, adl: true }));
       // Set ADL file ID if not already set
       if (!adlFileId) {
@@ -906,7 +907,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   // Auto-expand prescription card if prescriptions exist
   useEffect(() => {
     if (existingPrescriptions && Array.isArray(existingPrescriptions) && existingPrescriptions.length > 0) {
-      console.log('[CreateClinicalProforma] Prescriptions exist, auto-expanding prescription card');
+      
       setExpandedCards(prev => ({ ...prev, prescription: true }));
     }
   }, [existingPrescriptions]);
@@ -914,18 +915,18 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   // Auto-expand cards when form is populated with existing data
   useEffect(() => {
     if (hasPopulatedForm && existingProforma) {
-      console.log('[CreateClinicalProforma] Form populated, checking which cards to expand');
+      
       
       // Expand ADL card if ADL file exists
       if (existingProforma.adl_file_id) {
         setExpandedCards(prev => ({ ...prev, adl: true }));
-        console.log('[CreateClinicalProforma] Auto-expanding ADL card - ADL file exists');
+        
       }
       
       // Expand prescription card if prescriptions exist
       if (existingPrescriptions && Array.isArray(existingPrescriptions) && existingPrescriptions.length > 0) {
         setExpandedCards(prev => ({ ...prev, prescription: true }));
-        console.log('[CreateClinicalProforma] Auto-expanding prescription card - prescriptions exist');
+        
       }
     }
   }, [hasPopulatedForm, existingProforma, existingPrescriptions]);
@@ -994,13 +995,15 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
 
   // Reset population flag when clinicalProformaId changes
   useEffect(() => {
-    if (clinicalProformaId && clinicalProformaId !== lastPopulatedProformaId) {
-      console.log('[CreateClinicalProforma] Clinical proforma ID changed, resetting population flag');
-      console.log('[CreateClinicalProforma] Old ID:', lastPopulatedProformaId, 'New ID:', clinicalProformaId);
-      setHasPopulatedForm(false);
-      setLastPopulatedProformaId(null); // Reset to allow re-population
+    if (clinicalProformaId) {
+      // Only reset if the ID actually changed (not just initialized)
+      if (lastPopulatedProformaId && lastPopulatedProformaId !== clinicalProformaId) {
+        setHasPopulatedForm(false);
+        setLastPopulatedProformaId(null); // Reset to allow re-population with new ID
+      }
     }
-  }, [clinicalProformaId, lastPopulatedProformaId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clinicalProformaId]); // Only depend on clinicalProformaId to prevent infinite loops
 
   // Populate form with existing proforma data when it's loaded
   useEffect(() => {
@@ -1014,8 +1017,6 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
     if (shouldPopulate) {
       const proforma = existingProforma;
       
-      console.log('[CreateClinicalProforma] Populating form with existing proforma data:', proforma);
-      console.log('[CreateClinicalProforma] hasPopulatedForm:', hasPopulatedForm, 'lastPopulatedProformaId:', lastPopulatedProformaId);
       
       // Set saved proforma ID
       if (proforma.id) {
@@ -1080,14 +1081,14 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
           adl_reasoning: proforma.adl_reasoning !== undefined && proforma.adl_reasoning !== null ? proforma.adl_reasoning : prev.adl_reasoning,
         };
         
-        console.log('[CreateClinicalProforma] Form data updated with proforma data');
+        
         return updated;
       });
       
       // Set ADL file ID if it exists
       if (proforma.adl_file_id) {
         setAdlFileId(proforma.adl_file_id);
-        console.log('[CreateClinicalProforma] ADL file ID set:', proforma.adl_file_id);
+       
       }
       
       // Mark as populated to prevent re-population (unless ID changes)
@@ -1107,7 +1108,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
   // Populate prescriptions when they are fetched
   useEffect(() => {
     if (existingPrescriptions && Array.isArray(existingPrescriptions) && existingPrescriptions.length > 0) {
-      console.log('[CreateClinicalProforma] Populating prescriptions from API:', existingPrescriptions);
+      
       // Map prescription data to match the form structure
       const mappedPrescriptions = existingPrescriptions.map(p => ({
         medicine: p.medicine || '',
@@ -1120,14 +1121,14 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
         notes: p.notes || ''
       }));
       setPrescriptions(mappedPrescriptions);
-      console.log('[CreateClinicalProforma] Prescriptions populated:', mappedPrescriptions);
+      
       
       // Auto-expand prescription card when prescriptions are loaded
       setExpandedCards(prev => ({ ...prev, prescription: true }));
-      console.log('[CreateClinicalProforma] Auto-expanding prescription card - prescriptions loaded');
+      
     } else if (existingPrescriptions && existingPrescriptions.length === 0 && (savedProformaId || clinicalProformaId)) {
       // If prescriptions query returned empty array, keep default empty prescription
-      console.log('[CreateClinicalProforma] No prescriptions found for proforma');
+      
     }
   }, [existingPrescriptions, savedProformaId, clinicalProformaId]);
   
@@ -1538,7 +1539,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
             await updateADLFile({ id: adlFileId, ...adlUpdateData }).unwrap();
           }
         } catch (adlError) {
-          console.error('[CreateClinicalProforma] Failed to update ADL file directly:', adlError);
+          
           // Continue with clinical_proforma update even if ADL update fails
         }
       }
@@ -1773,7 +1774,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
         const updatedProforma = updateResult?.data?.clinical_proforma || updateResult?.data?.proforma;
         if (updatedProforma?.adl_file_id) {
           setAdlFileId(updatedProforma.adl_file_id);
-          console.log('[CreateClinicalProforma] ADL file ID from update response:', updatedProforma.adl_file_id);
+          
         }
         
         // Refetch proforma data to get latest adl_file_id (in case it wasn't in the response)
@@ -1782,7 +1783,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
           const refetchedProforma = refetchedData?.data?.proforma || refetchedData?.data?.clinical_proforma;
           if (refetchedProforma?.adl_file_id) {
             setAdlFileId(refetchedProforma.adl_file_id);
-            console.log('[CreateClinicalProforma] ADL file ID from refetch:', refetchedProforma.adl_file_id);
+            
           }
         }
         
@@ -2058,7 +2059,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
                     </div>
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Input
+                        <DatePicker
                           label="Date"
                           name="date"
                           value={fullPatientData?.data?.patient?.date || ''}
@@ -2435,7 +2436,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
                       <div className=" bg-purple-100 rounded-lg">
                         <FiFolder className="w-6 h-6 text-purple-600" />
                       </div>
-                      <span className="text-xl font-bold text-gray-900">ADL File</span>
+                      <span className="text-xl font-bold text-gray-900">Detailed Work-Up File</span>
                     </div>
                     {expandedCards.adl ? (
                       <FiChevronUp className="w-5 h-5 text-gray-600" />
@@ -2455,7 +2456,7 @@ const CreateClinicalProforma = ({ initialData = null, onUpdate = null, proformaI
                     key={`adl-${savedProformaId || clinicalProformaId}-${existingProforma?.adl_file_id || ''}`}
                     onSuccess={(result) => {
                       // Keep ADL card expanded after successful submission
-                      console.log('[CreateClinicalProforma] ADL file saved successfully, keeping card open');
+                     
                       setExpandedCards(prev => ({ ...prev, adl: true }));
                       // Update adlFileId if we got it from the result
                       // Backend returns: { success: true, data: { adlFile: ... } }

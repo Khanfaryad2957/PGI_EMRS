@@ -134,7 +134,7 @@ const CreatePrescription = ({
   // Reset population flag when clinicalProformaId changes
   useEffect(() => {
     if (clinicalProformaId !== lastPopulatedProformaId) {
-      console.log('[CreatePrescription] Clinical proforma ID changed, resetting population flag');
+      
       setHasPopulatedPrescriptions(false);
       setLastPopulatedProformaId(clinicalProformaId);
     }
@@ -143,7 +143,7 @@ const CreatePrescription = ({
   // Populate prescriptions when existing data is fetched
   useEffect(() => {
     if (existingPrescriptions && Array.isArray(existingPrescriptions) && existingPrescriptions.length > 0 && !hasPopulatedPrescriptions) {
-      console.log('[CreatePrescription] Populating prescriptions from API:', existingPrescriptions);
+     
       // Map prescription data to match the form structure
       const mappedPrescriptions = existingPrescriptions.map(p => ({
         medicine: p.medicine || '',
@@ -160,10 +160,10 @@ const CreatePrescription = ({
       if (clinicalProformaId) {
         setLastPopulatedProformaId(clinicalProformaId);
       }
-      console.log('[CreatePrescription] Prescriptions populated:', mappedPrescriptions);
+      
     } else if (existingPrescriptions && existingPrescriptions.length === 0 && clinicalProformaId && !hasPopulatedPrescriptions) {
       // If prescriptions query returned empty array, keep default empty prescription
-      console.log('[CreatePrescription] No prescriptions found for proforma');
+     
       setHasPopulatedPrescriptions(true);
     }
   }, [existingPrescriptions, clinicalProformaId, hasPopulatedPrescriptions, setPrescriptions]);

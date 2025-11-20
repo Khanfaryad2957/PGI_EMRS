@@ -268,7 +268,7 @@ const UsersPage = () => {
       ),
     },
   ];
-console.log(data?.data?.users);
+
   const roleStats = {
     'Admin': { 
       count: data?.data?.users?.filter(u => u.role === 'Admin').length || 0, 

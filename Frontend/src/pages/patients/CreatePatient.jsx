@@ -14,7 +14,8 @@ import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCom
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { updatePatientRegistrationForm, resetPatientRegistrationForm, selectPatientRegistrationForm } from '../../features/form/formSlice';
 import { useCreateClinicalProformaMutation } from '../../features/clinical/clinicalApiSlice';
-
+import { SelectWithOther } from '../../components/SelectWithOther';
+import { IconInput } from '../../components/IconInput';
 import Card from '../../components/Card';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
@@ -25,344 +26,6 @@ import {
   MOBILITY_OPTIONS, REFERRED_BY_OPTIONS, INDIAN_STATES, UNIT_DAYS_OPTIONS,
   isJR, isSR, HEAD_RELATIONSHIP_OPTIONS, CATEGORY_OPTIONS
 } from '../../utils/constants';
-
-// Generic Select with "Others" input field inside dropdown (reusable for any field)
-const SelectWithOther = ({
-  customValue,
-  setCustomValue,
-  showCustomInput,
-  formData,
-  customFieldName,
-  inputLabel = "Specify",
-  ...selectProps
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [customInputValue, setCustomInputValue] = useState(customValue || formData[customFieldName] || '');
-  const dropdownRef = useRef(null);
-  const triggerRef = useRef(null);
-  const customInputRef = useRef(null);
-  const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 });
-
-  // Check if "others" or "other" is selected
-  const isOthersSelected = selectProps.value === 'others' || selectProps.value === 'other';
-
-  // Update custom input value when customValue changes
-  useEffect(() => {
-    setCustomInputValue(customValue || formData[customFieldName] || '');
-  }, [customValue, formData, customFieldName]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-        triggerRef.current && !triggerRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Update portal menu position when open/resize/scroll
-  useEffect(() => {
-    if (!isOpen || !triggerRef.current) return;
-    const updatePosition = () => {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setMenuStyle({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isOpen]);
-
-  // Focus custom input when "Others" is selected and dropdown opens
-  useEffect(() => {
-    if (isOpen && showCustomInput && customInputRef.current) {
-      setTimeout(() => {
-        customInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen, showCustomInput]);
-
-  const selectedOption = selectProps.options.find(opt => opt.value === selectProps.value);
-
-  const handleSelect = (optionValue) => {
-    const event = {
-      target: {
-        name: selectProps.name,
-        value: optionValue
-      }
-    };
-    selectProps.onChange(event);
-
-    if (optionValue !== 'others' && optionValue !== 'other') {
-      setIsOpen(false);
-    }
-  };
-
-  const handleCustomInputChange = (e) => {
-    const value = e.target.value;
-    setCustomInputValue(value);
-    setCustomValue(value);
-
-    // Update form data
-    const event = {
-      target: {
-        name: customFieldName,
-        value: value
-      }
-    };
-    selectProps.onChange(event);
-  };
-
-  const handleCustomInputKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      setIsOpen(false);
-    }
-  };
-
-  const Menu = (
-    <div
-      className="bg-white border-2 border-primary-200 rounded-xl shadow-2xl overflow-hidden"
-      style={{
-        maxHeight: '300px',
-        zIndex: selectProps.dropdownZIndex || 999999,
-      }}
-    >
-      <div className="overflow-y-auto py-1" style={{ maxHeight: showCustomInput ? '200px' : '280px' }}>
-        {selectProps.options
-          .filter(opt => opt.value !== 'others' && opt.value !== 'other')
-          .map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`
-                w-full px-4 py-3 text-left
-                flex items-center justify-between
-                transition-colors duration-150
-                ${selectProps.value === option.value
-                  ? 'bg-primary-50 text-primary-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'}
-                ${index !== 0 ? 'border-t border-gray-100' : ''}
-              `}
-            >
-              <span className="flex-1">{option.label}</span>
-              {selectProps.value === option.value && (
-                <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
-              )}
-            </button>
-          ))}
-
-        {/* "Others" or "Other" option(s) */}
-        {selectProps.options
-          .filter(opt => opt.value === 'others' || opt.value === 'other')
-          .map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`
-                w-full px-4 py-3 text-left
-                flex items-center justify-between
-                transition-colors duration-150
-                ${isOthersSelected
-                  ? 'bg-primary-50 text-primary-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'}
-                border-t border-gray-100
-              `}
-            >
-              <span className="flex-1">{option.label}</span>
-              {isOthersSelected && (
-                <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
-              )}
-            </button>
-          ))}
-
-        {/* Custom input field when "Others" is selected */}
-        {isOthersSelected && (
-          <div className="p-3 border-t border-gray-200 bg-gray-50">
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {inputLabel}
-            </label>
-            <input
-              ref={customInputRef}
-              type="text"
-              value={customInputValue}
-              onChange={handleCustomInputChange}
-              onKeyDown={handleCustomInputKeyDown}
-              placeholder={`Enter ${inputLabel.toLowerCase()}`}
-              className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className={`w-full relative overflow-visible ${selectProps.containerClassName || ''}`}>
-      {selectProps.label && (
-        <label
-          htmlFor={selectProps.name}
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          {selectProps.label}
-          {selectProps.required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-      )}
-
-      <div className="relative">
-        {/* Hidden native select for form submission */}
-        <select
-          id={selectProps.name}
-          name={selectProps.name}
-          value={selectProps.value}
-          onChange={selectProps.onChange}
-          required={selectProps.required}
-          disabled={selectProps.disabled}
-          className="sr-only"
-          tabIndex={-1}
-        >
-          <option value="">{selectProps.placeholder}</option>
-          {selectProps.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Custom dropdown trigger */}
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => !selectProps.disabled && setIsOpen(!isOpen)}
-          disabled={selectProps.disabled}
-          className={`
-            w-full px-4 py-3 pr-10
-            bg-white border-2 rounded-xl
-            text-left font-medium
-            transition-all duration-200 ease-in-out
-            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
-            hover:border-primary-400
-            disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:border-gray-300
-            ${selectProps.error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'}
-            ${!selectProps.value ? 'text-gray-500' : 'text-gray-900'}
-            ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/20' : ''}
-            ${selectProps.className}
-          `}
-        >
-          {isOthersSelected && customInputValue
-            ? customInputValue
-            : selectedOption
-              ? selectedOption.label
-              : selectProps.placeholder}
-        </button>
-
-        {/* Custom dropdown arrow */}
-        <div className={`
-          absolute right-3 top-1/2 -translate-y-1/2
-          pointer-events-none
-          transition-all duration-200
-          ${isOpen ? 'rotate-180' : 'rotate-0'}
-          ${selectProps.disabled ? 'text-gray-400' : selectProps.error ? 'text-red-500' : 'text-primary-600'}
-        `}>
-          <FiChevronDown className="h-5 w-5" />
-        </div>
-
-        {/* Dropdown menu */}
-        {isOpen && !selectProps.disabled && (
-          (selectProps.usePortal !== false)
-            ? createPortal(
-              <div
-                ref={dropdownRef}
-                style={{
-                  position: 'fixed',
-                  top: menuStyle.top,
-                  left: menuStyle.left,
-                  width: menuStyle.width,
-                  zIndex: selectProps.dropdownZIndex || 999999,
-                }}
-              >
-                {Menu}
-              </div>,
-              document.body
-            )
-            : (
-              <div
-                ref={dropdownRef}
-                className="absolute"
-                style={{
-                  top: 'calc(100% + 8px)',
-                  left: 0,
-                  right: 0,
-                  zIndex: selectProps.dropdownZIndex || 999999,
-                }}
-              >
-                {Menu}
-              </div>
-            )
-        )}
-      </div>
-
-      {selectProps.error && (
-        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-          <span className="inline-block w-1 h-1 rounded-full bg-red-600"></span>
-          {selectProps.error}
-        </p>
-      )}
-    </div>
-  );
-};
-
-// Enhanced Input component with glassmorphism styling
-const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
-  // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
-  const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
-
-  return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-        {icon && <span className="text-primary-600">{icon}</span>}
-        {label}
-        {loading && (
-          <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
-        )}
-      </label>
-      <div className="relative">
-        {icon && (
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-            <span className="text-gray-500">{icon}</span>
-          </div>
-        )}
-        <input
-          {...inputProps}
-          className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
-        />
-      </div>
-      {error && (
-        <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
-          <FiX className="w-3 h-3" />
-          {error}
-        </p>
-      )}
-    </div>
-  );
-};
-
 
 
 const CreatePatient = () => {
@@ -585,106 +248,53 @@ const CreatePatient = () => {
     const { name, value } = e.target;
     dispatch(updatePatientRegistrationForm({ [name]: value }));
 
-    // Handle "Others"/"Other" selection for all fields
-    const handleOthersSelection = (fieldName, value, showState, setShowState, customValueState, setCustomValueState, customFieldName) => {
-      if (value === 'others' || value === 'other') {
-        setShowState(true);
-        if (!customValueState) {
-          setCustomValueState('');
-        }
-      } else {
-        setShowState(false);
-        setCustomValueState('');
-        dispatch(updatePatientRegistrationForm({ [customFieldName]: null }));
+    // Configuration for fields with "others"/"other" option
+    const othersFieldsConfig = {
+      occupation: { showSetter: setShowOccupationOther, valueSetter: setOccupationOther, customField: 'occupation_other' },
+      family_type: { showSetter: setShowFamilyTypeOther, valueSetter: setFamilyTypeOther, customField: 'family_type_other' },
+      locality: { showSetter: setShowLocalityOther, valueSetter: setLocalityOther, customField: 'locality_other' },
+      religion: { showSetter: setShowReligionOther, valueSetter: setReligionOther, customField: 'religion_other' },
+      head_relationship: { showSetter: setShowHeadRelationshipOther, valueSetter: setHeadRelationshipOther, customField: 'head_relationship_other' },
+      mobility: { showSetter: setShowMobilityOther, valueSetter: setMobilityOther, customField: 'mobility_other' },
+      referred_by: { showSetter: setShowReferredByOther, valueSetter: setReferredByOther, customField: 'referred_by_other' }
+    };
+
+    // Handle "others"/"other" selection
+    const fieldConfig = othersFieldsConfig[name];
+    if (fieldConfig) {
+      const isOthers = value === 'others' || value === 'other';
+      fieldConfig.showSetter(isOthers);
+      if (!isOthers) {
+        fieldConfig.valueSetter('');
+        dispatch(updatePatientRegistrationForm({ [fieldConfig.customField]: null }));
       }
-    };
-
-    // Handle custom input values
-    const handleCustomInput = (fieldName, value, setCustomValueState, customFieldName) => {
-      setCustomValueState(value);
-      dispatch(updatePatientRegistrationForm({ [customFieldName]: value }));
-    };
-
-    // Occupation
-    if (name === 'occupation') {
-      handleOthersSelection(name, value, setShowOccupationOther, setShowOccupationOther, occupationOther, setOccupationOther, 'occupation_other');
-    }
-    if (name === 'occupation_other') {
-      handleCustomInput(name, value, setOccupationOther, 'occupation_other');
+      return;
     }
 
-    // Family Type
-    if (name === 'family_type') {
-      handleOthersSelection(name, value, setShowFamilyTypeOther, setShowFamilyTypeOther, familyTypeOther, setFamilyTypeOther, 'family_type_other');
-    }
-    if (name === 'family_type_other') {
-      handleCustomInput(name, value, setFamilyTypeOther, 'family_type_other');
-    }
-
-    // Locality
-    if (name === 'locality') {
-      handleOthersSelection(name, value, setShowLocalityOther, setShowLocalityOther, localityOther, setLocalityOther, 'locality_other');
-    }
-    if (name === 'locality_other') {
-      handleCustomInput(name, value, setLocalityOther, 'locality_other');
+    // Handle custom "other" input values
+    const customFieldMatch = name.match(/^(.+)_other$/);
+    if (customFieldMatch) {
+      const baseField = customFieldMatch[1];
+      const config = othersFieldsConfig[baseField];
+      if (config) {
+        config.valueSetter(value);
+        dispatch(updatePatientRegistrationForm({ [name]: value }));
+      }
+      return;
     }
 
-    // Religion
-    if (name === 'religion') {
-      handleOthersSelection(name, value, setShowReligionOther, setShowReligionOther, religionOther, setReligionOther, 'religion_other');
-    }
-    if (name === 'religion_other') {
-      handleCustomInput(name, value, setReligionOther, 'religion_other');
-    }
-
-    // Head Relationship
-    if (name === 'head_relationship') {
-      handleOthersSelection(name, value, setShowHeadRelationshipOther, setShowHeadRelationshipOther, headRelationshipOther, setHeadRelationshipOther, 'head_relationship_other');
-    }
-    if (name === 'head_relationship_other') {
-      handleCustomInput(name, value, setHeadRelationshipOther, 'head_relationship_other');
-    }
-
-    // Mobility
-    if (name === 'mobility') {
-      handleOthersSelection(name, value, setShowMobilityOther, setShowMobilityOther, mobilityOther, setMobilityOther, 'mobility_other');
-    }
-    if (name === 'mobility_other') {
-      handleCustomInput(name, value, setMobilityOther, 'mobility_other');
-    }
-
-    // Referred By
-    if (name === 'referred_by') {
-      handleOthersSelection(name, value, setShowReferredByOther, setShowReferredByOther, referredByOther, setReferredByOther, 'referred_by_other');
-    }
-    if (name === 'referred_by_other') {
-      handleCustomInput(name, value, setReferredByOther, 'referred_by_other');
-    }
-
-    // Clear any existing CR number error when user starts typing
+    // Handle CR number validation
     if (name === 'cr_no') {
-      // Clear error immediately and force clear
-
       setErrors((prev) => ({ ...prev, patientCRNo: '' }));
-
-      // Clear any existing timeout
-      if (crValidationTimeout) {
-        clearTimeout(crValidationTimeout);
-      }
-
-      // Reset current CR number to force new validation
+      if (crValidationTimeout) clearTimeout(crValidationTimeout);
       setCurrentCRNumber('');
-
-      // Set current CR number for validation with debounce
       if (value.length >= 3) {
-        const timeout = setTimeout(() => {
-
-          setCurrentCRNumber(value);
-        }, 500);
-        setCrValidationTimeout(timeout);
+        setCrValidationTimeout(setTimeout(() => setCurrentCRNumber(value), 500));
       }
+      return;
     }
 
+    // Clear field errors
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -693,16 +303,12 @@ const CreatePatient = () => {
     if (name === 'age') {
       const age = parseInt(value);
       if (!isNaN(age)) {
-        let ageGroup = '';
-        if (age >= 0 && age <= 15) ageGroup = '0-15';
-        else if (age >= 16 && age <= 30) ageGroup = '15-30';
-        else if (age >= 31 && age <= 45) ageGroup = '30-45';
-        else if (age >= 46 && age <= 60) ageGroup = '45-60';
-        else if (age >= 61) ageGroup = '60+';
-
-        if (ageGroup) {
-          dispatch(updatePatientRegistrationForm({ age_group: ageGroup }));
-        }
+        const ageGroup = 
+          age <= 15 ? '0-15' :
+          age <= 30 ? '15-30' :
+          age <= 45 ? '30-45' :
+          age <= 60 ? '45-60' : '60+';
+        dispatch(updatePatientRegistrationForm({ age_group: ageGroup }));
       }
     }
   };
@@ -781,6 +387,7 @@ const CreatePatient = () => {
 
   // Handler for Step 1: Save Out Patient Card data
   const handleStep1Submit = async (e) => {
+    debugger
     e.preventDefault();
 
     if (!validate(1)) {

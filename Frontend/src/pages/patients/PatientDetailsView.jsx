@@ -159,7 +159,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
     isJrSr(userRole)
   );
   const canViewClinicalProforma = canViewAllSections;
-  console.log('canViewAllSections', userRole);
+ 
   const canViewADLFile = canViewAllSections;
   const canViewPrescriptions = canViewAllSections;
 

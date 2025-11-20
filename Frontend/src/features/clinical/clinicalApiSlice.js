@@ -56,7 +56,24 @@ export const clinicalApiSlice = apiSlice.injectEndpoints({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Clinical', id }, 'Clinical'],
+      invalidatesTags: (result, error, { id, patient_id }) => {
+        const tags = [
+          { type: 'Clinical', id },
+          'Clinical',
+          'Patient',
+          'Stats',
+          'ADL'
+        ];
+        // Also invalidate patient-specific clinical proforma query
+        if (patient_id) {
+          tags.push({ type: 'Clinical', id: `patient-${patient_id}` });
+        }
+        // If we have the result, get patient_id from it
+        if (result?.data?.proforma?.patient_id) {
+          tags.push({ type: 'Clinical', id: `patient-${result.data.proforma.patient_id}` });
+        }
+        return tags;
+      },
     }),
     deleteClinicalProforma: builder.mutation({
       query: (id) => ({

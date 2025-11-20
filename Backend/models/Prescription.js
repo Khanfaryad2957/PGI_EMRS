@@ -8,6 +8,7 @@ class Prescription {
     const decryptedData = decryptObject(data, encryptionFields.prescription);
     
     this.id = decryptedData.id;
+    this.patient_id = decryptedData.patient_id;
     this.clinical_proforma_id = decryptedData.clinical_proforma_id;
     this.medicine = decryptedData.medicine;
     this.dosage = decryptedData.dosage;
@@ -23,63 +24,142 @@ class Prescription {
     this.updated_at = decryptedData.updated_at;
   }
 
+  // static async create(prescriptionData) {
+  //   try {
+  //     const {
+  //       patient_id,
+  //       clinical_proforma_id,
+  //       medicine,
+  //       dosage,
+  //       when_taken,
+  //       when, // Support both field names
+  //       frequency,
+  //       duration,
+  //       quantity,
+  //       qty, // Support both field names
+  //       details,
+  //       notes
+  //     } = prescriptionData;
+
+  //     // Validate required fields
+  //     // if (!clinical_proforma_id || !medicine) {
+  //     //   throw new Error('clinical_proforma_id and medicine are required');
+  //     // }
+
+  //     // Use when_taken or when, quantity or qty
+  //     const whenValue = when_taken || when || null;
+  //     const quantityValue = quantity || qty || null;
+
+  //     // Encrypt sensitive fields before saving
+  //     const encryptedPrescription = encryptObject({
+  //       medicine,
+  //       dosage,
+  //       details,
+  //       notes
+  //     }, encryptionFields.prescription);
+
+  //     const result = await db.query(
+  //       `INSERT INTO prescriptions (
+  //        patient_id, clinical_proforma_id, medicine, dosage, when_to_take, frequency, 
+  //         duration, quantity, details, notes
+  //       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  //       RETURNING *`,
+  //       [
+  //         patient_id,
+  //         clinical_proforma_id,
+  //         encryptedPrescription.medicine || medicine,
+  //         encryptedPrescription.dosage || dosage || null,
+  //         whenValue,
+  //         frequency || null,
+  //         duration || null,
+  //         quantityValue,
+  //         encryptedPrescription.details || details || null,
+  //         encryptedPrescription.notes || notes || null
+  //       ]
+  //     );
+
+  //     return new Prescription(result.rows[0]);
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
+
   static async create(prescriptionData) {
     try {
       const {
+        patient_id,
         clinical_proforma_id,
         medicine,
         dosage,
         when_taken,
-        when, // Support both field names
+        when,
         frequency,
         duration,
         quantity,
-        qty, // Support both field names
+        qty,
         details,
         notes
       } = prescriptionData;
-
-      // Validate required fields
-      if (!clinical_proforma_id || !medicine) {
-        throw new Error('clinical_proforma_id and medicine are required');
+  
+      // ONLY required field
+      if (!clinical_proforma_id) {
+        throw new Error("clinical_proforma_id is required");
       }
-
-      // Use when_taken or when, quantity or qty
+  
       const whenValue = when_taken || when || null;
       const quantityValue = quantity || qty || null;
-
-      // Encrypt sensitive fields before saving
-      const encryptedPrescription = encryptObject({
-        medicine,
-        dosage,
-        details,
-        notes
-      }, encryptionFields.prescription);
-
+  
+      // Ensure medicine is never null (DB constraint)
+      const safeMedicine = medicine && medicine.trim() !== "" ? medicine : "";
+  
+      // Encrypt
+      const encrypted = encryptObject(
+        {
+          medicine: safeMedicine,
+          dosage: dosage || "",
+          details: details || "",
+          notes: notes || ""
+        },
+        encryptionFields.prescription
+      );
+  
       const result = await db.query(
         `INSERT INTO prescriptions (
-          clinical_proforma_id, medicine, dosage, when_to_take, frequency, 
-          duration, quantity, details, notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING *`,
+           patient_id,
+           clinical_proforma_id,
+           medicine,
+           dosage,
+           when_to_take,
+           frequency,
+           duration,
+           quantity,
+           details,
+           notes
+         )
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         RETURNING *`,
         [
+          patient_id || null,
           clinical_proforma_id,
-          encryptedPrescription.medicine || medicine,
-          encryptedPrescription.dosage || dosage || null,
+          encrypted.medicine,      // always NON-null
+          encrypted.dosage || null,
           whenValue,
           frequency || null,
           duration || null,
-          quantityValue,
-          encryptedPrescription.details || details || null,
-          encryptedPrescription.notes || notes || null
+          quantityValue || null,
+          encrypted.details || null,
+          encrypted.notes || null
         ]
       );
-
+  
       return new Prescription(result.rows[0]);
     } catch (error) {
+      console.error("Prescription Create Error:", error);
       throw error;
     }
   }
+  
+  
 
   static async createBulk(prescriptionsArray) {
     try {
@@ -91,7 +171,8 @@ class Prescription {
       const insertData = [];
 
       for (const prescription of prescriptionsArray) {
-        const {
+        const { 
+          patient_id,
           clinical_proforma_id,
           medicine,
           dosage,
@@ -121,6 +202,7 @@ class Prescription {
         }, encryptionFields.prescription);
 
         insertData.push({
+          patient_id,
           clinical_proforma_id,
           medicine: encryptedPrescription.medicine || medicine,
           dosage: encryptedPrescription.dosage || dosage || null,
@@ -145,6 +227,7 @@ class Prescription {
 
         insertData.forEach((prescription, index) => {
           const rowPlaceholders = [];
+          rowPlaceholders.push(`$${paramIndex++}`); // patient_id
           rowPlaceholders.push(`$${paramIndex++}`); // clinical_proforma_id
           rowPlaceholders.push(`$${paramIndex++}`); // medicine
           rowPlaceholders.push(`$${paramIndex++}`); // dosage
@@ -158,6 +241,7 @@ class Prescription {
           placeholders.push(`(${rowPlaceholders.join(', ')})`);
           
           values.push(
+            prescription.patient_id,
             prescription.clinical_proforma_id,
             prescription.medicine,
             prescription.dosage,
@@ -172,7 +256,7 @@ class Prescription {
 
         const query = `
           INSERT INTO prescriptions (
-            clinical_proforma_id, medicine, dosage, when_to_take, 
+            patient_idclinical_proforma_id, medicine, dosage, when_to_take, 
             frequency, duration, quantity, details, notes
           )
           VALUES ${placeholders.join(', ')}
@@ -224,6 +308,7 @@ class Prescription {
   async update(updateData) {
     try {
       const allowedFields = [
+        'patient_id',
         'medicine',
         'dosage',
         'when_to_take',
@@ -245,7 +330,10 @@ class Prescription {
         if (allowedFields.includes(key) && value !== undefined) {
           paramCount++;
           // Map API field names to database column names
-          if (key === 'when' || key === 'when_taken') {
+          if (key === 'patient_id') {
+            updates.push(`patient_id = $${paramCount}`);
+            values.push(value);
+          } else if (key === 'when' || key === 'when_taken') {
             updates.push(`when_to_take = $${paramCount}`);
             values.push(value);
           } else if (key === 'qty') {
@@ -311,6 +399,7 @@ class Prescription {
   toJSON() {
     return {
       id: this.id,
+      patient_id: this.patient_id,
       clinical_proforma_id: this.clinical_proforma_id,
       medicine: this.medicine,
       dosage: this.dosage,

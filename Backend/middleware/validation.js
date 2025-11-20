@@ -289,8 +289,16 @@ const validatePatientRegistration = [
     .isLength({ max: 100 })
     .withMessage('City/Town/Village must not exceed 100 characters'),
   body('pin_code')
-    .optional()
-    .isLength({ min: 6, max: 6 })
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      // If value is null, undefined, or empty string, skip validation
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If value is provided, it must be exactly 6 digits
+      const pinCodeStr = String(value);
+      return pinCodeStr.length === 6 && /^\d+$/.test(pinCodeStr);
+    })
     .withMessage('Pin code must be exactly 6 digits'),
   
   // Present Address Information
@@ -315,8 +323,16 @@ const validatePatientRegistration = [
     .isLength({ max: 100 })
     .withMessage('Present city/town/village must not exceed 100 characters'),
   body('present_pin_code')
-    .optional()
-    .isLength({ min: 6, max: 6 })
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      // If value is null, undefined, or empty string, skip validation
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If value is provided, it must be exactly 6 digits
+      const pinCodeStr = String(value);
+      return pinCodeStr.length === 6 && /^\d+$/.test(pinCodeStr);
+    })
     .withMessage('Present pin code must be exactly 6 digits'),
   
   // Permanent Address Information
@@ -341,8 +357,16 @@ const validatePatientRegistration = [
     .isLength({ max: 100 })
     .withMessage('Permanent city/town/village must not exceed 100 characters'),
   body('permanent_pin_code')
-    .optional()
-    .isLength({ min: 6, max: 6 })
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      // If value is null, undefined, or empty string, skip validation
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If value is provided, it must be exactly 6 digits
+      const pinCodeStr = String(value);
+      return pinCodeStr.length === 6 && /^\d+$/.test(pinCodeStr);
+    })
     .withMessage('Permanent pin code must be exactly 6 digits'),
   body('local_address')
     .optional()

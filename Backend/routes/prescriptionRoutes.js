@@ -137,17 +137,17 @@ router.post(
   '/',
   authenticateToken,
   authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  [
-    body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
-    body('medicine').notEmpty().trim().withMessage('Medicine name is required'),
-    body('dosage').optional().trim(),
-    body('when').optional().trim(),
-    body('frequency').optional().trim(),
-    body('duration').optional().trim(),
-    body('qty').optional().trim(),
-    body('details').optional().trim(),
-    body('notes').optional().trim()
-  ],
+  // [
+  //   body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
+  //   body('medicine').notEmpty().trim().withMessage('Medicine name is required'),
+  //   body('dosage').optional().trim(),
+  //   body('when').optional().trim(),
+  //   body('frequency').optional().trim(),
+  //   body('duration').optional().trim(),
+  //   body('qty').optional().trim(),
+  //   body('details').optional().trim(),
+  //   body('notes').optional().trim()
+  // ],
   prescriptionController.createPrescription
 );
 
@@ -196,11 +196,11 @@ router.post(
   '/bulk',
   authenticateToken,
   authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  [
-    body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
-    body('prescriptions').isArray({ min: 1 }).withMessage('Prescriptions must be a non-empty array'),
-    body('prescriptions.*.medicine').notEmpty().trim().withMessage('Each prescription must have a medicine name')
-  ],
+  // [
+  //   body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
+  //   body('prescriptions').isArray({ min: 1 }).withMessage('Prescriptions must be a non-empty array'),
+  //   body('prescriptions.*.medicine').notEmpty().trim().withMessage('Each prescription must have a medicine name')
+  // ],
   prescriptionController.createBulkPrescriptions
 );
 

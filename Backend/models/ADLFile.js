@@ -1216,6 +1216,11 @@ class ADLFile {
     this.complaints_patient = data.complaints_patient ? (typeof data.complaints_patient === 'string' ? JSON.parse(data.complaints_patient) : data.complaints_patient) : [];
     this.complaints_informant = data.complaints_informant ? (typeof data.complaints_informant === 'string' ? JSON.parse(data.complaints_informant) : data.complaints_informant) : [];
     
+    // Illness Details
+    this.onset_duration = decryptedData.onset_duration;
+    this.precipitating_factor = decryptedData.precipitating_factor;
+    this.course = decryptedData.course;
+    
     // Past History - Detailed
     this.past_history_medical = decryptedData.past_history_medical;
     this.past_history_psychiatric_dates = decryptedData.past_history_psychiatric_dates;
@@ -1242,6 +1247,8 @@ class ADLFile {
     this.family_history_mother_death_date = decryptedData.family_history_mother_death_date;
     this.family_history_mother_death_cause = decryptedData.family_history_mother_death_cause;
     this.family_history_siblings = data.family_history_siblings ? (typeof data.family_history_siblings === 'string' ? JSON.parse(data.family_history_siblings) : data.family_history_siblings) : [];
+    // Family History of Mental Illness
+    this.family_history = decryptedData.family_history;
     
     // Diagnostic Formulation
     this.diagnostic_formulation_summary = decryptedData.diagnostic_formulation_summary;
@@ -1307,6 +1314,7 @@ class ADLFile {
     this.mse_thought_flow = decryptedData.mse_thought_flow;
     this.mse_thought_form = decryptedData.mse_thought_form;
     this.mse_thought_content = decryptedData.mse_thought_content;
+    this.mse_thought_possession = decryptedData.mse_thought_possession;
     this.mse_cognitive_consciousness = decryptedData.mse_cognitive_consciousness;
     this.mse_cognitive_orientation_time = decryptedData.mse_cognitive_orientation_time;
     this.mse_cognitive_orientation_place = decryptedData.mse_cognitive_orientation_place;
@@ -1404,6 +1412,7 @@ class ADLFile {
       history_narrative, history_specific_enquiry, history_drug_intake,
       history_treatment_place, history_treatment_dates, history_treatment_drugs, 
       history_treatment_response, informants, complaints_patient, complaints_informant,
+      onset_duration, precipitating_factor, course,
       past_history_medical, past_history_psychiatric_dates, past_history_psychiatric_diagnosis,
       past_history_psychiatric_treatment, past_history_psychiatric_interim, 
       past_history_psychiatric_recovery, family_history_father_age, 
@@ -1414,7 +1423,7 @@ class ADLFile {
       family_history_mother_education, family_history_mother_occupation,
       family_history_mother_personality, family_history_mother_deceased, 
       family_history_mother_death_age, family_history_mother_death_date, 
-      family_history_mother_death_cause, family_history_siblings,
+      family_history_mother_death_cause, family_history_siblings, family_history,
       diagnostic_formulation_summary, diagnostic_formulation_features, 
       diagnostic_formulation_psychodynamic, premorbid_personality_passive_active, 
       premorbid_personality_assertive, premorbid_personality_introvert_extrovert,
@@ -1434,7 +1443,7 @@ class ADLFile {
       mse_psychomotor_tension, mse_psychomotor_posture, mse_psychomotor_mannerism, 
       mse_psychomotor_catatonic, mse_affect_subjective, mse_affect_tone,
       mse_affect_resting, mse_affect_fluctuation, mse_thought_flow, mse_thought_form, 
-      mse_thought_content, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
+      mse_thought_content, mse_thought_possession, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
       mse_cognitive_orientation_place, mse_cognitive_orientation_person, 
       mse_cognitive_memory_immediate, mse_cognitive_memory_recent,
       mse_cognitive_memory_remote, mse_cognitive_subtraction, mse_cognitive_digit_span, 
@@ -1480,7 +1489,8 @@ class ADLFile {
         file_created_date, total_visits, history_narrative, history_specific_enquiry, 
         history_drug_intake, history_treatment_place, history_treatment_dates,
         history_treatment_drugs, history_treatment_response, informants, 
-        complaints_patient, complaints_informant, past_history_medical, 
+        complaints_patient, complaints_informant, onset_duration, precipitating_factor, course,
+        past_history_medical, 
         past_history_psychiatric_dates, past_history_psychiatric_diagnosis,
         past_history_psychiatric_treatment, past_history_psychiatric_interim, 
         past_history_psychiatric_recovery, family_history_father_age, 
@@ -1491,7 +1501,7 @@ class ADLFile {
         family_history_mother_education, family_history_mother_occupation,
         family_history_mother_personality, family_history_mother_deceased, 
         family_history_mother_death_age, family_history_mother_death_date, 
-        family_history_mother_death_cause, family_history_siblings,
+        family_history_mother_death_cause, family_history_siblings, family_history,
         diagnostic_formulation_summary, diagnostic_formulation_features, 
         diagnostic_formulation_psychodynamic, premorbid_personality_passive_active, 
         premorbid_personality_assertive, premorbid_personality_introvert_extrovert,
@@ -1510,8 +1520,8 @@ class ADLFile {
         mse_general_cooperation, mse_psychomotor_verbalization, mse_psychomotor_pressure, 
         mse_psychomotor_tension, mse_psychomotor_posture, mse_psychomotor_mannerism, 
         mse_psychomotor_catatonic, mse_affect_subjective, mse_affect_tone,
-        mse_affect_resting, mse_affect_fluctuation, mse_thought_flow, mse_thought_form, 
-        mse_thought_content, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
+        mse_affect_resting, mse_affect_fluctuation,         mse_thought_flow, mse_thought_form, 
+        mse_thought_content, mse_thought_possession, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
         mse_cognitive_orientation_place, mse_cognitive_orientation_person, 
         mse_cognitive_memory_immediate, mse_cognitive_memory_recent,
         mse_cognitive_memory_remote, mse_cognitive_subtraction, mse_cognitive_digit_span, 
@@ -1536,10 +1546,10 @@ class ADLFile {
         development_bedwetting, development_phobias, development_childhood_illness, 
         provisional_diagnosis, treatment_plan, consultant_comments
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, 
-        $16::jsonb, $17::jsonb, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, 
-        $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40::jsonb,
-        $41, $42, $43, $44, $45, $46, $47::jsonb, $48, $49, $50, $51, $52, $53, 
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,         $15::jsonb, 
+        $16::jsonb, $17::jsonb, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
+        $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43::jsonb,
+        $44, $45, $46, $47, $48, $49::jsonb, $50, $51, $52, $53, $54, $55,
         $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, 
         $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, 
         $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98,
@@ -1566,6 +1576,9 @@ class ADLFile {
         encryptedAdlData.history_treatment_response || history_treatment_response, 
         informantsJson, 
         complaintsPatientJson, complaintsInformantJson, 
+        encryptedAdlData.onset_duration || onset_duration,
+        encryptedAdlData.precipitating_factor || precipitating_factor,
+        encryptedAdlData.course || course,
         encryptedAdlData.past_history_medical || past_history_medical, 
         encryptedAdlData.past_history_psychiatric_dates || past_history_psychiatric_dates, 
         encryptedAdlData.past_history_psychiatric_diagnosis || past_history_psychiatric_diagnosis,
@@ -1589,6 +1602,7 @@ class ADLFile {
         encryptedAdlData.family_history_mother_death_date || family_history_mother_death_date, 
         encryptedAdlData.family_history_mother_death_cause || family_history_mother_death_cause, 
         familyHistorySiblingsJson,
+        encryptedAdlData.family_history || family_history,
         encryptedAdlData.diagnostic_formulation_summary || diagnostic_formulation_summary, 
         encryptedAdlData.diagnostic_formulation_features || diagnostic_formulation_features, 
         encryptedAdlData.diagnostic_formulation_psychodynamic || diagnostic_formulation_psychodynamic, 
@@ -1644,6 +1658,7 @@ class ADLFile {
         encryptedAdlData.mse_thought_flow || mse_thought_flow, 
         encryptedAdlData.mse_thought_form || mse_thought_form, 
         encryptedAdlData.mse_thought_content || mse_thought_content, 
+        encryptedAdlData.mse_thought_possession || mse_thought_possession,
         encryptedAdlData.mse_cognitive_consciousness || mse_cognitive_consciousness, 
         encryptedAdlData.mse_cognitive_orientation_time || mse_cognitive_orientation_time, 
         encryptedAdlData.mse_cognitive_orientation_place || mse_cognitive_orientation_place, 
@@ -1749,7 +1764,7 @@ class ADLFile {
         family_history_mother_education, family_history_mother_occupation,
         family_history_mother_personality, family_history_mother_deceased, 
         family_history_mother_death_age, family_history_mother_death_date, 
-        family_history_mother_death_cause, family_history_siblings,
+        family_history_mother_death_cause, family_history_siblings, family_history,
         diagnostic_formulation_summary, diagnostic_formulation_features, 
         diagnostic_formulation_psychodynamic, premorbid_personality_passive_active, 
         premorbid_personality_assertive, premorbid_personality_introvert_extrovert,
@@ -1768,8 +1783,8 @@ class ADLFile {
         mse_general_cooperation, mse_psychomotor_verbalization, mse_psychomotor_pressure, 
         mse_psychomotor_tension, mse_psychomotor_posture, mse_psychomotor_mannerism, 
         mse_psychomotor_catatonic, mse_affect_subjective, mse_affect_tone,
-        mse_affect_resting, mse_affect_fluctuation, mse_thought_flow, mse_thought_form, 
-        mse_thought_content, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
+        mse_affect_resting, mse_affect_fluctuation,         mse_thought_flow, mse_thought_form, 
+        mse_thought_content, mse_thought_possession, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
         mse_cognitive_orientation_place, mse_cognitive_orientation_person, 
         mse_cognitive_memory_immediate, mse_cognitive_memory_recent,
         mse_cognitive_memory_remote, mse_cognitive_subtraction, mse_cognitive_digit_span, 
@@ -1817,7 +1832,8 @@ class ADLFile {
           file_created_date, total_visits, history_narrative, history_specific_enquiry, 
           history_drug_intake, history_treatment_place, history_treatment_dates,
           history_treatment_drugs, history_treatment_response, informants, 
-          complaints_patient, complaints_informant, past_history_medical, 
+          complaints_patient, complaints_informant, onset_duration, precipitating_factor, course,
+        past_history_medical, 
           past_history_psychiatric_dates, past_history_psychiatric_diagnosis,
           past_history_psychiatric_treatment, past_history_psychiatric_interim, 
           past_history_psychiatric_recovery, family_history_father_age, 
@@ -1847,8 +1863,8 @@ class ADLFile {
           mse_general_cooperation, mse_psychomotor_verbalization, mse_psychomotor_pressure, 
           mse_psychomotor_tension, mse_psychomotor_posture, mse_psychomotor_mannerism, 
           mse_psychomotor_catatonic, mse_affect_subjective, mse_affect_tone,
-          mse_affect_resting, mse_affect_fluctuation, mse_thought_flow, mse_thought_form, 
-          mse_thought_content, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
+          mse_affect_resting, mse_affect_fluctuation,         mse_thought_flow, mse_thought_form, 
+        mse_thought_content, mse_thought_possession, mse_cognitive_consciousness, mse_cognitive_orientation_time, 
           mse_cognitive_orientation_place, mse_cognitive_orientation_person, 
           mse_cognitive_memory_immediate, mse_cognitive_memory_recent,
           mse_cognitive_memory_remote, mse_cognitive_subtraction, mse_cognitive_digit_span, 

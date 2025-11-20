@@ -22,12 +22,12 @@ import SelectExistingPatient from './pages/patients/SelectExistingPatient';
 
 // Clinical Proforma Pages
 import ClinicalProformaPage from './pages/clinical/ClinicalProformaPage';
-import CreateClinicalProforma from './pages/clinical/CreateClinicalProforma';
+// import CreateClinicalProforma from './pages/clinical/CreateClinicalProforma';
 import EditClinicalProforma from './pages/clinical/EditClinicalProforma';
 import ClinicalProformaDetails from './pages/clinical/ClinicalProformaDetails';
 
 // Prescription Pages
-import CreatePrescription from './pages/PrescribeMedication/CreatePrescription';
+// import CreatePrescription from './pages/PrescribeMedication/CreatePrescription';
 import PrescriptionEdit from './pages/PrescribeMedication/PrescriptionEdit';
 import PrescriptionView from './pages/PrescribeMedication/PrescriptionView';
 
@@ -88,7 +88,7 @@ function App() {
               {/* Clinical Proforma - Faculty, Resident and Admin */}
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/clinical" element={<ClinicalProformaPage />} />
-                <Route path="/clinical/new" element={<CreateClinicalProforma />} />
+                {/* <Route path="/clinical/new" element={<CreateClinicalProforma />} /> */}
                 <Route path="/clinical-today-patients" element={<ClinicalTodayPatients />} />
                 <Route path="/clinical/:id" element={<ClinicalProformaDetails />} />
                 <Route path="/clinical/:id/edit" element={<EditClinicalProforma />} />
@@ -96,7 +96,7 @@ function App() {
 
               {/* Prescription Routes - Faculty, Resident and Admin */}
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
-                <Route path="/prescriptions/create" element={<CreatePrescription />} />
+                {/* <Route path="/prescriptions/create" element={<CreatePrescription />} /> */}
                 <Route path="/prescriptions/edit/:id" element={<PrescriptionEdit />} />
                 <Route path="/prescriptions/view" element={<PrescriptionView />} />
               </Route>

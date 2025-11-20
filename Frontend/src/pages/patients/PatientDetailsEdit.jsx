@@ -31,7 +31,7 @@ import {
 import EditClinicalProforma from '../clinical/EditClinicalProforma';
 import EditADL from '../adl/EditADL';
 import medicinesData from '../../assets/psychiatric_meds_india.json';
-
+import PrescriptionEdit from '../PrescribeMedication/PrescriptionEdit';
 // Prescription Card Component for displaying prescriptions per proforma
 
 
@@ -336,584 +336,584 @@ const SelectWithOther = ({
     </div>
   );
 };
-const PrescriptionCard = ({ proforma, index, patientId }) => {
-  const navigate = useNavigate();
-  const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
-    proforma.id,
-    { skip: !proforma.id }
-  );
-  const [createBulkPrescriptions, { isLoading: isSaving }] = useCreateBulkPrescriptionsMutation();
+// const PrescriptionCard = ({ proforma, index, patientId }) => {
+//   const navigate = useNavigate();
+//   const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
+//     proforma.id,
+//     { skip: !proforma.id }
+//   );
+//   const [createBulkPrescriptions, { isLoading: isSaving }] = useCreateBulkPrescriptionsMutation();
 
-  const existingPrescriptions = prescriptionsData?.data?.prescriptions || [];
+//   const existingPrescriptions = prescriptionsData?.data?.prescriptions || [];
 
-  // Flatten medicines data for autocomplete
-  const allMedicines = useMemo(() => {
-    const medicines = [];
-    const data = medicinesData.psychiatric_medications;
+//   // Flatten medicines data for autocomplete
+//   const allMedicines = useMemo(() => {
+//     const medicines = [];
+//     const data = medicinesData.psychiatric_medications;
 
-    const extractMedicines = (obj) => {
-      if (Array.isArray(obj)) {
-        obj.forEach(med => {
-          medicines.push({
-            name: med.name,
-            displayName: med.name,
-            type: 'generic',
-            brands: med.brands || [],
-            strengths: med.strengths || []
-          });
-          if (med.brands && Array.isArray(med.brands)) {
-            med.brands.forEach(brand => {
-              medicines.push({
-                name: brand,
-                displayName: `${brand} (${med.name})`,
-                type: 'brand',
-                genericName: med.name,
-                strengths: med.strengths || []
-              });
-            });
-          }
-        });
-      } else if (typeof obj === 'object' && obj !== null) {
-        Object.values(obj).forEach(value => {
-          extractMedicines(value);
-        });
-      }
-    };
+//     const extractMedicines = (obj) => {
+//       if (Array.isArray(obj)) {
+//         obj.forEach(med => {
+//           medicines.push({
+//             name: med.name,
+//             displayName: med.name,
+//             type: 'generic',
+//             brands: med.brands || [],
+//             strengths: med.strengths || []
+//           });
+//           if (med.brands && Array.isArray(med.brands)) {
+//             med.brands.forEach(brand => {
+//               medicines.push({
+//                 name: brand,
+//                 displayName: `${brand} (${med.name})`,
+//                 type: 'brand',
+//                 genericName: med.name,
+//                 strengths: med.strengths || []
+//               });
+//             });
+//           }
+//         });
+//       } else if (typeof obj === 'object' && obj !== null) {
+//         Object.values(obj).forEach(value => {
+//           extractMedicines(value);
+//         });
+//       }
+//     };
 
-    extractMedicines(data);
-    const uniqueMedicines = Array.from(
-      new Map(medicines.map(m => [m.name.toLowerCase(), m])).values()
-    );
-    return uniqueMedicines.sort((a, b) => a.name.localeCompare(b.name));
-  }, []);
+//     extractMedicines(data);
+//     const uniqueMedicines = Array.from(
+//       new Map(medicines.map(m => [m.name.toLowerCase(), m])).values()
+//     );
+//     return uniqueMedicines.sort((a, b) => a.name.localeCompare(b.name));
+//   }, []);
 
-  // Medicine autocomplete state for each row
-  const [medicineSuggestions, setMedicineSuggestions] = useState({});
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
-  const [showSuggestions, setShowSuggestions] = useState({});
-  const [suggestionPositions, setSuggestionPositions] = useState({});
-  const inputRefs = useRef({});
+//   // Medicine autocomplete state for each row
+//   const [medicineSuggestions, setMedicineSuggestions] = useState({});
+//   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
+//   const [showSuggestions, setShowSuggestions] = useState({});
+//   const [suggestionPositions, setSuggestionPositions] = useState({});
+//   const inputRefs = useRef({});
 
-  // Initialize with empty row, will be populated when prescriptions load
-  const [prescriptionRows, setPrescriptionRows] = useState([
-    { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
-  ]);
+//   // Initialize with empty row, will be populated when prescriptions load
+//   const [prescriptionRows, setPrescriptionRows] = useState([
+//     { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
+//   ]);
 
-  // Update rows when prescriptions data loads
-  useEffect(() => {
-    if (existingPrescriptions.length > 0) {
-      setPrescriptionRows(
-        existingPrescriptions.slice(0, 5).map(p => ({
-          id: p.id,
-          medicine: p.medicine || '',
-          dosage: p.dosage || '',
-          when: p.when || '',
-          frequency: p.frequency || '',
-          duration: p.duration || '',
-          qty: p.qty || '',
-          details: p.details || '',
-          notes: p.notes || '',
-        }))
-      );
-    } else if (!loadingPrescriptions && existingPrescriptions.length === 0) {
-      // Ensure at least one empty row is shown when no prescriptions exist
-      setPrescriptionRows([
-        { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
-      ]);
-    }
-  }, [existingPrescriptions, loadingPrescriptions]);
+//   // Update rows when prescriptions data loads
+//   useEffect(() => {
+//     if (existingPrescriptions.length > 0) {
+//       setPrescriptionRows(
+//         existingPrescriptions.slice(0, 5).map(p => ({
+//           id: p.id,
+//           medicine: p.medicine || '',
+//           dosage: p.dosage || '',
+//           when: p.when || '',
+//           frequency: p.frequency || '',
+//           duration: p.duration || '',
+//           qty: p.qty || '',
+//           details: p.details || '',
+//           notes: p.notes || '',
+//         }))
+//       );
+//     } else if (!loadingPrescriptions && existingPrescriptions.length === 0) {
+//       // Ensure at least one empty row is shown when no prescriptions exist
+//       setPrescriptionRows([
+//         { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
+//       ]);
+//     }
+//   }, [existingPrescriptions, loadingPrescriptions]);
 
-  const addPrescriptionRow = () => {
-    setPrescriptionRows(prev => [...prev, { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
-  };
-
-
+//   const addPrescriptionRow = () => {
+//     setPrescriptionRows(prev => [...prev, { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
+//   };
 
 
-  const removePrescriptionRow = (rowIdx) => {
-    setPrescriptionRows(prev => prev.filter((_, i) => i !== rowIdx));
-    // Clean up autocomplete state for removed row
-    setMedicineSuggestions(prev => {
-      const newState = { ...prev };
-      delete newState[rowIdx];
-      return newState;
-    });
-    setShowSuggestions(prev => {
-      const newState = { ...prev };
-      delete newState[rowIdx];
-      return newState;
-    });
-  };
 
-  const updatePrescriptionCell = (rowIdx, field, value) => {
-    setPrescriptionRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
 
-    // Handle medicine autocomplete
-    if (field === 'medicine') {
-      const searchTerm = value.toLowerCase().trim();
-      if (searchTerm.length > 0) {
-        const filtered = allMedicines.filter(med =>
-          med.name.toLowerCase().includes(searchTerm) ||
-          med.displayName.toLowerCase().includes(searchTerm) ||
-          (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
-        ).slice(0, 10);
-        setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: filtered }));
-        setShowSuggestions(prev => ({ ...prev, [rowIdx]: true }));
-        setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: -1 }));
+//   const removePrescriptionRow = (rowIdx) => {
+//     setPrescriptionRows(prev => prev.filter((_, i) => i !== rowIdx));
+//     // Clean up autocomplete state for removed row
+//     setMedicineSuggestions(prev => {
+//       const newState = { ...prev };
+//       delete newState[rowIdx];
+//       return newState;
+//     });
+//     setShowSuggestions(prev => {
+//       const newState = { ...prev };
+//       delete newState[rowIdx];
+//       return newState;
+//     });
+//   };
 
-        // Calculate position for dropdown
-        setTimeout(() => {
-          const input = inputRefs.current[`medicine-${rowIdx}`];
-          if (input) {
-            const rect = input.getBoundingClientRect();
-            const dropdownHeight = 240;
-            const spaceAbove = rect.top;
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+//   const updatePrescriptionCell = (rowIdx, field, value) => {
+//     setPrescriptionRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
 
-            setSuggestionPositions(prev => ({
-              ...prev,
-              [rowIdx]: {
-                top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-                left: rect.left,
-                width: rect.width
-              }
-            }));
-          }
-        }, 0);
-      } else {
-        setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
-        setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
-      }
-    }
-  };
+//     // Handle medicine autocomplete
+//     if (field === 'medicine') {
+//       const searchTerm = value.toLowerCase().trim();
+//       if (searchTerm.length > 0) {
+//         const filtered = allMedicines.filter(med =>
+//           med.name.toLowerCase().includes(searchTerm) ||
+//           med.displayName.toLowerCase().includes(searchTerm) ||
+//           (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
+//         ).slice(0, 10);
+//         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: filtered }));
+//         setShowSuggestions(prev => ({ ...prev, [rowIdx]: true }));
+//         setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: -1 }));
 
-  const selectMedicine = (rowIdx, medicine) => {
-    setPrescriptionRows(prev => prev.map((r, i) =>
-      i === rowIdx ? { ...r, medicine: medicine.name } : r
-    ));
-    setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
-    setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
-  };
+//         // Calculate position for dropdown
+//         setTimeout(() => {
+//           const input = inputRefs.current[`medicine-${rowIdx}`];
+//           if (input) {
+//             const rect = input.getBoundingClientRect();
+//             const dropdownHeight = 240;
+//             const spaceAbove = rect.top;
+//             const spaceBelow = window.innerHeight - rect.bottom;
+//             const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
 
-  const handleMedicineKeyDown = (e, rowIdx) => {
-    const suggestions = medicineSuggestions[rowIdx] || [];
-    const currentIndex = activeSuggestionIndex[rowIdx] || -1;
+//             setSuggestionPositions(prev => ({
+//               ...prev,
+//               [rowIdx]: {
+//                 top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+//                 left: rect.left,
+//                 width: rect.width
+//               }
+//             }));
+//           }
+//         }, 0);
+//       } else {
+//         setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+//         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+//       }
+//     }
+//   };
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const nextIndex = currentIndex < suggestions.length - 1 ? currentIndex + 1 : currentIndex;
-      setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: nextIndex }));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1;
-      setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: prevIndex }));
-    } else if (e.key === 'Enter' && currentIndex >= 0 && suggestions[currentIndex]) {
-      e.preventDefault();
-      selectMedicine(rowIdx, suggestions[currentIndex]);
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
-    }
-  };
+//   const selectMedicine = (rowIdx, medicine) => {
+//     setPrescriptionRows(prev => prev.map((r, i) =>
+//       i === rowIdx ? { ...r, medicine: medicine.name } : r
+//     ));
+//     setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+//     setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+//   };
 
-  const handleSavePrescriptions = async () => {
-    if (!proforma.id) {
-      toast.error('Clinical proforma ID is required');
-      return;
-    }
+//   const handleMedicineKeyDown = (e, rowIdx) => {
+//     const suggestions = medicineSuggestions[rowIdx] || [];
+//     const currentIndex = activeSuggestionIndex[rowIdx] || -1;
 
-    // Filter out empty prescriptions
-    const validPrescriptions = prescriptionRows.filter(p => p.medicine && p.medicine.trim());
+//     if (e.key === 'ArrowDown') {
+//       e.preventDefault();
+//       const nextIndex = currentIndex < suggestions.length - 1 ? currentIndex + 1 : currentIndex;
+//       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: nextIndex }));
+//     } else if (e.key === 'ArrowUp') {
+//       e.preventDefault();
+//       const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1;
+//       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: prevIndex }));
+//     } else if (e.key === 'Enter' && currentIndex >= 0 && suggestions[currentIndex]) {
+//       e.preventDefault();
+//       selectMedicine(rowIdx, suggestions[currentIndex]);
+//     } else if (e.key === 'Escape') {
+//       setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+//     }
+//   };
 
-    if (validPrescriptions.length === 0) {
-      toast.error('Please add at least one medication with a valid medicine name');
-      return;
-    }
+//   const handleSavePrescriptions = async () => {
+//     if (!proforma.id) {
+//       toast.error('Clinical proforma ID is required');
+//       return;
+//     }
 
-    try {
-      const prescriptionsToSave = validPrescriptions.map(p => ({
-        medicine: p.medicine.trim(),
-        dosage: p.dosage?.trim() || null,
-        when: p.when?.trim() || null,
-        frequency: p.frequency?.trim() || null,
-        duration: p.duration?.trim() || null,
-        qty: p.qty?.trim() || null,
-        details: p.details?.trim() || null,
-        notes: p.notes?.trim() || null,
-      }));
+//     // Filter out empty prescriptions
+//     const validPrescriptions = prescriptionRows.filter(p => p.medicine && p.medicine.trim());
 
-      await createBulkPrescriptions({
-        clinical_proforma_id: proforma.id,
-        prescriptions: prescriptionsToSave,
-      }).unwrap();
+//     if (validPrescriptions.length === 0) {
+//       toast.error('Please add at least one medication with a valid medicine name');
+//       return;
+//     }
 
-      toast.success(`Prescription saved successfully! ${prescriptionsToSave.length} medication(s) recorded.`);
+//     try {
+//       const prescriptionsToSave = validPrescriptions.map(p => ({
+//         medicine: p.medicine.trim(),
+//         dosage: p.dosage?.trim() || null,
+//         when: p.when?.trim() || null,
+//         frequency: p.frequency?.trim() || null,
+//         duration: p.duration?.trim() || null,
+//         qty: p.qty?.trim() || null,
+//         details: p.details?.trim() || null,
+//         notes: p.notes?.trim() || null,
+//       }));
 
-      // The query will automatically refetch due to cache invalidation
-      // Reset form to show one empty row for next entry
-      setPrescriptionRows([{ medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
-    } catch (error) {
-      console.error('Error saving prescriptions:', error);
-      toast.error(error?.data?.message || 'Failed to save prescriptions. Please try again.');
-    }
-  };
+//       await createBulkPrescriptions({
+//         clinical_proforma_id: proforma.id,
+//         prescriptions: prescriptionsToSave,
+//       }).unwrap();
 
-  return (
-    <div className="border border-gray-200 rounded-lg p-6 bg-gradient-to-r from-amber-50 to-yellow-50">
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-        <div>
-          <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
-          <p className="text-sm text-gray-500 mt-1">
-            {proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}
-            {proforma.visit_type && ` • ${proforma.visit_type.replace('_', ' ')}`}
-          </p>
-        </div>
-        {existingPrescriptions.length > 5 && (
-          <Button
-            onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <FiEdit className="w-4 h-4" />
-            View All
-          </Button>
-        )}
-      </div>
+//       toast.success(`Prescription saved successfully! ${prescriptionsToSave.length} medication(s) recorded.`);
 
-      {loadingPrescriptions ? (
-        <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="text-sm text-gray-500 mt-2">Loading prescriptions...</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="overflow-x-auto bg-white rounded-lg border border-amber-200">
-            <table className="min-w-full text-sm">
-              <thead className="bg-amber-100 text-gray-700">
-                <tr>
-                  <th className="px-3 py-2 text-left w-10">#</th>
-                  <th className="px-3 py-2 text-left">Medicine</th>
-                  <th className="px-3 py-2 text-left">Dosage</th>
-                  <th className="px-3 py-2 text-left">When</th>
-                  <th className="px-3 py-2 text-left">Frequency</th>
-                  <th className="px-3 py-2 text-left">Duration</th>
-                  <th className="px-3 py-2 text-left">Qty</th>
-                  <th className="px-3 py-2 text-left">Details</th>
-                  <th className="px-3 py-2 text-left">Notes</th>
-                  <th className="px-3 py-2 text-left w-20"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {prescriptionRows.map((row, idx) => (
-                  <tr key={row.id || idx} className="border-t hover:bg-gray-50">
-                    <td className="px-3 py-2 text-gray-600">{idx + 1}</td>
-                    <td className="px-3 py-2" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
-                      <div style={{ position: 'relative', overflow: 'visible' }}>
-                        <input
-                          ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
-                          type="text"
-                          value={row.medicine}
-                          onChange={(e) => updatePrescriptionCell(idx, 'medicine', e.target.value)}
-                          onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
-                          onFocus={() => {
-                            if (row.medicine && row.medicine.trim().length > 0) {
-                              const searchTerm = row.medicine.toLowerCase().trim();
-                              const filtered = allMedicines.filter(med =>
-                                med.name.toLowerCase().includes(searchTerm) ||
-                                med.displayName.toLowerCase().includes(searchTerm) ||
-                                (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
-                              ).slice(0, 10);
-                              setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
-                              setShowSuggestions(prev => ({ ...prev, [idx]: true }));
+//       // The query will automatically refetch due to cache invalidation
+//       // Reset form to show one empty row for next entry
+//       setPrescriptionRows([{ medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
+//     } catch (error) {
+//       console.error('Error saving prescriptions:', error);
+//       toast.error(error?.data?.message || 'Failed to save prescriptions. Please try again.');
+//     }
+//   };
 
-                              setTimeout(() => {
-                                const input = inputRefs.current[`medicine-${idx}`];
-                                if (input) {
-                                  const rect = input.getBoundingClientRect();
-                                  const dropdownHeight = 240;
-                                  const spaceAbove = rect.top;
-                                  const spaceBelow = window.innerHeight - rect.bottom;
-                                  const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+//   return (
+//     <div className="border border-gray-200 rounded-lg p-6 bg-gradient-to-r from-amber-50 to-yellow-50">
+//       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+//         <div>
+//           <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
+//           <p className="text-sm text-gray-500 mt-1">
+//             {proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}
+//             {proforma.visit_type && ` • ${proforma.visit_type.replace('_', ' ')}`}
+//           </p>
+//         </div>
+//         {existingPrescriptions.length > 5 && (
+//           <Button
+//             onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
+//             variant="outline"
+//             size="sm"
+//             className="flex items-center gap-2"
+//           >
+//             <FiEdit className="w-4 h-4" />
+//             View All
+//           </Button>
+//         )}
+//       </div>
 
-                                  setSuggestionPositions(prev => ({
-                                    ...prev,
-                                    [idx]: {
-                                      top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-                                      left: rect.left,
-                                      width: rect.width
-                                    }
-                                  }));
-                                }
-                              }, 0);
-                            }
-                          }}
-                          onBlur={() => {
-                            setTimeout(() => {
-                              setShowSuggestions(prev => ({ ...prev, [idx]: false }));
-                            }, 200);
-                          }}
-                          className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                          placeholder="Type to search medicine..."
-                          autoComplete="off"
-                        />
-                        {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
-                          <div
-                            className="fixed bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50"
-                            style={{
-                              top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
-                              left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
-                              width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : '300px',
-                              minWidth: '300px',
-                              maxWidth: '400px'
-                            }}
-                          >
-                            {medicineSuggestions[idx].map((med, medIdx) => (
-                              <div
-                                key={`${med.name}-${medIdx}`}
-                                onClick={() => selectMedicine(idx, med)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                className={`px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors ${activeSuggestionIndex[idx] === medIdx ? 'bg-amber-100' : ''
-                                  } ${medIdx === 0 ? 'rounded-t-lg' : ''} ${medIdx === medicineSuggestions[idx].length - 1 ? 'rounded-b-lg' : ''
-                                  }`}
-                              >
-                                <div className="font-medium text-gray-900">{med.name}</div>
-                                {med.displayName !== med.name && (
-                                  <div className="text-xs text-gray-500">{med.displayName}</div>
-                                )}
-                                {med.strengths && med.strengths.length > 0 && (
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    Available: {med.strengths.join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.dosage}
-                        onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="e.g., 1-0-1"
-                        list={`dosageOptions-${proforma.id}-${idx}`}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.when}
-                        onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="before/after food"
-                        list={`whenOptions-${proforma.id}-${idx}`}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.frequency}
-                        onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="daily"
-                        list={`frequencyOptions-${proforma.id}-${idx}`}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.duration}
-                        onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="5 days"
-                        list={`durationOptions-${proforma.id}-${idx}`}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.qty}
-                        onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="Qty"
-                        list={`quantityOptions-${proforma.id}-${idx}`}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.details}
-                        onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="Details"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="text"
-                        value={row.notes}
-                        onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        placeholder="Notes"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {prescriptionRows.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePrescriptionRow(idx)}
-                          className="text-red-600 hover:text-red-800 hover:underline text-xs flex items-center gap-1"
-                        >
-                          <FiTrash2 className="w-3 h-3" />
-                          Remove
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+//       {loadingPrescriptions ? (
+//         <div className="text-center py-4">
+//           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mx-auto"></div>
+//           <p className="text-sm text-gray-500 mt-2">Loading prescriptions...</p>
+//         </div>
+//       ) : (
+//         <div className="space-y-4">
+//           <div className="overflow-x-auto bg-white rounded-lg border border-amber-200">
+//             <table className="min-w-full text-sm">
+//               <thead className="bg-amber-100 text-gray-700">
+//                 <tr>
+//                   <th className="px-3 py-2 text-left w-10">#</th>
+//                   <th className="px-3 py-2 text-left">Medicine</th>
+//                   <th className="px-3 py-2 text-left">Dosage</th>
+//                   <th className="px-3 py-2 text-left">When</th>
+//                   <th className="px-3 py-2 text-left">Frequency</th>
+//                   <th className="px-3 py-2 text-left">Duration</th>
+//                   <th className="px-3 py-2 text-left">Qty</th>
+//                   <th className="px-3 py-2 text-left">Details</th>
+//                   <th className="px-3 py-2 text-left">Notes</th>
+//                   <th className="px-3 py-2 text-left w-20"></th>
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {prescriptionRows.map((row, idx) => (
+//                   <tr key={row.id || idx} className="border-t hover:bg-gray-50">
+//                     <td className="px-3 py-2 text-gray-600">{idx + 1}</td>
+//                     <td className="px-3 py-2" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
+//                       <div style={{ position: 'relative', overflow: 'visible' }}>
+//                         <input
+//                           ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
+//                           type="text"
+//                           value={row.medicine}
+//                           onChange={(e) => updatePrescriptionCell(idx, 'medicine', e.target.value)}
+//                           onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
+//                           onFocus={() => {
+//                             if (row.medicine && row.medicine.trim().length > 0) {
+//                               const searchTerm = row.medicine.toLowerCase().trim();
+//                               const filtered = allMedicines.filter(med =>
+//                                 med.name.toLowerCase().includes(searchTerm) ||
+//                                 med.displayName.toLowerCase().includes(searchTerm) ||
+//                                 (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
+//                               ).slice(0, 10);
+//                               setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
+//                               setShowSuggestions(prev => ({ ...prev, [idx]: true }));
 
-          {/* Datalist suggestions for prescription fields */}
-          {prescriptionRows.map((_, rowIdx) => (
-            <div key={`datalists-${rowIdx}`} style={{ display: 'none' }}>
-              <datalist id={`dosageOptions-${proforma.id}-${rowIdx}`}>
-                <option value="1-0-1" />
-                <option value="1-1-1" />
-                <option value="1-0-0" />
-                <option value="0-1-0" />
-                <option value="0-0-1" />
-                <option value="1-1-0" />
-                <option value="0-1-1" />
-                <option value="1-0-1½" />
-                <option value="½-0-½" />
-                <option value="SOS" />
-                <option value="STAT" />
-                <option value="PRN" />
-                <option value="OD" />
-                <option value="BD" />
-                <option value="TDS" />
-                <option value="QID" />
-                <option value="HS" />
-                <option value="Q4H" />
-                <option value="Q6H" />
-                <option value="Q8H" />
-              </datalist>
-              <datalist id={`whenOptions-${proforma.id}-${rowIdx}`}>
-                <option value="Before Food" />
-                <option value="After Food" />
-                <option value="With Food" />
-                <option value="Empty Stomach" />
-                <option value="Bedtime" />
-                <option value="Morning" />
-                <option value="Afternoon" />
-                <option value="Evening" />
-                <option value="Night" />
-                <option value="Any Time" />
-                <option value="Before Breakfast" />
-                <option value="After Breakfast" />
-                <option value="Before Lunch" />
-                <option value="After Lunch" />
-                <option value="Before Dinner" />
-                <option value="After Dinner" />
-              </datalist>
-              <datalist id={`frequencyOptions-${proforma.id}-${rowIdx}`}>
-                <option value="Once Daily" />
-                <option value="Twice Daily" />
-                <option value="Thrice Daily" />
-                <option value="Four Times Daily" />
-                <option value="Every Hour" />
-                <option value="Every 2 Hours" />
-                <option value="Every 4 Hours" />
-                <option value="Every 6 Hours" />
-                <option value="Every 8 Hours" />
-                <option value="Every 12 Hours" />
-                <option value="Alternate Day" />
-                <option value="Weekly" />
-                <option value="Monthly" />
-                <option value="SOS" />
-                <option value="Continuous" />
-                <option value="Once" />
-                <option value="Tapering Dose" />
-              </datalist>
-              <datalist id={`durationOptions-${proforma.id}-${rowIdx}`}>
-                <option value="3 Days" />
-                <option value="5 Days" />
-                <option value="7 Days" />
-                <option value="10 Days" />
-                <option value="14 Days" />
-                <option value="21 Days" />
-                <option value="1 Month" />
-                <option value="2 Months" />
-                <option value="3 Months" />
-                <option value="6 Months" />
-                <option value="Until Symptoms Subside" />
-                <option value="Continuous" />
-                <option value="As Directed" />
-              </datalist>
-              <datalist id={`quantityOptions-${proforma.id}-${rowIdx}`}>
-                <option value="1" />
-                <option value="2" />
-                <option value="3" />
-                <option value="5" />
-                <option value="7" />
-                <option value="10" />
-                <option value="15" />
-                <option value="20" />
-                <option value="30" />
-                <option value="60" />
-                <option value="90" />
-                <option value="100" />
-                <option value="Custom" />
-              </datalist>
-            </div>
-          ))}
+//                               setTimeout(() => {
+//                                 const input = inputRefs.current[`medicine-${idx}`];
+//                                 if (input) {
+//                                   const rect = input.getBoundingClientRect();
+//                                   const dropdownHeight = 240;
+//                                   const spaceAbove = rect.top;
+//                                   const spaceBelow = window.innerHeight - rect.bottom;
+//                                   const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
 
-          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                onClick={addPrescriptionRow}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Medicine
-              </Button>
-              {existingPrescriptions.length > 0 && (
-                <Button
-                  onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <FiEdit className="w-4 h-4" />
-                  View All Prescriptions
-                </Button>
-              )}
-            </div>
-            {proforma.id && (
-              <Button
-                type="button"
-                onClick={handleSavePrescriptions}
-                disabled={isSaving}
-                className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <FiSave className="w-4 h-4" />
-                {isSaving ? 'Saving...' : 'Save Prescriptions'}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+//                                   setSuggestionPositions(prev => ({
+//                                     ...prev,
+//                                     [idx]: {
+//                                       top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+//                                       left: rect.left,
+//                                       width: rect.width
+//                                     }
+//                                   }));
+//                                 }
+//                               }, 0);
+//                             }
+//                           }}
+//                           onBlur={() => {
+//                             setTimeout(() => {
+//                               setShowSuggestions(prev => ({ ...prev, [idx]: false }));
+//                             }, 200);
+//                           }}
+//                           className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                           placeholder="Type to search medicine..."
+//                           autoComplete="off"
+//                         />
+//                         {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
+//                           <div
+//                             className="fixed bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50"
+//                             style={{
+//                               top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
+//                               left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
+//                               width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : '300px',
+//                               minWidth: '300px',
+//                               maxWidth: '400px'
+//                             }}
+//                           >
+//                             {medicineSuggestions[idx].map((med, medIdx) => (
+//                               <div
+//                                 key={`${med.name}-${medIdx}`}
+//                                 onClick={() => selectMedicine(idx, med)}
+//                                 onMouseDown={(e) => e.preventDefault()}
+//                                 className={`px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors ${activeSuggestionIndex[idx] === medIdx ? 'bg-amber-100' : ''
+//                                   } ${medIdx === 0 ? 'rounded-t-lg' : ''} ${medIdx === medicineSuggestions[idx].length - 1 ? 'rounded-b-lg' : ''
+//                                   }`}
+//                               >
+//                                 <div className="font-medium text-gray-900">{med.name}</div>
+//                                 {med.displayName !== med.name && (
+//                                   <div className="text-xs text-gray-500">{med.displayName}</div>
+//                                 )}
+//                                 {med.strengths && med.strengths.length > 0 && (
+//                                   <div className="text-xs text-gray-400 mt-1">
+//                                     Available: {med.strengths.join(', ')}
+//                                   </div>
+//                                 )}
+//                               </div>
+//                             ))}
+//                           </div>
+//                         )}
+//                       </div>
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.dosage}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="e.g., 1-0-1"
+//                         list={`dosageOptions-${proforma.id}-${idx}`}
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.when}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="before/after food"
+//                         list={`whenOptions-${proforma.id}-${idx}`}
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.frequency}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="daily"
+//                         list={`frequencyOptions-${proforma.id}-${idx}`}
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.duration}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="5 days"
+//                         list={`durationOptions-${proforma.id}-${idx}`}
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.qty}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="Qty"
+//                         list={`quantityOptions-${proforma.id}-${idx}`}
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.details}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="Details"
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2">
+//                       <input
+//                         type="text"
+//                         value={row.notes}
+//                         onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
+//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+//                         placeholder="Notes"
+//                       />
+//                     </td>
+//                     <td className="px-3 py-2 text-right">
+//                       {prescriptionRows.length > 1 && (
+//                         <button
+//                           type="button"
+//                           onClick={() => removePrescriptionRow(idx)}
+//                           className="text-red-600 hover:text-red-800 hover:underline text-xs flex items-center gap-1"
+//                         >
+//                           <FiTrash2 className="w-3 h-3" />
+//                           Remove
+//                         </button>
+//                       )}
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+
+//           {/* Datalist suggestions for prescription fields */}
+//           {prescriptionRows.map((_, rowIdx) => (
+//             <div key={`datalists-${rowIdx}`} style={{ display: 'none' }}>
+//               <datalist id={`dosageOptions-${proforma.id}-${rowIdx}`}>
+//                 <option value="1-0-1" />
+//                 <option value="1-1-1" />
+//                 <option value="1-0-0" />
+//                 <option value="0-1-0" />
+//                 <option value="0-0-1" />
+//                 <option value="1-1-0" />
+//                 <option value="0-1-1" />
+//                 <option value="1-0-1½" />
+//                 <option value="½-0-½" />
+//                 <option value="SOS" />
+//                 <option value="STAT" />
+//                 <option value="PRN" />
+//                 <option value="OD" />
+//                 <option value="BD" />
+//                 <option value="TDS" />
+//                 <option value="QID" />
+//                 <option value="HS" />
+//                 <option value="Q4H" />
+//                 <option value="Q6H" />
+//                 <option value="Q8H" />
+//               </datalist>
+//               <datalist id={`whenOptions-${proforma.id}-${rowIdx}`}>
+//                 <option value="Before Food" />
+//                 <option value="After Food" />
+//                 <option value="With Food" />
+//                 <option value="Empty Stomach" />
+//                 <option value="Bedtime" />
+//                 <option value="Morning" />
+//                 <option value="Afternoon" />
+//                 <option value="Evening" />
+//                 <option value="Night" />
+//                 <option value="Any Time" />
+//                 <option value="Before Breakfast" />
+//                 <option value="After Breakfast" />
+//                 <option value="Before Lunch" />
+//                 <option value="After Lunch" />
+//                 <option value="Before Dinner" />
+//                 <option value="After Dinner" />
+//               </datalist>
+//               <datalist id={`frequencyOptions-${proforma.id}-${rowIdx}`}>
+//                 <option value="Once Daily" />
+//                 <option value="Twice Daily" />
+//                 <option value="Thrice Daily" />
+//                 <option value="Four Times Daily" />
+//                 <option value="Every Hour" />
+//                 <option value="Every 2 Hours" />
+//                 <option value="Every 4 Hours" />
+//                 <option value="Every 6 Hours" />
+//                 <option value="Every 8 Hours" />
+//                 <option value="Every 12 Hours" />
+//                 <option value="Alternate Day" />
+//                 <option value="Weekly" />
+//                 <option value="Monthly" />
+//                 <option value="SOS" />
+//                 <option value="Continuous" />
+//                 <option value="Once" />
+//                 <option value="Tapering Dose" />
+//               </datalist>
+//               <datalist id={`durationOptions-${proforma.id}-${rowIdx}`}>
+//                 <option value="3 Days" />
+//                 <option value="5 Days" />
+//                 <option value="7 Days" />
+//                 <option value="10 Days" />
+//                 <option value="14 Days" />
+//                 <option value="21 Days" />
+//                 <option value="1 Month" />
+//                 <option value="2 Months" />
+//                 <option value="3 Months" />
+//                 <option value="6 Months" />
+//                 <option value="Until Symptoms Subside" />
+//                 <option value="Continuous" />
+//                 <option value="As Directed" />
+//               </datalist>
+//               <datalist id={`quantityOptions-${proforma.id}-${rowIdx}`}>
+//                 <option value="1" />
+//                 <option value="2" />
+//                 <option value="3" />
+//                 <option value="5" />
+//                 <option value="7" />
+//                 <option value="10" />
+//                 <option value="15" />
+//                 <option value="20" />
+//                 <option value="30" />
+//                 <option value="60" />
+//                 <option value="90" />
+//                 <option value="100" />
+//                 <option value="Custom" />
+//               </datalist>
+//             </div>
+//           ))}
+
+//           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+//             <div className="flex items-center gap-3">
+//               <Button
+//                 type="button"
+//                 onClick={addPrescriptionRow}
+//                 variant="outline"
+//                 size="sm"
+//                 className="flex items-center gap-2"
+//               >
+//                 <FiPlus className="w-4 h-4" />
+//                 Add Medicine
+//               </Button>
+//               {existingPrescriptions.length > 0 && (
+//                 <Button
+//                   onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
+//                   variant="outline"
+//                   size="sm"
+//                   className="flex items-center gap-2"
+//                 >
+//                   <FiEdit className="w-4 h-4" />
+//                   View All Prescriptions
+//                 </Button>
+//               )}
+//             </div>
+//             {proforma.id && (
+//               <Button
+//                 type="button"
+//                 onClick={handleSavePrescriptions}
+//                 disabled={isSaving}
+//                 className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+//               >
+//                 <FiSave className="w-4 h-4" />
+//                 {isSaving ? 'Saving...' : 'Save Prescriptions'}
+//               </Button>
+//             )}
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
 
 // Enhanced Input component with glassmorphism styling (matching CreatePatient)
 const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
@@ -1019,7 +1019,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       // If we don't have a selected proforma yet, select the first one
       const firstProformaId = patientProformas[0]?.id;
       if (firstProformaId) {
-        console.log('[PatientDetailsEdit] Setting selectedProformaId from patientProformas:', firstProformaId);
+        
         setSelectedProformaId(firstProformaId.toString());
       }
     } else if (patientProformas.length > 0 && selectedProformaId) {
@@ -1027,7 +1027,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
       const proformaExists = patientProformas.some(p => p.id?.toString() === selectedProformaId);
       if (!proformaExists && patientProformas[0]?.id) {
         // If selected proforma no longer exists, select the first one
-        console.log('[PatientDetailsEdit] Selected proforma no longer exists, selecting first:', patientProformas[0].id);
+        
         setSelectedProformaId(patientProformas[0].id.toString());
       }
     }
@@ -1051,27 +1051,14 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   // Debug logging for selected proforma
   useEffect(() => {
     if (selectedProforma) {
-      console.log('[PatientDetailsEdit] Selected proforma loaded:', {
-        id: selectedProforma.id,
-        hasDiagnosis: !!selectedProforma.diagnosis,
-        hasGpe: !!selectedProforma.gpe,
-        hasPastHistory: !!selectedProforma.past_history,
-        doctor_decision: selectedProforma.doctor_decision,
-        visit_date: selectedProforma.visit_date
-      });
+      
     }
   }, [selectedProforma]);
 
   // Debug logging to help troubleshoot ADL data (after all variables are defined)
   useEffect(() => {
     const hasAdlFilesCheck = patientAdlFiles.length > 0 || selectedProforma?.adl_file_id;
-    console.log('[PatientDetailsEdit] ADL Data:', {
-      adlData,
-      patientAdlFiles,
-      patientAdlFilesLength: patientAdlFiles.length,
-      selectedProformaAdlFileId: selectedProforma?.adl_file_id,
-      hasAdlFiles: hasAdlFilesCheck
-    });
+    
   }, [adlData, patientAdlFiles.length, selectedProforma?.adl_file_id]);
 
   // Auto-expand clinical card when selected proforma loads
@@ -1136,7 +1123,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
   const selectedAdlFile = selectedAdlFileData?.data?.adlFile || selectedAdlFileData?.data?.file;
 
-  console.log(">>>>", patient)
+ 
   // Initialize form data from patient and formData props
   // Use a function to ensure we get the latest patient data on initialization
   const [formData, setFormData] = useState(() => {
@@ -1246,7 +1233,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   // This ensures ALL existing data is populated when editing
   useEffect(() => {
     if (patient && (patient.id || Object.keys(patient).length > 0)) {
-      console.log('[PatientDetailsEdit] Patient prop updated, syncing ALL form data:', patient);
+      
       setFormData(prev => {
         // Populate ALL fields from patient data, handling null/undefined values
         // Use patient value if available (even if null), otherwise keep previous value
@@ -1387,7 +1374,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         if ('assigned_doctor_name' in patient) updated.assigned_doctor_name = getValue(patient.assigned_doctor_name);
         if ('assigned_room' in patient) updated.assigned_room = getValue(patient.assigned_room);
         
-        console.log('[PatientDetailsEdit] Form data synced with patient data');
+       
         return updated;
       });
     }
@@ -1516,100 +1503,53 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Handle "Others"/"Other" selection for all fields
-    const handleOthersSelection = (fieldName, value, setShowState, customValueState, setCustomValueState, customFieldName) => {
-      if (value === 'others' || value === 'other') {
-        setShowState(true);
-        if (!customValueState) {
-          setCustomValueState('');
-        }
-      } else {
-        setShowState(false);
-        setCustomValueState('');
-        setFormData(prev => ({ ...prev, [customFieldName]: null }));
+    // Configuration for fields with "others"/"other" option
+    const othersFieldsConfig = {
+      occupation: { showSetter: setShowOccupationOther, valueSetter: setOccupationOther, customField: 'occupation_other' },
+      family_type: { showSetter: setShowFamilyTypeOther, valueSetter: setFamilyTypeOther, customField: 'family_type_other' },
+      locality: { showSetter: setShowLocalityOther, valueSetter: setLocalityOther, customField: 'locality_other' },
+      religion: { showSetter: setShowReligionOther, valueSetter: setReligionOther, customField: 'religion_other' },
+      head_relationship: { showSetter: setShowHeadRelationshipOther, valueSetter: setHeadRelationshipOther, customField: 'head_relationship_other' },
+      mobility: { showSetter: setShowMobilityOther, valueSetter: setMobilityOther, customField: 'mobility_other' },
+      referred_by: { showSetter: setShowReferredByOther, valueSetter: setReferredByOther, customField: 'referred_by_other' }
+    };
+
+    // Handle "others"/"other" selection
+    const fieldConfig = othersFieldsConfig[name];
+    if (fieldConfig) {
+      const isOthers = value === 'others' || value === 'other';
+      fieldConfig.showSetter(isOthers);
+      if (!isOthers) {
+        fieldConfig.valueSetter('');
+        setFormData(prev => ({ ...prev, [fieldConfig.customField]: null }));
       }
-    };
-
-    // Handle custom input values
-    const handleCustomInput = (fieldName, value, setCustomValueState, customFieldName) => {
-      setCustomValueState(value);
-      setFormData(prev => ({ ...prev, [customFieldName]: value }));
-    };
-
-    // Occupation
-    if (name === 'occupation') {
-      handleOthersSelection(name, value, setShowOccupationOther, occupationOther, setOccupationOther, 'occupation_other');
-    }
-    if (name === 'occupation_other') {
-      handleCustomInput(name, value, setOccupationOther, 'occupation_other');
+      return;
     }
 
-    // Family Type
-    if (name === 'family_type') {
-      handleOthersSelection(name, value, setShowFamilyTypeOther, familyTypeOther, setFamilyTypeOther, 'family_type_other');
-    }
-    if (name === 'family_type_other') {
-      handleCustomInput(name, value, setFamilyTypeOther, 'family_type_other');
-    }
-
-    // Locality
-    if (name === 'locality') {
-      handleOthersSelection(name, value, setShowLocalityOther, localityOther, setLocalityOther, 'locality_other');
-    }
-    if (name === 'locality_other') {
-      handleCustomInput(name, value, setLocalityOther, 'locality_other');
+    // Handle custom "other" input values
+    const customFieldMatch = name.match(/^(.+)_other$/);
+    if (customFieldMatch) {
+      const baseField = customFieldMatch[1];
+      const config = othersFieldsConfig[baseField];
+      if (config) {
+        config.valueSetter(value);
+        setFormData(prev => ({ ...prev, [name]: value }));
+      }
+      return;
     }
 
-    // Religion
-    if (name === 'religion') {
-      handleOthersSelection(name, value, setShowReligionOther, religionOther, setReligionOther, 'religion_other');
-    }
-    if (name === 'religion_other') {
-      handleCustomInput(name, value, setReligionOther, 'religion_other');
-    }
-
-    // Head Relationship
-    if (name === 'head_relationship') {
-      handleOthersSelection(name, value, setShowHeadRelationshipOther, headRelationshipOther, setHeadRelationshipOther, 'head_relationship_other');
-    }
-    if (name === 'head_relationship_other') {
-      handleCustomInput(name, value, setHeadRelationshipOther, 'head_relationship_other');
-    }
-
-    // Mobility
-    if (name === 'mobility') {
-      handleOthersSelection(name, value, setShowMobilityOther, mobilityOther, setMobilityOther, 'mobility_other');
-    }
-    if (name === 'mobility_other') {
-      handleCustomInput(name, value, setMobilityOther, 'mobility_other');
-    }
-
-    // Referred By
-    if (name === 'referred_by') {
-      handleOthersSelection(name, value, setShowReferredByOther, referredByOther, setReferredByOther, 'referred_by_other');
-    }
-    if (name === 'referred_by_other') {
-      handleCustomInput(name, value, setReferredByOther, 'referred_by_other');
-    }
-
-    // Clear any existing CR number error when user starts typing
+    // Handle CR number validation
     if (name === 'cr_no') {
       setErrors((prev) => ({ ...prev, patientCRNo: '' }));
-
-      if (crValidationTimeout) {
-        clearTimeout(crValidationTimeout);
-      }
-
+      if (crValidationTimeout) clearTimeout(crValidationTimeout);
       setCurrentCRNumber('');
-
       if (value.length >= 3) {
-        const timeout = setTimeout(() => {
-          setCurrentCRNumber(value);
-        }, 500);
-        setCrValidationTimeout(timeout);
+        setCrValidationTimeout(setTimeout(() => setCurrentCRNumber(value), 500));
       }
+      return;
     }
 
+    // Clear field errors
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -1618,16 +1558,12 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
     if (name === 'age') {
       const age = parseInt(value);
       if (!isNaN(age)) {
-        let ageGroup = '';
-        if (age >= 0 && age <= 15) ageGroup = '0-15';
-        else if (age >= 16 && age <= 30) ageGroup = '15-30';
-        else if (age >= 31 && age <= 45) ageGroup = '30-45';
-        else if (age >= 46 && age <= 60) ageGroup = '45-60';
-        else if (age >= 61) ageGroup = '60+';
-
-        if (ageGroup) {
-          setFormData(prev => ({ ...prev, age_group: ageGroup }));
-        }
+        const ageGroup = 
+          age <= 15 ? '0-15' :
+          age <= 30 ? '15-30' :
+          age <= 45 ? '30-45' :
+          age <= 60 ? '45-60' : '60+';
+        setFormData(prev => ({ ...prev, age_group: ageGroup }));
       }
     }
   };
@@ -1850,7 +1786,12 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         ...updatePatientData
       }).unwrap();
 
+
+
       toast.success('Patient updated successfully!');
+      if (patient.id){
+        await cr
+      }
       navigate('/patients');
       // Call onSave callback if provided
       if (onSave) {
@@ -2412,11 +2353,10 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           customFieldName="locality_other"
                           inputLabel="Specify Locality"
                         />
-
                         <Select
                           name="assigned_doctor_id"
                           label="Assigned Doctor"
-                          value={formData.assigned_doctor_id}
+                          value={formData.assigned_doctor_name}
                           onChange={handlePatientChange}
                           options={(usersData?.data?.users || [])
                             .map(u => ({
@@ -2640,7 +2580,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         />
       )}
 
-      {/* Card 2: Additional Details (ADL File) - Show only if case is complex OR ADL file exists */}
+      {/* Card 2: Deatail Work-Up File - Show only if case is complex OR ADL file exists */}
       {canViewADLFile && (
         <Card className="shadow-lg border-0 bg-white">
           <div
@@ -2652,7 +2592,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <FiFolder className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Additional Details (ADL File)</h3>
+                <h3 className="text-xl font-bold text-gray-900">Deatail Work-Up File</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {patientAdlFiles.length > 0
                     ? `${patientAdlFiles.length} file${patientAdlFiles.length > 1 ? 's' : ''} found`
@@ -2675,12 +2615,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <div className="space-y-6">
                   {patientAdlFiles.map((file, index) => {
                     // Debug logging for each file
-                    console.log('[PatientDetailsEdit] Rendering ADL file:', {
-                      file,
-                      fileId: file.id,
-                      fileIdType: typeof file.id,
-                      clinicalProformaId: file.clinical_proforma_id
-                    });
+                    
                     
                     return (
                       <EditADL
@@ -2725,7 +2660,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <FiPackage className="h-6 w-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Prescription History</h3>
+                <h3 className="text-xl font-bold text-gray-900">Prescription</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {patientProformas.length > 0
                     ? `View prescriptions for ${patientProformas.length} visit${patientProformas.length > 1 ? 's' : ''}`
@@ -2745,12 +2680,24 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
               {patientProformas.length > 0 ? (
                 <div className="space-y-6">
                   {patientProformas.map((proforma, index) => (
-                    <PrescriptionCard
+                    <>
+                       {/* <PrescriptionCard
+                      key={proforma.id || index}
+                      proforma={proforma}
+                      index={index}
+                      patientId={patient?.id}
+                    /> */}
+                    <PrescriptionEdit
                       key={proforma.id || index}
                       proforma={proforma}
                       index={index}
                       patientId={patient?.id}
                     />
+
+                    
+                    </>
+                 
+                    
                   ))}
                 </div>
               ) : (

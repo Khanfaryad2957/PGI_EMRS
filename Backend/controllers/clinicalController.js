@@ -193,7 +193,7 @@ class ClinicalController {
         };
 
         clinicalRecord = await ClinicalController.createRecord("clinical_proforma", clinicalData);
-        console.log(`[createClinicalProforma] ✅ Step 1: Created Clinical Proforma ${clinicalRecord.id}`);
+       
 
         // STEP 2: Create or reuse ADL file
         // Check if ADL file already exists for this clinical_proforma (shouldn't happen on create, but handle gracefully)

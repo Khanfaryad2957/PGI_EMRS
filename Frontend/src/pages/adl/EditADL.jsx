@@ -16,6 +16,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   const navigate = useNavigate();
   const { id: urlId } = useParams();
   const [searchParams] = useSearchParams();
+  const mode = searchParams.get('mode'); // 'create' or 'update' from URL
 
   // Use prop id if provided, otherwise use URL param
   const id = adlFileId || urlId;
@@ -25,32 +26,15 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   // Backend returns: { success: true, data: { adlFile: ... } }
   const adlFile = adlData?.data?.adlFile || adlData?.data?.adl_file || adlData?.data?.file || adlData?.data;
   
-  // Debug logging to help troubleshoot
-  useEffect(() => {
-    if (id && adlData) {
-      console.log('[EditADL] ADL Data:', {
-        id,
-        adlData,
-        adlFile,
-        hasAdlFile: !!adlFile,
-        dataStructure: adlData?.data ? Object.keys(adlData.data) : 'no data',
-        historyNarrative: adlFile?.history_narrative,
-        historySpecificEnquiry: adlFile?.history_specific_enquiry,
-        historyDrugIntake: adlFile?.history_drug_intake,
-        allHistoryFields: adlFile ? {
-          history_narrative: adlFile.history_narrative,
-          history_specific_enquiry: adlFile.history_specific_enquiry,
-          history_drug_intake: adlFile.history_drug_intake,
-          history_treatment_place: adlFile.history_treatment_place,
-          history_treatment_drugs: adlFile.history_treatment_drugs,
-          history_treatment_response: adlFile.history_treatment_response
-        } : 'no adlFile'
-      });
-    }
-  }, [id, adlData, adlFile]);
+  
 
   const [updateADLFile, { isLoading: isUpdating }] = useUpdateADLFileMutation();
   const [createADLFile, { isLoading: isCreating }] = useCreateADLFileMutation();
+  
+  // Determine if this is create or update mode
+  // Update mode: id exists AND adlFile exists OR mode === 'update'
+  // Create mode: no id OR no adlFile OR mode === 'create'
+  const isUpdateMode = mode === 'update' || (mode !== 'create' && id && adlFile);
   
   const patientId = propPatientId || adlFile?.patient_id;
   const clinicalProformaId = propClinicalProformaId || adlFile?.clinical_proforma_id;
@@ -85,16 +69,11 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   // Prepare initial form data from existing ADL file
   const initialFormData = useMemo(() => {
     if (!adlFile) {
-      console.log('[EditADL] initialFormData: adlFile is null/undefined');
+      
       return null;
     }
     
-    console.log('[EditADL] Creating initialFormData from adlFile:', {
-      hasAdlFile: !!adlFile,
-      historyNarrative: adlFile.history_narrative,
-      historySpecificEnquiry: adlFile.history_specific_enquiry,
-      adlFileKeys: Object.keys(adlFile).slice(0, 10)
-    });
+    
 
     // Helper function to parse JSON array fields
     const parseArray = (field) => {
@@ -497,21 +476,12 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   // Update formData when ADL file is loaded
   useEffect(() => {
     if (initialFormData) {
-      console.log('[EditADL] Populating form with ADL file data:', {
-        id,
-        hasInitialData: !!initialFormData,
-        historyNarrative: initialFormData.history_narrative,
-        historySpecificEnquiry: initialFormData.history_specific_enquiry,
-        historyDrugIntake: initialFormData.history_drug_intake,
-        formDataKeys: Object.keys(initialFormData).slice(0, 10)
-      });
       setFormData(initialFormData);
     } else if (!id) {
       // Reset to defaults if no ADL file ID
       setFormData(defaultFormData);
-    } else if (id && !adlFile && !isLoadingADL) {
-      console.warn('[EditADL] ADL file ID provided but no data found:', id);
     }
+    // Note: If id exists but adlFile is not loaded yet, wait for it to load
   }, [initialFormData, id, adlFile, isLoadingADL]);
 
   // Also directly update formData when adlFile loads (backup mechanism)
@@ -522,10 +492,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       const formIsEmpty = !formData.history_narrative && !formData.history_specific_enquiry && !formData.history_drug_intake;
       
       if (hasData && formIsEmpty) {
-        console.log('[EditADL] Direct population - form was empty but adlFile has data, repopulating...', {
-          adlFileHistoryNarrative: adlFile.history_narrative,
-          initialFormDataHistoryNarrative: initialFormData.history_narrative
-        });
+        
         setFormData(initialFormData);
       }
     }
@@ -540,7 +507,6 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   };
 
   const handleSubmit = async (e) => {
-    debugger
     e.preventDefault();
     try {
       // Convert array fields to JSON strings for storage
@@ -608,8 +574,57 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   // Render form content - reusable for both embedded and full page modes
   const renderFormContent = () => (
     <>
-      {/* History of Present Illness */}
+
+     {/* Informant Section */}
       <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+            <div className="p-6">
+              {/* Patient Information */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Patient Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <Input
+                          label="Date"
+                          name="date"
+                    value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Patient Name"
+                    value={patient?.name || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Age"
+                    value={patient?.age || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Sex"
+                    value={patient?.sex || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                  <Input
+                    label="Psy. No."
+                    value={patient?.psy_no || ''}
+                                onChange={handleChange}
+                    disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              />
+                        </div>
+                      </div>
+
+                    </div>
+          </Card>
+      {/* History of Present Illness */}
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('history')}
@@ -701,7 +716,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Informants */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('informants')}
@@ -797,7 +812,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Complaints and Duration */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('complaints')}
@@ -950,7 +965,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Past History - Detailed */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('pastHistory')}
@@ -1033,7 +1048,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Family History - Detailed */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('familyHistory')}
@@ -1282,7 +1297,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Home Situation and Early Development */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('homeSituation')}
@@ -1460,7 +1475,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Education */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('education')}
@@ -1544,7 +1559,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Occupation */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('occupation')}
@@ -1667,7 +1682,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Sexual History */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('sexual')}
@@ -1865,7 +1880,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Religion */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('religion')}
@@ -1913,7 +1928,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Living Situation */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('living')}
@@ -2109,7 +2124,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Premorbid Personality */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('premorbid')}
@@ -2186,7 +2201,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Physical Examination */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('physical')}
@@ -2320,7 +2335,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Mental Status Examination */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('mse')}
@@ -2416,7 +2431,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Diagnostic Formulation */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('diagnostic')}
@@ -2468,7 +2483,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Final Assessment */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('final')}
@@ -2537,16 +2552,12 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       <div className="border border-gray-200 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
         <div className="p-4 border-b border-gray-300 bg-white/50">
           <h4 className="text-lg font-semibold text-gray-900">
-            {adlFile ? `Edit ADL File${adlFile.adl_no ? ` - ${adlFile.adl_no}` : ''}` : 'Create ADL File'}
+            {adlFile ? `Edit Deatail Work-Up File${adlFile.adl_no ? ` - ${adlFile.adl_no}` : ''}` : 'Create Deatail Work-Up File'}
           </h4>
         </div>
         <div className="max-h-[800px] overflow-y-auto p-6">
-          <form onSubmit={handleSubmit}>
-            {/* Render all form sections - extract from full page form structure */}
-            {/* We'll reference the form content from the full page return below */}
-            {/* The full page form has all sections starting from line 960 */}
-            {/* For embedded mode, we need to show all sections inline */}
-            {/* Extract all sections from the full page form and include them here */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Render all form sections */}
             {renderFormContent()}
             
             {/* Submit Button for embedded mode */}
@@ -2555,10 +2566,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 type="submit"
                 variant="primary"
                 disabled={isUpdating || isCreating}
-                className="flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30 gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (adlFile ? 'Update ADL File' : 'Create ADL File')}
+                {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
               </Button>
             </div>
           </form>
@@ -2588,30 +2599,41 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-teal-50">
-      <div className="w-full px-6 py-8 space-y-8">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/30 to-indigo-100/40 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit ADL File</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit ADL File</h1>
             {patient && (
-              <p className="text-gray-600 mt-1">
-                {patient.name} - {patient.cr_no || 'N/A'}
+                <p className="text-gray-600 text-lg">
+                  <span className="font-semibold">{patient.name}</span>
+                  {patient.cr_no && <span className="text-gray-500"> - CR No: {patient.cr_no}</span>}
               </p>
             )}
           </div>
           <Button
             onClick={() => navigate(-1)}
             variant="outline"
-            className="flex items-center gap-2"
+              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 hover:border-gray-400 transition-colors"
           >
             <FiChevronDown className="w-4 h-4 rotate-90" />
             Back
           </Button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* History of Present Illness */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('history')}
@@ -2703,7 +2725,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Informants */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('informants')}
@@ -2799,7 +2821,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Complaints and Duration */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('complaints')}
@@ -2952,7 +2974,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Past History - Detailed */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('pastHistory')}
@@ -3035,7 +3057,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Family History - Detailed */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('familyHistory')}
@@ -3284,7 +3306,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Home Situation and Early Development */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('homeSituation')}
@@ -3462,7 +3484,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Education */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('education')}
@@ -3546,7 +3568,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Occupation */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('occupation')}
@@ -3669,7 +3691,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Sexual History */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('sexual')}
@@ -3867,7 +3889,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Religion & Living Situation - Combined for brevity */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('religion')}
@@ -3914,7 +3936,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             )}
           </Card>
 
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('living')}
@@ -4110,7 +4132,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Premorbid Personality */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('premorbid')}
@@ -4187,7 +4209,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Physical Examination */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('physical')}
@@ -4321,7 +4343,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Mental Status Examination */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('mse')}
@@ -4417,7 +4439,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Diagnostic Formulation */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('diagnostic')}
@@ -4469,7 +4491,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Final Assessment */}
-          <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
               className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
               onClick={() => toggleCard('final')}
@@ -4521,23 +4543,30 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-4 mt-8">
+          <div className="relative mt-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-6 lg:p-8 shadow-2xl border border-white/30">
+              <div className="flex flex-col sm:flex-row justify-end gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate(-1)}
+                  className="px-6 lg:px-8 py-3 bg-white/60 backdrop-blur-md border border-white/30 hover:bg-white/80 hover:border-gray-300/50 text-gray-800 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
             >
+                  <FiX className="mr-2" />
               Cancel
             </Button>
             <Button
               type="submit"
               variant="primary"
               disabled={isUpdating}
-              className="flex items-center gap-2"
+                  className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
             >
               <FiSave className="w-4 h-4" />
-              {isUpdating ? 'Updating...' : 'Update ADL File'}
+                  {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
             </Button>
+              </div>
+            </div>
           </div>
         </form>
       </div>

@@ -48,11 +48,11 @@ const query = async (text, params = []) => {
         rows: result.rowCount 
       });
     } else {
-      console.log('Query executed successfully', { 
-        duration: `${duration}ms`, 
-        rows: result.rowCount,
-        command: result.command 
-      });
+    console.log('Query executed successfully', { 
+      duration: `${duration}ms`, 
+      rows: result.rowCount,
+      command: result.command 
+    });
     }
     return result;
   } catch (error) {

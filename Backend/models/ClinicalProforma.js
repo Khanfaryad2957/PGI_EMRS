@@ -1898,6 +1898,7 @@ class ClinicalProforma {
 
       // Define fields that should be integers (to handle empty strings)
       const integerFields = ['assigned_doctor']; // Add any other integer fields if needed
+      const dateFields = ['visit_date', 'workup_appointment']; // Date fields that should not be encrypted
       
       // CRITICAL: Remove fields that should never be updated
       // These fields are set during creation and should remain constant
@@ -1913,6 +1914,14 @@ class ClinicalProforma {
                             (typeof value === 'string' ? value : JSON.stringify(value || []));
             updates.push(`${key} = $${paramCount}::jsonb`);
             values.push(jsonValue);
+          } else if (dateFields.includes(key)) {
+            // Handle date fields - convert empty strings to null, never encrypt
+            let sanitizedDate = value;
+            if (value === '' || (typeof value === 'string' && value.trim() === '')) {
+              sanitizedDate = null;
+            }
+            updates.push(`${key} = $${paramCount}`);
+            values.push(sanitizedDate);
           } else {
             // Sanitize value: convert empty strings to null to prevent PostgreSQL type errors
             // PostgreSQL doesn't accept empty strings for integer/numeric fields
@@ -1932,8 +1941,8 @@ class ClinicalProforma {
             }
             
             updates.push(`${key} = $${paramCount}`);
-            // Encrypt sensitive fields before saving
-            if (encryptionFields.clinicalProforma.includes(key)) {
+            // Encrypt sensitive fields before saving (but never encrypt date or integer fields)
+            if (encryptionFields.clinicalProforma.includes(key) && !dateFields.includes(key) && !integerFields.includes(key)) {
               values.push(encrypt(sanitizedValue));
             } else {
               values.push(sanitizedValue);

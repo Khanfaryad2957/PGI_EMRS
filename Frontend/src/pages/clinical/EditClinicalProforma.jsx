@@ -6,9 +6,10 @@ import {
   useUpdateClinicalProformaMutation,
   useGetClinicalOptionsQuery,
   useAddClinicalOptionMutation,
-  useDeleteClinicalOptionMutation
+  useDeleteClinicalOptionMutation,
+  useGetAllClinicalProformasQuery
 } from '../../features/clinical/clinicalApiSlice';
-import { useGetADLFileByIdQuery, useUpdateADLFileMutation } from '../../features/adl/adlApiSlice';
+import { useGetADLFileByIdQuery, useUpdateADLFileMutation,useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { CLINICAL_PROFORMA_FORM, VISIT_TYPES, DOCTOR_DECISION, CASE_SEVERITY } from '../../utils/constants';
@@ -20,347 +21,354 @@ import Textarea from '../../components/Textarea';
 import Button from '../../components/Button';
 import { FiArrowLeft, FiAlertCircle, FiSave, FiHeart, FiActivity, FiUser, FiClipboard, FiList, FiCheckSquare, FiFileText, FiX, FiPlus, FiChevronDown, FiChevronUp, FiLoader } from 'react-icons/fi';
 import icd11Codes from '../../assets/ICD11_Codes.json';
-
-
+import { useUpdatePrescriptionMutation,useCreatePrescriptionMutation } from '../../features/prescriptions/prescriptionApiSlice';
+import PrescriptionEdit from '../PrescribeMedication/PrescriptionEdit';
+import EditADL from '../adl/EditADL';
 import DatePicker from '../../components/CustomDatePicker';
+import { IconInput } from '../../components/IconInput';
+import { CheckboxGroup } from '../../components/CheckboxGroup';
+import { ICD11CodeSelector } from '../../components/ICD11CodeSelector';
 
-const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
-  // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
-  const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
 
-  return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-        {icon && <span className="text-primary-600">{icon}</span>}
-        {label}
-        {loading && (
-          <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
-        )}
-      </label>
-      <div className="relative">
-        {icon && (
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-            <span className="text-gray-500">{icon}</span>
-          </div>
-        )}
-        <input
-          {...inputProps}
-          className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
-        />
-      </div>
-      {error && (
-        <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
-          <FiX className="w-3 h-3" />
-          {error}
-        </p>
-      )}
-    </div>
-  );
-};
-// CheckboxGroup Component
-const CheckboxGroup = ({ label, name, value = [], onChange, options = [], rightInlineExtra = null }) => {
-  const [localOptions, setLocalOptions] = useState(options);
-  const [showAdd, setShowAdd] = useState(false);
-  const [customOption, setCustomOption] = useState('');
-  const { data: remoteOptions } = useGetClinicalOptionsQuery(name);
-  const [addOption] = useAddClinicalOptionMutation();
-  const [deleteOption] = useDeleteClinicalOptionMutation();
 
-  const iconByGroup = {
-    mood: <FiHeart className="w-6 h-6 text-rose-600" />,
-    behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
-    speech: <FiUser className="w-6 h-6 text-sky-600" />,
-    thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
-    perception: <FiList className="w-6 h-6 text-cyan-600" />,
-    somatic: <FiActivity className="w-6 h-6 text-emerald-600" />,
-    bio_functions: <FiCheckSquare className="w-6 h-6 text-emerald-600" />,
-    adjustment: <FiList className="w-6 h-6 text-amber-600" />,
-    cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
-    fits: <FiActivity className="w-6 h-6 text-red-600" />,
-    sexual_problem: <FiHeart className="w-6 h-6 text-pink-600" />,
-    substance_use: <FiList className="w-6 h-6 text-teal-600" />,
-    associated_medical_surgical: <FiFileText className="w-6 h-6 text-indigo-600" />,
-    mse_behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
-    mse_affect: <FiHeart className="w-6 h-6 text-rose-600" />,
-    mse_thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
-    mse_perception: <FiList className="w-6 h-6 text-cyan-600" />,
-    mse_cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
-  };
 
-  useEffect(() => {
-    setLocalOptions(Array.from(new Set([...(remoteOptions || []), ...(options || [])])));
-  }, [remoteOptions, options]);
+// const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
+//   // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
+//   const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
 
-  const toggle = (opt) => {
-    const exists = value.includes(opt);
-    const next = exists ? value.filter(v => v !== opt) : [...value, opt];
-    onChange({ target: { name, value: next } });
-  };
+//   return (
+//     <div className="space-y-2">
+//       <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+//         {icon && <span className="text-primary-600">{icon}</span>}
+//         {label}
+//         {loading && (
+//           <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
+//         )}
+//       </label>
+//       <div className="relative">
+//         {icon && (
+//           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+//             <span className="text-gray-500">{icon}</span>
+//           </div>
+//         )}
+//         <input
+//           {...inputProps}
+//           className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
+//         />
+//       </div>
+//       {error && (
+//         <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
+//           <FiX className="w-3 h-3" />
+//           {error}
+//         </p>
+//       )}
+//     </div>
+//   );
+// };
+// // CheckboxGroup Component
+// const CheckboxGroup = ({ label, name, value = [], onChange, options = [], rightInlineExtra = null }) => {
+//   const [localOptions, setLocalOptions] = useState(options);
+//   const [showAdd, setShowAdd] = useState(false);
+//   const [customOption, setCustomOption] = useState('');
+//   const { data: remoteOptions } = useGetClinicalOptionsQuery(name);
+//   const [addOption] = useAddClinicalOptionMutation();
+//   const [deleteOption] = useDeleteClinicalOptionMutation();
 
-  const handleDelete = (opt) => {
-    setLocalOptions((prev) => prev.filter((o) => o !== opt));
-    if (value.includes(opt)) {
-      const next = value.filter((v) => v !== opt);
-      onChange({ target: { name, value: next } });
-    }
-    deleteOption({ group: name, label: opt }).catch(() => { });
-  };
+//   const iconByGroup = {
+//     mood: <FiHeart className="w-6 h-6 text-rose-600" />,
+//     behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
+//     speech: <FiUser className="w-6 h-6 text-sky-600" />,
+//     thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
+//     perception: <FiList className="w-6 h-6 text-cyan-600" />,
+//     somatic: <FiActivity className="w-6 h-6 text-emerald-600" />,
+//     bio_functions: <FiCheckSquare className="w-6 h-6 text-emerald-600" />,
+//     adjustment: <FiList className="w-6 h-6 text-amber-600" />,
+//     cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
+//     fits: <FiActivity className="w-6 h-6 text-red-600" />,
+//     sexual_problem: <FiHeart className="w-6 h-6 text-pink-600" />,
+//     substance_use: <FiList className="w-6 h-6 text-teal-600" />,
+//     associated_medical_surgical: <FiFileText className="w-6 h-6 text-indigo-600" />,
+//     mse_behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
+//     mse_affect: <FiHeart className="w-6 h-6 text-rose-600" />,
+//     mse_thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
+//     mse_perception: <FiList className="w-6 h-6 text-cyan-600" />,
+//     mse_cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
+//   };
 
-  const handleAddClick = () => setShowAdd(true);
-  const handleCancelAdd = () => {
-    setShowAdd(false);
-    setCustomOption('');
-  };
+//   useEffect(() => {
+//     setLocalOptions(Array.from(new Set([...(remoteOptions || []), ...(options || [])])));
+//   }, [remoteOptions, options]);
 
-  const handleSaveAdd = () => {
-    const opt = customOption.trim();
-    if (!opt) {
-      setShowAdd(false);
-      return;
-    }
-    setLocalOptions((prev) => (prev.includes(opt) ? prev : [...prev, opt]));
-    const next = value.includes(opt) ? value : [...value, opt];
-    onChange({ target: { name, value: next } });
-    setCustomOption('');
-    setShowAdd(false);
-    addOption({ group: name, label: opt }).catch(() => { });
-  };
+//   const toggle = (opt) => {
+//     const exists = value.includes(opt);
+//     const next = exists ? value.filter(v => v !== opt) : [...value, opt];
+//     onChange({ target: { name, value: next } });
+//   };
 
-  return (
-    <div className="space-y-2">
-      {label && (
-        <div className="flex items-center gap-3 text-base font-semibold text-gray-800">
-          <span>{iconByGroup[name] || <FiList className="w-6 h-6 text-gray-500" />}</span>
-          <span>{label}</span>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
-        {localOptions?.map((opt) => (
-          <div key={opt} className="relative inline-flex items-center group">
-            <button
-              type="button"
-              onClick={() => handleDelete(opt)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-600"
-              aria-label={`Remove ${opt}`}
-            >
-              <FiX className="w-3 h-3" />
-            </button>
-            <label
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors duration-150 cursor-pointer
-                ${value.includes(opt)
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                  : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
-                }`}
-            >
-              <input
-                type="checkbox"
-                checked={value.includes(opt)}
-                onChange={() => toggle(opt)}
-                className="h-4 w-4 text-primary-600 rounded"
-              />
-              <span>{opt}</span>
-            </label>
-          </div>
-        ))}
-        {rightInlineExtra && (
-          <div className="inline-flex items-center">
-            {rightInlineExtra}
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          {showAdd && (
-            <Input
-              placeholder="Enter option name"
-              value={customOption}
-              onChange={(e) => setCustomOption(e.target.value)}
-              className="max-w-xs"
-            />
-          )}
-          {showAdd ? (
-            <>
-              <Button
-                type="button"
-                onClick={handleCancelAdd}
-                className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-red-600 hover:to-red-700 hover:shadow-xl hover:shadow-red-500/40"
-              >
-                <FiX className="w-4 h-4" /> Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSaveAdd}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
-              >
-                <FiSave className="w-4 h-4" /> Save
-              </Button>
-            </>
-          ) : (
-            <Button
-              type="button"
-              onClick={handleAddClick}
-              className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
-            >
-              <FiPlus className="w-4 h-4" /> Add
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+//   const handleDelete = (opt) => {
+//     setLocalOptions((prev) => prev.filter((o) => o !== opt));
+//     if (value.includes(opt)) {
+//       const next = value.filter((v) => v !== opt);
+//       onChange({ target: { name, value: next } });
+//     }
+//     deleteOption({ group: name, label: opt }).catch(() => { });
+//   };
 
-// ICD-11 Code Selector Component
-const ICD11CodeSelector = ({ value, onChange, error }) => {
-  const [selectedPath, setSelectedPath] = useState([]);
-  const [selectedCode, setSelectedCode] = useState(value || '');
+//   const handleAddClick = () => setShowAdd(true);
+//   const handleCancelAdd = () => {
+//     setShowAdd(false);
+//     setCustomOption('');
+//   };
 
-  const getChildren = (levelIndex, parentItem) => {
-    if (levelIndex === 0) {
-      return icd11Codes.filter(item => item.level === 0);
-    }
-    if (!parentItem && levelIndex > 0) return [];
-    const level = levelIndex;
-    return icd11Codes.filter(item => {
-      if (item.level !== level) return false;
-      if (level === 1) {
-        const level0Code = selectedPath[0]?.code || '';
-        return item.parent_code === level0Code;
-      } else if (level === 2) {
-        const level0Code = selectedPath[0]?.code || '';
-        const level1Item = selectedPath[1];
-        const level1Code = level1Item?.code || '';
-        if (level1Code && item.parent_code === level1Code) return true;
-        if (item.parent_code === level0Code) return true;
-        if (item.parent_code === '' && level0Code && item.code) {
-          if (level0Code === '06' && item.code.startsWith('6')) return true;
-          if (item.code.startsWith(level0Code)) return true;
-        }
-        return false;
-      } else {
-        const prevLevelItem = selectedPath[levelIndex - 1];
-        if (!prevLevelItem) return false;
-        const prevLevelCode = prevLevelItem.code || '';
-        return item.parent_code === prevLevelCode;
-      }
-    });
-  };
+//   const handleSaveAdd = () => {
+//     const opt = customOption.trim();
+//     if (!opt) {
+//       setShowAdd(false);
+//       return;
+//     }
+//     setLocalOptions((prev) => (prev.includes(opt) ? prev : [...prev, opt]));
+//     const next = value.includes(opt) ? value : [...value, opt];
+//     onChange({ target: { name, value: next } });
+//     setCustomOption('');
+//     setShowAdd(false);
+//     addOption({ group: name, label: opt }).catch(() => { });
+//   };
 
-  useEffect(() => {
-    if (value && !selectedPath.length && value !== selectedCode) {
-      const codeItem = icd11Codes.find(item => item.code === value);
-      if (codeItem) {
-        const path = [];
-        let current = codeItem;
-        while (current) {
-          path.unshift(current);
-          let parent = null;
-          if (current.parent_code) {
-            parent = icd11Codes.find(item => item.code === current.parent_code);
-            if (!parent && current.level > 0) {
-              if (current.level === 1) {
-                parent = icd11Codes.find(item => item.level === 0 && item.code === current.parent_code);
-              } else if (current.level === 2) {
-                parent = icd11Codes.find(item =>
-                  (item.level === 1 && item.parent_code === current.parent_code) ||
-                  (item.level === 0 && item.code === current.parent_code)
-                );
-              } else {
-                parent = icd11Codes.find(item => item.code === current.parent_code);
-              }
-            }
-          }
-          current = parent;
-        }
-        if (path.length > 0) {
-          setSelectedPath(path);
-          setSelectedCode(value);
-        }
-      }
-    }
-  }, [value]);
+//   return (
+//     <div className="space-y-2">
+//       {label && (
+//         <div className="flex items-center gap-3 text-base font-semibold text-gray-800">
+//           <span>{iconByGroup[name] || <FiList className="w-6 h-6 text-gray-500" />}</span>
+//           <span>{label}</span>
+//         </div>
+//       )}
+//       <div className="flex flex-wrap items-center gap-3">
+//         {localOptions?.map((opt) => (
+//           <div key={opt} className="relative inline-flex items-center group">
+//             <button
+//               type="button"
+//               onClick={() => handleDelete(opt)}
+//               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-600"
+//               aria-label={`Remove ${opt}`}
+//             >
+//               <FiX className="w-3 h-3" />
+//             </button>
+//             <label
+//               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors duration-150 cursor-pointer
+//                 ${value.includes(opt)
+//                   ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+//                   : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
+//                 }`}
+//             >
+//               <input
+//                 type="checkbox"
+//                 checked={value.includes(opt)}
+//                 onChange={() => toggle(opt)}
+//                 className="h-4 w-4 text-primary-600 rounded"
+//               />
+//               <span>{opt}</span>
+//             </label>
+//           </div>
+//         ))}
+//         {rightInlineExtra && (
+//           <div className="inline-flex items-center">
+//             {rightInlineExtra}
+//           </div>
+//         )}
+//         <div className="flex items-center gap-2">
+//           {showAdd && (
+//             <Input
+//               placeholder="Enter option name"
+//               value={customOption}
+//               onChange={(e) => setCustomOption(e.target.value)}
+//               className="max-w-xs"
+//             />
+//           )}
+//           {showAdd ? (
+//             <>
+//               <Button
+//                 type="button"
+//                 onClick={handleCancelAdd}
+//                 className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-red-600 hover:to-red-700 hover:shadow-xl hover:shadow-red-500/40"
+//               >
+//                 <FiX className="w-4 h-4" /> Cancel
+//               </Button>
+//               <Button
+//                 type="button"
+//                 onClick={handleSaveAdd}
+//                 className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
+//               >
+//                 <FiSave className="w-4 h-4" /> Save
+//               </Button>
+//             </>
+//           ) : (
+//             <Button
+//               type="button"
+//               onClick={handleAddClick}
+//               className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
+//             >
+//               <FiPlus className="w-4 h-4" /> Add
+//             </Button>
+//           )}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
-  useEffect(() => {
-    if (value !== selectedCode) {
-      setSelectedCode(value || '');
-    }
-  }, [value]);
+// // ICD-11 Code Selector Component
+// const ICD11CodeSelector = ({ value, onChange, error }) => {
+//   const [selectedPath, setSelectedPath] = useState([]);
+//   const [selectedCode, setSelectedCode] = useState(value || '');
 
-  const handleLevelChange = (levelIndex, selectedItem) => {
-    const newPath = selectedPath.slice(0, levelIndex);
-    if (selectedItem) {
-      newPath[levelIndex] = selectedItem;
-    }
-    setSelectedPath(newPath);
-    let deepestCode = '';
-    for (let i = newPath.length - 1; i >= 0; i--) {
-      if (newPath[i]?.code) {
-        deepestCode = newPath[i].code;
-        break;
-      }
-    }
-    setSelectedCode(deepestCode);
-    onChange({ target: { name: 'icd_code', value: deepestCode } });
-  };
+//   const getChildren = (levelIndex, parentItem) => {
+//     if (levelIndex === 0) {
+//       return icd11Codes.filter(item => item.level === 0);
+//     }
+//     if (!parentItem && levelIndex > 0) return [];
+//     const level = levelIndex;
+//     return icd11Codes.filter(item => {
+//       if (item.level !== level) return false;
+//       if (level === 1) {
+//         const level0Code = selectedPath[0]?.code || '';
+//         return item.parent_code === level0Code;
+//       } else if (level === 2) {
+//         const level0Code = selectedPath[0]?.code || '';
+//         const level1Item = selectedPath[1];
+//         const level1Code = level1Item?.code || '';
+//         if (level1Code && item.parent_code === level1Code) return true;
+//         if (item.parent_code === level0Code) return true;
+//         if (item.parent_code === '' && level0Code && item.code) {
+//           if (level0Code === '06' && item.code.startsWith('6')) return true;
+//           if (item.code.startsWith(level0Code)) return true;
+//         }
+//         return false;
+//       } else {
+//         const prevLevelItem = selectedPath[levelIndex - 1];
+//         if (!prevLevelItem) return false;
+//         const prevLevelCode = prevLevelItem.code || '';
+//         return item.parent_code === prevLevelCode;
+//       }
+//     });
+//   };
 
-  const renderDropdown = (levelIndex) => {
-    const parentItem = levelIndex > 0 ? selectedPath[levelIndex - 1] : null;
-    const children = getChildren(levelIndex, parentItem);
-    if (children.length === 0 && levelIndex > 0) return null;
-    const selectedItem = selectedPath[levelIndex];
-    const labelText = levelIndex === 0 ? 'Category' :
-      levelIndex === 1 ? 'Subcategory' :
-        levelIndex === 2 ? 'Code Group' : 'Specific Code';
-    return (
-      <div key={levelIndex} className="flex-shrink-0 min-w-[200px]">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {labelText}
-        </label>
-        <Select
-          value={selectedItem ? JSON.stringify(selectedItem) : ''}
-          onChange={(e) => {
-            const item = e.target.value ? JSON.parse(e.target.value) : null;
-            handleLevelChange(levelIndex, item);
-          }}
-          options={[
-            { value: '', label: `Select ${labelText}` },
-            ...children?.map(item => ({
-              value: JSON.stringify(item),
-              label: `${item.code || '(Category)'} - ${item.title}`
-            }))
-          ]}
-          error={levelIndex === 0 && error}
-        />
-      </div>
-    );
-  };
+//   useEffect(() => {
+//     if (value && !selectedPath.length && value !== selectedCode) {
+//       const codeItem = icd11Codes.find(item => item.code === value);
+//       if (codeItem) {
+//         const path = [];
+//         let current = codeItem;
+//         while (current) {
+//           path.unshift(current);
+//           let parent = null;
+//           if (current.parent_code) {
+//             parent = icd11Codes.find(item => item.code === current.parent_code);
+//             if (!parent && current.level > 0) {
+//               if (current.level === 1) {
+//                 parent = icd11Codes.find(item => item.level === 0 && item.code === current.parent_code);
+//               } else if (current.level === 2) {
+//                 parent = icd11Codes.find(item =>
+//                   (item.level === 1 && item.parent_code === current.parent_code) ||
+//                   (item.level === 0 && item.code === current.parent_code)
+//                 );
+//               } else {
+//                 parent = icd11Codes.find(item => item.code === current.parent_code);
+//               }
+//             }
+//           }
+//           current = parent;
+//         }
+//         if (path.length > 0) {
+//           setSelectedPath(path);
+//           setSelectedCode(value);
+//         }
+//       }
+//     }
+//   }, [value]);
 
-  return (
-    <div className="space-y-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        ICD Code
-      </label>
-      <div className="flex flex-wrap items-end gap-4">
-        {renderDropdown(0)}
-        {selectedPath[0] && renderDropdown(1)}
-        {selectedPath[1] && renderDropdown(2)}
-        {selectedPath[2] && selectedPath[2].has_children && renderDropdown(3)}
-        {selectedPath[3] && selectedPath[3].has_children && renderDropdown(4)}
-        {selectedPath[4] && selectedPath[4].has_children && renderDropdown(5)}
-      </div>
-      {selectedCode && (
-        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
-            <strong>Selected ICD-11 Code:</strong> <span className="font-mono font-semibold">{selectedCode}</span>
-            {selectedPath[selectedPath.length - 1] && (
-              <span className="ml-2 text-blue-600">
-                - {selectedPath[selectedPath.length - 1].title}
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
+//   useEffect(() => {
+//     if (value !== selectedCode) {
+//       setSelectedCode(value || '');
+//     }
+//   }, [value]);
+
+//   const handleLevelChange = (levelIndex, selectedItem) => {
+//     const newPath = selectedPath.slice(0, levelIndex);
+//     if (selectedItem) {
+//       newPath[levelIndex] = selectedItem;
+//     }
+//     setSelectedPath(newPath);
+//     let deepestCode = '';
+//     for (let i = newPath.length - 1; i >= 0; i--) {
+//       if (newPath[i]?.code) {
+//         deepestCode = newPath[i].code;
+//         break;
+//       }
+//     }
+//     setSelectedCode(deepestCode);
+//     onChange({ target: { name: 'icd_code', value: deepestCode } });
+//   };
+
+//   const renderDropdown = (levelIndex) => {
+//     const parentItem = levelIndex > 0 ? selectedPath[levelIndex - 1] : null;
+//     const children = getChildren(levelIndex, parentItem);
+//     if (children.length === 0 && levelIndex > 0) return null;
+//     const selectedItem = selectedPath[levelIndex];
+//     const labelText = levelIndex === 0 ? 'Category' :
+//       levelIndex === 1 ? 'Subcategory' :
+//         levelIndex === 2 ? 'Code Group' : 'Specific Code';
+//     return (
+//       <div key={levelIndex} className="flex-shrink-0 min-w-[200px]">
+//         <label className="block text-sm font-medium text-gray-700 mb-1">
+//           {labelText}
+//         </label>
+//         <Select
+//           value={selectedItem ? JSON.stringify(selectedItem) : ''}
+//           onChange={(e) => {
+//             const item = e.target.value ? JSON.parse(e.target.value) : null;
+//             handleLevelChange(levelIndex, item);
+//           }}
+//           options={[
+//             { value: '', label: `Select ${labelText}` },
+//             ...children?.map(item => ({
+//               value: JSON.stringify(item),
+//               label: `${item.code || '(Category)'} - ${item.title}`
+//             }))
+//           ]}
+//           error={levelIndex === 0 && error}
+//         />
+//       </div>
+//     );
+//   };
+
+//   return (
+//     <div className="space-y-4">
+//       <label className="block text-sm font-medium text-gray-700 mb-1">
+//         ICD Code
+//       </label>
+//       <div className="flex flex-wrap items-end gap-4">
+//         {renderDropdown(0)}
+//         {selectedPath[0] && renderDropdown(1)}
+//         {selectedPath[1] && renderDropdown(2)}
+//         {selectedPath[2] && selectedPath[2].has_children && renderDropdown(3)}
+//         {selectedPath[3] && selectedPath[3].has_children && renderDropdown(4)}
+//         {selectedPath[4] && selectedPath[4].has_children && renderDropdown(5)}
+//       </div>
+//       {selectedCode && (
+//         <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+//           <p className="text-sm text-blue-800">
+//             <strong>Selected ICD-11 Code:</strong> <span className="font-mono font-semibold">{selectedCode}</span>
+//             {selectedPath[selectedPath.length - 1] && (
+//               <span className="ml-2 text-blue-600">
+//                 - {selectedPath[selectedPath.length - 1].title}
+//               </span>
+//             )}
+//           </p>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
 
 const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: propOnUpdate = null, onFormDataChange = null }) => {
   const { id } = useParams();
@@ -368,18 +376,31 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   const [searchParams] = useSearchParams();
   const returnTab = searchParams.get('returnTab');
   const returnPath = searchParams.get('returnPath');
+  const mode = searchParams.get('mode'); // 'create' or 'update' from URL
+  // const [updatePrescription, { isLoading: isUpdatingPrescription }] = useUpdatePrescriptionMutation();
+  const [createPrescriptions, { isLoading: isSavingPrescriptions }] = useCreatePrescriptionMutation();
 
-  // Fetch clinical proforma data only if id exists and no initialData prop provided
-  const {
-    data: proformaData,
-    isLoading: isLoadingProforma,
-    isError: isErrorProforma,
-    error: proformaError
-  } = useGetClinicalProformaByIdQuery(id, { skip: !id || !!propInitialData });
-
+  const { data:proformaData, isLoading, isFetching, refetch, error } = useGetAllClinicalProformasQuery({});
+  
+  
   // Use propInitialData if provided, otherwise use fetched data
-  const proforma = propInitialData ? null : (proformaData?.data?.proforma);
+  // const proforma = propInitialData ? null : (proformaData?.data?.proforma);
+ 
+  const proforma=proformaData?.data?.proformas?.find(p=>p.patient_id=== id)
+  console.log(proforma);
   const isComplexCase = proforma?.doctor_decision === 'complex_case' && proforma?.adl_file_id;
+  
+  // Determine if this is create or update mode
+  // Priority:
+  // 1. If mode parameter is explicitly set in URL, use it
+  // 2. If propInitialData has an id (embedded in PatientDetailsEdit with existing proforma) → Update
+  // 3. If id exists in URL and proforma exists → Update
+  // 4. Otherwise → Create
+  const isUpdateMode = mode === 'update' || 
+    (mode !== 'create' && (
+      (propInitialData?.id) || // Embedded mode with existing proforma
+      (id && proforma) // Standalone mode with existing proforma
+    ));
 
   // Fetch ADL file data if this is a complex case
   const {
@@ -406,8 +427,8 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
 
   // Update mutations
   const [updateProforma, { isLoading: isUpdating }] = useUpdateClinicalProformaMutation();
-  const [updateADLFile] = useUpdateADLFileMutation();
-
+  // const [updateADLFile] = useUpdateADLFileMutation();
+  const [createADLFile, { isLoading: isCreatingADLFile }] = useCreateADLFileMutation();
   // Helper functions
   const normalizeArrayField = (value) => {
     if (Array.isArray(value)) return value;
@@ -433,14 +454,7 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   const initialFormData = useMemo(() => {
     // If initialData prop is provided, use it (merge with defaults)
     if (propInitialData) {
-      console.log('[EditClinicalProforma] Preparing initialFormData from propInitialData:', {
-        hasId: !!propInitialData.id,
-        hasDiagnosis: !!propInitialData.diagnosis,
-        hasGpe: !!propInitialData.gpe,
-        hasPastHistory: !!propInitialData.past_history,
-        doctor_decision: propInitialData.doctor_decision,
-        case_severity: propInitialData.case_severity
-      });
+      
       
       // Helper to get value, preserving null/undefined but defaulting empty strings
       const getValue = (val, fallback = '') => {
@@ -658,6 +672,8 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   // Card expand/collapse state
   const [expandedCards, setExpandedCards] = useState({
     clinicalProforma: true, // Default to expanded
+    adlfile: true,
+    prescription: true,
   });
 
   const toggleCard = (cardName) => {
@@ -696,16 +712,7 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
         (keyFieldsChanged && prevData.patient_id === initialFormData.patient_id);
 
       if (shouldUpdate) {
-        console.log('[EditClinicalProforma] Updating form data from initialFormData:', {
-          prevData: prevData?.proformaId || prevData?.patient_id,
-          newData: propInitialData?.id || initialFormData.patient_id,
-          reason: !prevData ? 'first load' : 
-                  patientIdChanged ? 'patient changed' :
-                  proformaIdChanged ? 'proforma changed' :
-                  propDataChanged ? 'propInitialData changed' : 'key fields changed',
-          hasPropData: !!propInitialData,
-          propDataId: propInitialData?.id
-        });
+        
         setFormData(initialFormData);
         // Notify parent of initial form data
         if (onFormDataChange) {
@@ -716,14 +723,7 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
           proformaId: propInitialData?.id || null
         };
       } else {
-        console.log('[EditClinicalProforma] Skipping form data update:', {
-          prevData: prevData?.proformaId || prevData?.patient_id,
-          newData: propInitialData?.id || initialFormData.patient_id,
-          patientIdChanged,
-          proformaIdChanged,
-          propDataChanged,
-          keyFieldsChanged
-        });
+        
       }
     }
   }, [initialFormData, onFormDataChange, propInitialData?.id]);
@@ -747,20 +747,23 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
     }
   };
 
-  const handleSubmit = async (e) => {
+ 
+  const handleSubmitClinicalProforma = async (e) => {
+    debugger
     e.preventDefault();
-
+  
     const newErrors = {};
     if (!formData.patient_id) newErrors.patient_id = 'Patient is required';
     if (!formData.visit_date) newErrors.visit_date = 'Visit date is required';
-
+  
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-
+  
     try {
-      // If using initialData prop and onUpdate callback is provided, use it
+      const join = (arr) => Array.isArray(arr) ? arr.join(", ") : arr;
+  
+      // CASE 1: Using parent-provided update through props  
       if (propInitialData && propOnUpdate) {
-        const join = (arr) => Array.isArray(arr) ? arr.join(', ') : arr;
         const updateData = {
           patient_id: formData.patient_id,
           visit_date: formData.visit_date,
@@ -805,21 +808,25 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
           doctor_decision: formData.doctor_decision,
           case_severity: formData.case_severity,
         };
-        await propOnUpdate(updateData);
-        toast.success('Clinical proforma updated successfully!');
+  
+        try {
+          await propOnUpdate(updateData);
+          toast.success("Clinical proforma updated successfully!");
+        } catch (err) {
+          toast.error(err?.data?.message || "Failed to update proforma");
+        }
+  
         return;
       }
-
-      // If no proforma exists, show error (can't update non-existent record)
-      if (!proforma || !id) {
-        toast.error('Cannot update: Clinical proforma not found. Please create a new one first.');
+  
+      // CASE 2: Editing an existing proforma  
+      if (!proforma.id || !id) {
+        toast.error("Cannot update: Clinical proforma not found. Please create a new one first.");
         return;
       }
-
-      const join = (arr) => Array.isArray(arr) ? arr.join(', ') : arr;
-
+  
       const updateData = {
-        id: id,
+        id: proforma.id,
         patient_id: formData.patient_id,
         visit_date: formData.visit_date,
         visit_type: formData.visit_type,
@@ -863,21 +870,129 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
         doctor_decision: formData.doctor_decision,
         case_severity: formData.case_severity,
       };
-
-      await updateProforma(updateData).unwrap();
-      toast.success('Clinical proforma updated successfully!');
-
-      if (returnPath) {
-        navigate(decodeURIComponent(returnPath));
-      } else if (returnTab) {
-        navigate(`/clinical-today-patients${returnTab === 'existing' ? '?tab=existing' : ''}`);
-      } else {
-        navigate(`/clinical/${id}`);
+  
+      // ==============================
+      // TRY–CATCH #1: Update Proforma
+      // ==============================
+      try {
+        await updateProforma(updateData).unwrap();
+        toast.success("Clinical proforma updated successfully!");
+      } catch (err) {
+        toast.error(err?.data?.message || "Failed to update clinical proforma");
+        return; // Stop further API calls
       }
+  
+      // ============================================
+      // TRY–CATCH #2: Create ADL if complex decision
+      // ============================================
+      if (formData.doctor_decision === "complex_case") {
+        try {
+          await createADLFile({
+            patient_id: patient.id,
+            clinical_proforma_id: proforma.id,
+          }).unwrap();
+          toast.success("ADL file created");
+        } catch (err) {
+          toast.error(err?.data?.message || "Failed to create ADL file");
+        }
+      }
+  
+      // ======================================
+      // TRY–CATCH #3: Create Bulk Prescriptions
+      // ======================================
+      if (patient.id && proforma.id) {
+        try {
+          await createPrescriptions({
+            patient_id: patient.id,
+            clinical_proforma_id: proforma.id,
+          }).unwrap();
+          toast.success("Prescriptions updated");
+        } catch (err) {
+          toast.error(err?.data?.message || "Failed to create prescriptions");
+        }
+      }
+  
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to update clinical proforma');
+      toast.error("Unexpected error occurred");
     }
   };
+  
+  
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   if (!validate()) {
+  //     toast.error('Please fix the errors in the form');
+  //     return;
+  //   }
+
+  //   try {
+
+  //     // Format prescriptions: filter out empty rows and create formatted text
+  //     const validPrescriptions = prescriptions.filter(p =>
+  //       p.medicine || p.dosage || p.frequency || p.details || p.when || p.duration || p.qty || p.notes
+  //     );
+
+  //     // Create prescription text from valid prescriptions
+  //     const prescriptionText = validPrescriptions.length > 0
+  //       ? validPrescriptions
+  //         ?.map((p, idx) =>
+  //           `${idx + 1}. ${p.medicine || ''} | ${p.dosage || ''} | ${p.when || ''} | ${p.frequency || ''} | ${p.duration || ''} | ${p.qty || ''} | ${p.details || ''} | ${p.notes || ''}`
+  //         )
+  //         .join('\n')
+  //       : (formData.treatment_prescribed || '');
+
+  //     // Prepare final data with all fields including prescription
+  //     const finalData = prepareFormData(3); // Get all data from step 3 (most complete)
+  //     const submitData = {
+  //       ...finalData,
+  //       treatment_prescribed: prescriptionText,
+  //       prescriptions: validPrescriptions, // Include structured prescription data
+  //     };
+
+  //     // If onUpdate callback is provided (edit mode), use it instead of create
+  //     if (onUpdate && proformaId) {
+  //       await onUpdate({ id: proformaId, ...submitData });
+  //       return;
+  //     }
+
+  //     // Create new proforma (this shouldn't happen if step-wise saving works, but handle it as fallback)
+  //     const result = await createProforma(submitData).unwrap();
+
+  //     // Clear saved prescription from localStorage after successful submission
+  //     try {
+  //       const storedPrescriptions = JSON.parse(localStorage.getItem('patient_prescriptions') || '{}');
+  //       if (storedPrescriptions[formData.patient_id]) {
+  //         delete storedPrescriptions[formData.patient_id];
+  //         localStorage.setItem('patient_prescriptions', JSON.stringify(storedPrescriptions));
+  //       }
+  //     } catch (e) {
+  //       // Ignore localStorage errors
+  //     }
+
+  //     toast.success('Clinical proforma created successfully!');
+
+  //     // Handle ADL file creation in final submit
+  //     const proforma = result.data?.proforma || result.data?.clinical;
+  //     // Backend returns: { success: true, data: { adlFile: ... } }
+  //     const adlFile = result.data?.adlFile || result.data?.adl_file || result.data?.adl;
+  //     if (adlFile && (adlFile.adl_no || adlFile.created)) {
+  //       toast.info(`ADL File created: ${adlFile.adl_no || 'ADL-XXXXXX'}`);
+  //     }
+
+  //     // Navigate to proforma details, or back to Today Patients if returnTab exists
+  //     if (returnTab) {
+  //       navigate(`/clinical-today-patients${returnTab === 'existing' ? '?tab=existing' : ''}`);
+  //     } else {
+  //       navigate(`/clinical/${proforma?.id || savedProformaId}`);
+  //     }
+  //   } catch (err) {
+  //     toast.error(err?.data?.message || 'Failed to save clinical proforma');
+  //   }
+  // };
+
+
+
 
   // Loading state - only show if fetching by ID (not when using initialData prop)
   if (!propInitialData && (isLoadingProforma || (isComplexCase && isLoadingADL))) {
@@ -948,7 +1063,8 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   const isEmbedded = !!propInitialData;
 
   const formContent = (
-    <form onSubmit={handleSubmit}>
+    <>
+    <form onSubmit={handleSubmitClinicalProforma}>
       <Card className={isEmbedded ? "shadow-lg border-0 bg-white" : "mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm"}>
         {/* Collapsible Header */}
         <div
@@ -1291,16 +1407,21 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
                 type="submit"
                 loading={isUpdating}
                 disabled={isUpdating}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-4 py-2 rounded-md transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30"
               >
                 <FiSave className="w-4 h-4" />
-                {isUpdating ? 'Updating...' : 'Update Clinical Proforma'}
+                {isUpdating 
+                  ? 'Updating...' 
+                  : isUpdateMode 
+                    ? 'Update Walk-in Clinical Proforma' 
+                    : 'Create Walk-in Clinical Proforma'}
               </Button>
             </div>
           </div>
         )}
       </Card>
     </form>
+    </>
   );
 
   // If embedded, return just the form without full page wrapper
