@@ -942,6 +942,31 @@ class ADLFile {
         );
       }
 
+      // Check if an ADL file already exists for this patient_id
+      const patientIdInt = adlData.patient_id ? parseInt(adlData.patient_id, 10) : null;
+      if (patientIdInt) {
+        const existingFiles = await ADLFile.findByPatientId(patientIdInt);
+        if (existingFiles && existingFiles.length > 0) {
+          // Use the most recent ADL file (first in the sorted list)
+          const existingFile = existingFiles[0];
+          console.log(`[ADLFile.create] ⚠️ ADL file with id ${existingFile.id} already exists for patient_id ${patientIdInt}, updating instead of creating`);
+          
+          // Update the existing file with new data
+          // Exclude patient_id, created_by, and adl_no from update (keep original values)
+          const updateData = { ...adlData };
+          delete updateData.patient_id;
+          delete updateData.created_by;
+          delete updateData.adl_no;
+          
+          // Update the existing file
+          await existingFile.update(updateData);
+          
+          // Fetch the updated file with all joins
+          const updatedFile = await ADLFile.findById(existingFile.id);
+          return updatedFile;
+        }
+      }
+
       const {
         patient_id, adl_no, created_by, clinical_proforma_id,
         file_status = 'created', file_created_date = new Date(), total_visits = 1,
@@ -1005,8 +1030,7 @@ class ADLFile {
         provisional_diagnosis, treatment_plan, consultant_comments
       } = adlData;
 
-      // Ensure integer IDs are properly parsed
-      const patientIdInt = patient_id ? parseInt(patient_id, 10) : null;
+      // Ensure integer IDs are properly parsed (patientIdInt already defined above)
       const createdByIdInt = created_by ? parseInt(created_by, 10) : null;
       const clinicalProformaIdInt = clinical_proforma_id ? parseInt(clinical_proforma_id, 10) : null;
 
@@ -1539,6 +1563,7 @@ class ADLFile {
         'history_narrative', 'history_specific_enquiry', 'history_drug_intake',
         'history_treatment_place', 'history_treatment_dates', 'history_treatment_drugs',
         'history_treatment_response', 'informants', 'complaints_patient', 'complaints_informant',
+        'onset_duration', 'precipitating_factor', 'course',
         'past_history_medical', 'past_history_psychiatric_dates', 'past_history_psychiatric_diagnosis',
         'past_history_psychiatric_treatment', 'past_history_psychiatric_interim',
         'past_history_psychiatric_recovery', 'family_history_father_age',
