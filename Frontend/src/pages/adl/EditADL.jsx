@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useGetADLFileByIdQuery, useUpdateADLFileMutation, useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
@@ -13,7 +13,7 @@ import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText, FiCalendar
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DatePicker from '../../components/CustomDatePicker';
 
-const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = null, clinicalProformaId: propClinicalProformaId = null }) => {
+const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = null, clinicalProformaId: propClinicalProformaId = null, readOnly = false }) => {
   const navigate = useNavigate();
   const { id: urlId } = useParams();
   const [searchParams] = useSearchParams();
@@ -45,6 +45,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
   // Card expand/collapse state
   const [expandedCards, setExpandedCards] = useState({
+    mainWrapper: true, // Main wrapper card state
     history: true,
     informants: true,
     complaints: true,
@@ -63,9 +64,11 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
     final: true,
   });
 
-  const toggleCard = (cardName) => {
+  const toggleCard = useCallback((cardName) => {
+    // Allow mainWrapper to toggle even in read-only mode
+    if (readOnly && cardName !== 'mainWrapper') return; // Prevent card toggling in read-only mode (except main wrapper)
     setExpandedCards(prev => ({ ...prev, [cardName]: !prev[cardName] }));
-  };
+  }, [readOnly]);
 
   // Prepare initial form data from existing ADL file
   const initialFormData = useMemo(() => {
@@ -492,6 +495,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
     // Note: If id exists but adlFile is not loaded yet, wait for it to load
   }, [initialFormData, id, adlFile, isLoadingADL]);
 
+  // Ensure formData is always defined
+  const safeFormData = formData || defaultFormData;
+
   // Also directly update formData when adlFile loads (backup mechanism)
   useEffect(() => {
     if (adlFile && id && initialFormData) {
@@ -507,6 +513,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   }, [adlFile, id, formData.history_narrative, formData.history_specific_enquiry, formData.history_drug_intake, initialFormData]);
 
   const handleChange = (e) => {
+    if (readOnly) return; // Prevent changes in read-only mode
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -595,35 +602,35 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           name="date"
                     value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
                           label="Patient Name"
                     value={patient?.name || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
                           label="Age"
                     value={patient?.age || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
                           label="Sex"
                     value={patient?.sex || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                   <Input
                     label="Psy. No."
                     value={patient?.psy_no || ''}
                                 onChange={handleChange}
-                    disabled={true}
+                    disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                               />
                         </div>
@@ -633,7 +640,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           name="marital_status"
                     value={patient?.marital_status || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
@@ -641,7 +648,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           name="education"
                     value={patient?.education || patient?.education_level || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
@@ -649,7 +656,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           name="occupation"
                     value={patient?.occupation || ''}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         <Input
@@ -664,7 +671,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       return city || district || '';
                     })()}
                           onChange={handleChange}
-                          disabled={true}
+                          disabled={readOnly || true}
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                         </div>
@@ -701,7 +708,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               <div key={index} className="border-b pb-4 last:border-b-0 space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-700">Informant {index + 1}</h4>
-                  {(formData.informants || []).length > 1 && (
+                  {!readOnly && (formData.informants || []).length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -721,50 +728,55 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     label="Relationship"
                     value={informant.relationship}
                     onChange={(e) => {
-                      const newInformants = [...formData.informants];
+                      const newInformants = [...(formData.informants || [])];
                       newInformants[index].relationship = e.target.value;
                       setFormData(prev => ({ ...prev, informants: newInformants }));
                     }}
                     placeholder="e.g., Father, Mother, Spouse"
+                    disabled={readOnly}
                   />
                   <Input
                     label="Name"
                     value={informant.name}
                     onChange={(e) => {
-                      const newInformants = [...formData.informants];
+                      const newInformants = [...(formData.informants || [])];
                       newInformants[index].name = e.target.value;
                       setFormData(prev => ({ ...prev, informants: newInformants }));
                     }}
                     placeholder="Full name"
+                    disabled={readOnly}
                   />
                   <Input
                     label="Reliability / Ability to report"
                     value={informant.reliability}
                     onChange={(e) => {
-                      const newInformants = [...formData.informants];
+                      const newInformants = [...(formData.informants || [])];
                       newInformants[index].reliability = e.target.value;
                       setFormData(prev => ({ ...prev, informants: newInformants }));
                     }}
                     placeholder="Assessment of reliability"
+                    disabled={readOnly}
                   />
                 </div>
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFormData(prev => ({
-                  ...prev,
-                  informants: [...prev.informants, { relationship: '', name: '', reliability: '' }]
-                }));
-              }}
-              className="flex items-center gap-2"
-            >
-              <FiPlus className="w-4 h-4" />
-              Add Informant
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    informants: [...prev.informants, { relationship: '', name: '', reliability: '' }]
+                  }));
+                }}
+                className="flex items-center gap-2"
+              >
+                <FiPlus className="w-4 h-4" />
+                Add Informant
+              </Button>
+            )}
           </div>
         )}
       </Card>
@@ -805,11 +817,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label={`Complaint ${index + 1}`}
                       value={complaint.complaint}
                       onChange={(e) => {
-                        const newComplaints = [...formData.complaints_patient];
+                        if (readOnly) return;
+                        const newComplaints = [...(formData.complaints_patient || [])];
                         newComplaints[index].complaint = e.target.value;
                         setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
                       }}
                       placeholder="Enter complaint"
+                      disabled={readOnly}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -817,15 +831,17 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Duration"
                       value={complaint.duration}
                       onChange={(e) => {
-                        const newComplaints = [...formData.complaints_patient];
+                        if (readOnly) return;
+                        const newComplaints = [...(formData.complaints_patient || [])];
                         newComplaints[index].duration = e.target.value;
                         setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
                       }}
+                      disabled={readOnly}
                       placeholder="e.g., 6 months"
                     />
                   </div>
                   <div className="flex items-end">
-                    {(formData.complaints_patient || []).length > 1 && (
+                    {!readOnly && (formData.complaints_patient || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -842,21 +858,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    complaints_patient: [...prev.complaints_patient, { complaint: '', duration: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2 mb-6"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Complaint
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      complaints_patient: [...prev.complaints_patient, { complaint: '', duration: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2 mb-6"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add Complaint
+                </Button>
+              )}
             </div>
 
             <div className="border-t pt-6">
@@ -868,11 +886,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label={`Complaint ${index + 1}`}
                       value={complaint.complaint}
                       onChange={(e) => {
-                        const newComplaints = [...formData.complaints_informant];
+                        if (readOnly) return;
+                        const newComplaints = [...(formData.complaints_informant || [])];
                         newComplaints[index].complaint = e.target.value;
                         setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
                       }}
                       placeholder="Enter complaint"
+                      disabled={readOnly}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -880,15 +900,17 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Duration"
                       value={complaint.duration}
                       onChange={(e) => {
-                        const newComplaints = [...formData.complaints_informant];
+                        if (readOnly) return;
+                        const newComplaints = [...(formData.complaints_informant || [])];
                         newComplaints[index].duration = e.target.value;
                         setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
                       }}
+                      disabled={readOnly}
                       placeholder="e.g., 6 months"
                     />
                   </div>
                   <div className="flex items-end">
-                    {(formData.complaints_informant || []).length > 1 && (
+                    {!readOnly && (formData.complaints_informant || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -905,21 +927,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    complaints_informant: [...prev.complaints_informant, { complaint: '', duration: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Complaint
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      complaints_informant: [...prev.complaints_informant, { complaint: '', duration: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add Complaint
+                </Button>
+              )}
             </div>
             <div className="border-b pb-6 mb-6">
               <h4 className="font-semibold text-gray-800 mb-4">Onset, Precipitating Factor, Course</h4>
@@ -930,6 +954,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="onset_duration"
                     value={formData?.onset_duration || ''}
                     onChange={handleChange}
+                    disabled={readOnly}
                     placeholder="e.g., Gradual over 6 months"
                   />
                 </div>
@@ -939,6 +964,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="precipitating_factor"
                     value={formData?.precipitating_factor || ''}
                     onChange={handleChange}
+                    disabled={readOnly}
                     placeholder="e.g., Job loss, family conflict"
                   />
                 </div>
@@ -948,6 +974,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="course"
                     value={formData?.course || ''}
                     onChange={handleChange}
+                    disabled={readOnly}
                     placeholder="e.g., Progressive, episodic, continuous"
                   />
                 </div>
@@ -1284,7 +1311,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       <div className="text-xs md:text-sm font-semibold text-gray-700 mt-1">Age: {patient.age}</div>
                     )}
                     {patient?.sex && (
-                      <div className="text-xs text-gray-600 mt-1 font-medium">({patient.sex === 'M' ? 'Male' : patient.sex === 'F' ? 'Female' : patient.sex})</div>
+                      <div className="text-xs text-gray-600 mt-1 font-medium">
+                        ({patient.sex === 'M' ? 'Male' : patient.sex === 'F' ? 'Female' : patient.sex})
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1488,7 +1517,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 <div key={index} className="border-b pb-4 mb-4 last:border-b-0">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="font-medium text-gray-700">Sibling {index + 1}</h5>
-                    {(formData.family_history_siblings || []).length > 1 && (
+                    {!readOnly && (formData.family_history_siblings || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -1508,70 +1537,82 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Age"
                       value={sibling.age}
                       onChange={(e) => {
-                        const newSiblings = [...formData.family_history_siblings];
+                        if (readOnly) return;
+                        const newSiblings = [...(formData.family_history_siblings || [])];
                         newSiblings[index].age = e.target.value;
                         setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                       }}
                       placeholder="Age"
+                      disabled={readOnly}
                     />
                     <Select
                       label="Sex"
                       value={sibling.sex}
                       onChange={(e) => {
-                        const newSiblings = [...formData.family_history_siblings];
+                        if (readOnly) return;
+                        const newSiblings = [...(formData.family_history_siblings || [])];
                         newSiblings[index].sex = e.target.value;
                         setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                       }}
                       options={[{ value: '', label: 'Select' }, { value: 'M', label: 'Male' }, { value: 'F', label: 'Female' }]}
+                      disabled={readOnly}
                     />
                     <Input
                       label="Education"
                       value={sibling.education}
                       onChange={(e) => {
-                        const newSiblings = [...formData.family_history_siblings];
+                        if (readOnly) return;
+                        const newSiblings = [...(formData.family_history_siblings || [])];
                         newSiblings[index].education = e.target.value;
                         setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                       }}
                       placeholder="Education"
+                      disabled={readOnly}
                     />
                     <Input
                       label="Occupation"
                       value={sibling.occupation}
                       onChange={(e) => {
-                        const newSiblings = [...formData.family_history_siblings];
+                        if (readOnly) return;
+                        const newSiblings = [...(formData.family_history_siblings || [])];
                         newSiblings[index].occupation = e.target.value;
                         setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                       }}
                       placeholder="Occupation"
+                      disabled={readOnly}
                     />
                     <Select
                       label="Marital Status"
                       value={sibling.marital_status}
                       onChange={(e) => {
-                        const newSiblings = [...formData.family_history_siblings];
+                        if (readOnly) return;
+                        const newSiblings = [...(formData.family_history_siblings || [])];
                         newSiblings[index].marital_status = e.target.value;
                         setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                       }}
                       options={[{ value: '', label: 'Select' }, { value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' }, { value: 'Divorced', label: 'Divorced' }, { value: 'Widowed', label: 'Widowed' }]}
+                      disabled={readOnly}
                     />
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    family_history_siblings: [...prev.family_history_siblings, { age: '', sex: '', education: '', occupation: '', marital_status: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Sibling
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      family_history_siblings: [...prev.family_history_siblings, { age: '', sex: '', education: '', occupation: '', marital_status: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add Sibling
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -1867,7 +1908,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               <div key={index} className="border-b pb-4 last:border-b-0 space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-700">Job {index + 1}</h4>
-                  {(formData.occupation_jobs || []).length > 1 && (
+                  {!readOnly && (formData.occupation_jobs || []).length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -1887,77 +1928,91 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     label="Job title"
                     value={job.job}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].job = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Dates"
                     value={job.dates}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].dates = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
+                    disabled={readOnly}
                   />
                   <Textarea
                     label="Adjustment"
                     value={job.adjustment}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].adjustment = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
                     rows={2}
+                    disabled={readOnly}
                   />
                   <Textarea
                     label="Difficulties"
                     value={job.difficulties}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].difficulties = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
                     rows={2}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Promotions"
                     value={job.promotions}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].promotions = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
+                    disabled={readOnly}
                   />
                   <Textarea
                     label="Reason for change"
                     value={job.change_reason}
                     onChange={(e) => {
-                      const newJobs = [...formData.occupation_jobs];
+                      if (readOnly) return;
+                      const newJobs = [...(formData.occupation_jobs || [])];
                       newJobs[index].change_reason = e.target.value;
                       setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                     }}
                     rows={2}
+                    disabled={readOnly}
                   />
                 </div>
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFormData(prev => ({
-                  ...prev,
-                  occupation_jobs: [...prev.occupation_jobs, { job: '', dates: '', adjustment: '', difficulties: '', promotions: '', change_reason: '' }]
-                }));
-              }}
-              className="flex items-center gap-2"
-            >
-              <FiPlus className="w-4 h-4" />
-              Add Job
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    occupation_jobs: [...prev.occupation_jobs, { job: '', dates: '', adjustment: '', difficulties: '', promotions: '', change_reason: '' }]
+                  }));
+                }}
+                className="flex items-center gap-2"
+              >
+                <FiPlus className="w-4 h-4" />
+                Add Job
+              </Button>
+            )}
           </div>
         )}
       </Card>
@@ -2053,6 +2108,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="sexual_marriage_date"
                       value={formData.sexual_marriage_date}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                 <Input
                   label="Spouse age"
@@ -2100,7 +2156,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label={`Child ${index + 1} - Age`}
                       value={child.age}
                       onChange={(e) => {
-                        const newChildren = [...formData.sexual_children];
+                        const newChildren = [...(formData.sexual_children || [])];
                         newChildren[index].age = e.target.value;
                         setFormData(prev => ({ ...prev, sexual_children: newChildren }));
                       }}
@@ -2111,7 +2167,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Sex"
                       value={child.sex}
                       onChange={(e) => {
-                        const newChildren = [...formData.sexual_children];
+                        const newChildren = [...(formData.sexual_children || [])];
                         newChildren[index].sex = e.target.value;
                         setFormData(prev => ({ ...prev, sexual_children: newChildren }));
                       }}
@@ -2123,7 +2179,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     />
                   </div>
                   <div className="flex items-end">
-                    {(formData.sexual_children || []).length > 1 && (
+                    {!readOnly && (formData.sexual_children || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -2140,21 +2196,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    sexual_children: [...prev.sexual_children, { age: '', sex: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Child
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      sexual_children: [...prev.sexual_children, { age: '', sex: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add Child
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -2240,31 +2298,37 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     label={`Resident ${index + 1} - Name`}
                     value={resident.name}
                     onChange={(e) => {
-                      const newResidents = [...formData.living_residents];
+                      if (readOnly) return;
+                      const newResidents = [...(formData.living_residents || [])];
                       newResidents[index].name = e.target.value;
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Relationship"
                     value={resident.relationship}
                     onChange={(e) => {
-                      const newResidents = [...formData.living_residents];
+                      if (readOnly) return;
+                      const newResidents = [...(formData.living_residents || [])];
                       newResidents[index].relationship = e.target.value;
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Age"
                     value={resident.age}
                     onChange={(e) => {
-                      const newResidents = [...formData.living_residents];
+                      if (readOnly) return;
+                      const newResidents = [...(formData.living_residents || [])];
                       newResidents[index].age = e.target.value;
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
+                    disabled={readOnly}
                   />
                   <div className="flex items-end">
-                    {(formData.living_residents || []).length > 1 && (
+                    {!readOnly && (formData.living_residents || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -2281,21 +2345,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    living_residents: [...prev.living_residents, { name: '', relationship: '', age: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2 mb-4"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Resident
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      living_residents: [...prev.living_residents, { name: '', relationship: '', age: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2 mb-4"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add Resident
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2343,31 +2409,37 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     label={`In-law ${index + 1} - Name`}
                     value={inlaw.name}
                     onChange={(e) => {
+                      if (readOnly) return;
                       const newInlaws = [...formData.living_inlaws];
                       newInlaws[index].name = e.target.value;
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Relationship"
                     value={inlaw.relationship}
                     onChange={(e) => {
+                      if (readOnly) return;
                       const newInlaws = [...formData.living_inlaws];
                       newInlaws[index].relationship = e.target.value;
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Age"
                     value={inlaw.age}
                     onChange={(e) => {
+                      if (readOnly) return;
                       const newInlaws = [...formData.living_inlaws];
                       newInlaws[index].age = e.target.value;
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
+                    disabled={readOnly}
                   />
                   <div className="flex items-end">
-                    {(formData.living_inlaws || []).length > 1 && (
+                    {!readOnly && (formData.living_inlaws || []).length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -2384,21 +2456,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    living_inlaws: [...prev.living_inlaws, { name: '', relationship: '', age: '' }]
-                  }));
-                }}
-                className="flex items-center gap-2"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add In-law
-              </Button>
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      living_inlaws: [...prev.living_inlaws, { name: '', relationship: '', age: '' }]
+                    }));
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add In-law
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -2527,6 +2601,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_pallor"
                     checked={formData.physical_pallor}
                     onChange={handleChange}
+                    disabled={readOnly}
                     className="h-4 w-4 text-primary-600 rounded"
                   />
                   <label className="text-sm text-gray-700">Pallor</label>
@@ -2537,6 +2612,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_icterus"
                     checked={formData.physical_icterus}
                     onChange={handleChange}
+                    disabled={readOnly}
                     className="h-4 w-4 text-primary-600 rounded"
                   />
                   <label className="text-sm text-gray-700">Icterus</label>
@@ -2547,6 +2623,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_oedema"
                     checked={formData.physical_oedema}
                     onChange={handleChange}
+                    disabled={readOnly}
                     className="h-4 w-4 text-primary-600 rounded"
                   />
                   <label className="text-sm text-gray-700">Oedema</label>
@@ -2557,6 +2634,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_lymphadenopathy"
                     checked={formData.physical_lymphadenopathy}
                     onChange={handleChange}
+                    disabled={readOnly}
                     className="h-4 w-4 text-primary-600 rounded"
                   />
                   <label className="text-sm text-gray-700">Lymphadenopathy</label>
@@ -2869,10 +2947,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-teal-50 flex items-center justify-center">
         <Card className="p-8 max-w-md text-center">
           <FiFileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">ADL File Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2"> Out Patient Intake Record Not Found</h2>
           <p className="text-gray-600 mb-6">The ADL file you're trying to edit doesn't exist.</p>
           <Button onClick={() => navigate('/adl-files')} variant="primary">
-            Back to ADL Files
+            Back to Out Patient Intake Records
           </Button>
         </Card>
       </div>
@@ -2889,30 +2967,64 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </div>
 
       <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit ADL File</h1>
-            {patient && (
-                <p className="text-gray-600 text-lg">
-                  <span className="font-semibold">{patient.name}</span>
-                  {patient.cr_no && <span className="text-gray-500"> - CR No: {patient.cr_no}</span>}
-              </p>
-            )}
-          </div>
-          <Button
-            onClick={() => navigate(-1)}
-            variant="outline"
-              className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 hover:border-gray-400 transition-colors"
+        {/* Main Wrapper Card - Collapsible */}
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm mb-6">
+          <div
+            className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCard('mainWrapper');
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleCard('mainWrapper');
+              }
+            }}
           >
-            <FiChevronDown className="w-4 h-4 rotate-90" />
-            Back
-          </Button>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-lg">
+                <FiFileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {readOnly ? 'View Out Patient Intake Record' : 'Edit Out Patient Intake Record'}
+                </h2>
+                {patient && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    <span className="font-semibold">{patient.name}</span>
+                    {patient.cr_no && <span className="text-gray-500"> - CR No: {patient.cr_no}</span>}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {expandedCards.mainWrapper ? (
+                <FiChevronUp className="h-6 w-6 text-gray-500" />
+              ) : (
+                <FiChevronDown className="h-6 w-6 text-gray-500" />
+              )}
+              {/* {!readOnly && ( */}
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(-1);
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 hover:border-gray-400 transition-colors ml-2"
+                >
+                  <FiChevronDown className="w-4 h-4 rotate-90" />
+                   All Out Patient Intake Records
+                </Button>
+              {/* )} */}
+            </div>
           </div>
-        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+          {expandedCards.mainWrapper && (
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
           {/* History of Present Illness */}
           <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
             <div
@@ -2972,6 +3084,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="history_treatment_place"
                       value={formData.history_treatment_place}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Location of treatment"
                     />
                     <Input
@@ -2979,6 +3092,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="history_treatment_dates"
                       value={formData.history_treatment_dates}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Treatment dates"
                     />
                     <Textarea
@@ -2986,6 +3100,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="history_treatment_drugs"
                       value={formData.history_treatment_drugs}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Medications administered"
                       rows={2}
                       className="md:col-span-2"
@@ -2995,6 +3110,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="history_treatment_response"
                       value={formData.history_treatment_response}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Patient's response to treatment"
                       rows={2}
                       className="md:col-span-2"
@@ -3033,7 +3149,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   <div key={index} className="border-b pb-4 last:border-b-0 space-y-3">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-gray-700">Informant {index + 1}</h4>
-                      {(formData.informants || []).length > 1 && (
+                      {!readOnly && (formData.informants || []).length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -3053,16 +3169,19 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Relationship"
                         value={informant.relationship}
                         onChange={(e) => {
+                          if (readOnly) return;
                           const newInformants = [...formData.informants];
                           newInformants[index].relationship = e.target.value;
                           setFormData(prev => ({ ...prev, informants: newInformants }));
                         }}
                         placeholder="e.g., Father, Mother, Spouse"
+                        disabled={readOnly}
                       />
                       <Input
                         label="Name"
                         value={informant.name}
                         onChange={(e) => {
+                          if (readOnly) return;
                           const newInformants = [...formData.informants];
                           newInformants[index].name = e.target.value;
                           setFormData(prev => ({ ...prev, informants: newInformants }));
@@ -3073,30 +3192,34 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Reliability / Ability to report"
                         value={informant.reliability}
                         onChange={(e) => {
+                          if (readOnly) return;
                           const newInformants = [...formData.informants];
                           newInformants[index].reliability = e.target.value;
                           setFormData(prev => ({ ...prev, informants: newInformants }));
                         }}
                         placeholder="Assessment of reliability"
+                        disabled={readOnly}
                       />
                     </div>
                   </div>
                 ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      informants: [...prev.informants, { relationship: '', name: '', reliability: '' }]
-                    }));
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <FiPlus className="w-4 h-4" />
-                  Add Informant
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        informants: [...prev.informants, { relationship: '', name: '', reliability: '' }]
+                      }));
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    Add Informant
+                  </Button>
+                )}
               </div>
             )}
           </Card>
@@ -3171,21 +3294,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        complaints_patient: [...prev.complaints_patient, { complaint: '', duration: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2 mb-6"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add Complaint
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          complaints_patient: [...prev.complaints_patient, { complaint: '', duration: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2 mb-6"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Complaint
+                    </Button>
+                  )}
                 </div>
 
                 <div className="border-t pt-6">
@@ -3234,21 +3359,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        complaints_informant: [...prev.complaints_informant, { complaint: '', duration: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add Complaint
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          complaints_informant: [...prev.complaints_informant, { complaint: '', duration: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Complaint
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -3285,6 +3412,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="past_history_medical"
                     value={formData.past_history_medical}
                     onChange={handleChange}
+                    disabled={readOnly}
                     placeholder="Past medical history, injuries, operations..."
                     rows={3}
                   />
@@ -3297,6 +3425,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="past_history_psychiatric_dates"
                       value={formData.past_history_psychiatric_dates}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Dates of previous psychiatric illness/treatment"
                     />
                     <Textarea
@@ -3304,6 +3433,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="past_history_psychiatric_diagnosis"
                       value={formData.past_history_psychiatric_diagnosis}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Previous psychiatric diagnoses or key features"
                       rows={2}
                     />
@@ -3312,6 +3442,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="past_history_psychiatric_treatment"
                       value={formData.past_history_psychiatric_treatment}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Treatment received"
                       rows={2}
                     />
@@ -3320,6 +3451,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="past_history_psychiatric_interim"
                       value={formData.past_history_psychiatric_interim}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="History between episodes"
                       rows={2}
                     />
@@ -3328,6 +3460,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="past_history_psychiatric_recovery"
                       value={formData.past_history_psychiatric_recovery}
                       onChange={handleChange}
+                    disabled={readOnly}
                       placeholder="Recovery assessment, socialization, personal care during interim"
                       rows={3}
                     />
@@ -3519,7 +3652,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Age"
                           value={sibling.age}
                           onChange={(e) => {
-                            const newSiblings = [...formData.family_history_siblings];
+                            const newSiblings = [...(formData.family_history_siblings || [])];
                             newSiblings[index].age = e.target.value;
                             setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                           }}
@@ -3529,7 +3662,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Sex"
                           value={sibling.sex}
                           onChange={(e) => {
-                            const newSiblings = [...formData.family_history_siblings];
+                            const newSiblings = [...(formData.family_history_siblings || [])];
                             newSiblings[index].sex = e.target.value;
                             setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                           }}
@@ -3539,7 +3672,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Education"
                           value={sibling.education}
                           onChange={(e) => {
-                            const newSiblings = [...formData.family_history_siblings];
+                            const newSiblings = [...(formData.family_history_siblings || [])];
                             newSiblings[index].education = e.target.value;
                             setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                           }}
@@ -3549,7 +3682,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Occupation"
                           value={sibling.occupation}
                           onChange={(e) => {
-                            const newSiblings = [...formData.family_history_siblings];
+                            const newSiblings = [...(formData.family_history_siblings || [])];
                             newSiblings[index].occupation = e.target.value;
                             setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                           }}
@@ -3559,7 +3692,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Marital Status"
                           value={sibling.marital_status}
                           onChange={(e) => {
-                            const newSiblings = [...formData.family_history_siblings];
+                            const newSiblings = [...(formData.family_history_siblings || [])];
                             newSiblings[index].marital_status = e.target.value;
                             setFormData(prev => ({ ...prev, family_history_siblings: newSiblings }));
                           }}
@@ -3568,21 +3701,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        family_history_siblings: [...prev.family_history_siblings, { age: '', sex: '', education: '', occupation: '', marital_status: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add Sibling
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          family_history_siblings: [...prev.family_history_siblings, { age: '', sex: '', education: '', occupation: '', marital_status: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Sibling
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -3619,6 +3754,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="home_situation_childhood"
                     value={formData.home_situation_childhood}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={3}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -3627,6 +3763,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="home_situation_parents_relationship"
                       value={formData.home_situation_parents_relationship}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -3634,6 +3771,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="home_situation_socioeconomic"
                       value={formData.home_situation_socioeconomic}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -3641,6 +3779,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="home_situation_interpersonal"
                       value={formData.home_situation_interpersonal}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                       className="md:col-span-2"
                     />
@@ -3656,18 +3795,21 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="personal_birth_date"
                       value={formData.personal_birth_date}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Birth Place"
                       name="personal_birth_place"
                       value={formData.personal_birth_place}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Select
                       label="Delivery Type"
                       name="personal_delivery_type"
                       value={formData.personal_delivery_type}
                       onChange={handleChange}
+                    disabled={readOnly}
                       options={[
                         { value: '', label: 'Select' },
                         { value: 'Normal', label: 'Normal' },
@@ -3680,6 +3822,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="personal_complications_prenatal"
                       value={formData.personal_complications_prenatal}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -3687,6 +3830,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="personal_complications_natal"
                       value={formData.personal_complications_natal}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -3694,6 +3838,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="personal_complications_postnatal"
                       value={formData.personal_complications_postnatal}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                   </div>
@@ -3707,30 +3852,35 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="development_weaning_age"
                       value={formData.development_weaning_age}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="First words"
                       name="development_first_words"
                       value={formData.development_first_words}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Three words sentences"
                       name="development_three_words"
                       value={formData.development_three_words}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Walking age"
                       name="development_walking"
                       value={formData.development_walking}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Textarea
                       label="Neurotic traits"
                       name="development_neurotic_traits"
                       value={formData.development_neurotic_traits}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                       className="md:col-span-2"
                     />
@@ -3739,18 +3889,21 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="development_nail_biting"
                       value={formData.development_nail_biting}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Bedwetting"
                       name="development_bedwetting"
                       value={formData.development_bedwetting}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Textarea
                       label="Phobias"
                       name="development_phobias"
                       value={formData.development_phobias}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -3758,6 +3911,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="development_childhood_illness"
                       value={formData.development_childhood_illness}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                   </div>
@@ -3796,18 +3950,21 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_start_age"
                     value={formData.education_start_age}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Highest class passed"
                     name="education_highest_class"
                     value={formData.education_highest_class}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <Textarea
                     label="Performance"
                     name="education_performance"
                     value={formData.education_performance}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -3815,6 +3972,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_disciplinary"
                     value={formData.education_disciplinary}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -3822,6 +3980,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_peer_relationship"
                     value={formData.education_peer_relationship}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -3829,6 +3988,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_hobbies"
                     value={formData.education_hobbies}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -3836,6 +3996,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_special_abilities"
                     value={formData.education_special_abilities}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -3843,6 +4004,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="education_discontinue_reason"
                     value={formData.education_discontinue_reason}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                 </div>
@@ -3898,7 +4060,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Job title"
                         value={job.job}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].job = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3907,7 +4069,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Dates"
                         value={job.dates}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].dates = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3916,7 +4078,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Adjustment"
                         value={job.adjustment}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].adjustment = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3926,7 +4088,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Difficulties"
                         value={job.difficulties}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].difficulties = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3936,7 +4098,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Promotions"
                         value={job.promotions}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].promotions = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3945,7 +4107,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label="Reason for change"
                         value={job.change_reason}
                         onChange={(e) => {
-                          const newJobs = [...formData.occupation_jobs];
+                          const newJobs = [...(formData.occupation_jobs || [])];
                           newJobs[index].change_reason = e.target.value;
                           setFormData(prev => ({ ...prev, occupation_jobs: newJobs }));
                         }}
@@ -3954,21 +4116,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     </div>
                   </div>
                 ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      occupation_jobs: [...prev.occupation_jobs, { job: '', dates: '', adjustment: '', difficulties: '', promotions: '', change_reason: '' }]
-                    }));
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <FiPlus className="w-4 h-4" />
-                  Add Job
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        occupation_jobs: [...prev.occupation_jobs, { job: '', dates: '', adjustment: '', difficulties: '', promotions: '', change_reason: '' }]
+                      }));
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    Add Job
+                  </Button>
+                )}
               </div>
             )}
           </Card>
@@ -4003,12 +4167,14 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="sexual_menarche_age"
                     value={formData.sexual_menarche_age}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <Textarea
                     label="Reaction to menarche"
                     name="sexual_menarche_reaction"
                     value={formData.sexual_menarche_reaction}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4016,6 +4182,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="sexual_education"
                     value={formData.sexual_education}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                     className="md:col-span-2"
                   />
@@ -4024,6 +4191,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="sexual_masturbation"
                     value={formData.sexual_masturbation}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4031,6 +4199,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="sexual_contact"
                     value={formData.sexual_contact}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4038,6 +4207,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="sexual_premarital_extramarital"
                     value={formData.sexual_premarital_extramarital}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                     className="md:col-span-2"
                   />
@@ -4051,6 +4221,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="sexual_marriage_arranged"
                       value={formData.sexual_marriage_arranged}
                       onChange={handleChange}
+                    disabled={readOnly}
                       options={[
                         { value: '', label: 'Select' },
                         { value: 'Arranged', label: 'Arranged' },
@@ -4064,24 +4235,28 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="sexual_marriage_date"
                       value={formData.sexual_marriage_date}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Spouse age"
                       name="sexual_spouse_age"
                       value={formData.sexual_spouse_age}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Input
                       label="Spouse occupation"
                       name="sexual_spouse_occupation"
                       value={formData.sexual_spouse_occupation}
                       onChange={handleChange}
+                    disabled={readOnly}
                     />
                     <Textarea
                       label="General adjustment"
                       name="sexual_adjustment_general"
                       value={formData.sexual_adjustment_general}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -4089,6 +4264,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="sexual_adjustment_sexual"
                       value={formData.sexual_adjustment_sexual}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                     />
                     <Textarea
@@ -4096,6 +4272,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       name="sexual_problems"
                       value={formData.sexual_problems}
                       onChange={handleChange}
+                    disabled={readOnly}
                       rows={2}
                       className="md:col-span-2"
                     />
@@ -4111,7 +4288,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label={`Child ${index + 1} - Age`}
                           value={child.age}
                           onChange={(e) => {
-                            const newChildren = [...formData.sexual_children];
+                            const newChildren = [...(formData.sexual_children || [])];
                             newChildren[index].age = e.target.value;
                             setFormData(prev => ({ ...prev, sexual_children: newChildren }));
                           }}
@@ -4122,7 +4299,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           label="Sex"
                           value={child.sex}
                           onChange={(e) => {
-                            const newChildren = [...formData.sexual_children];
+                            const newChildren = [...(formData.sexual_children || [])];
                             newChildren[index].sex = e.target.value;
                             setFormData(prev => ({ ...prev, sexual_children: newChildren }));
                           }}
@@ -4151,21 +4328,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        sexual_children: [...prev.sexual_children, { age: '', sex: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add Child
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          sexual_children: [...prev.sexual_children, { age: '', sex: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Child
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -4250,31 +4429,37 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label={`Resident ${index + 1} - Name`}
                         value={resident.name}
                         onChange={(e) => {
-                          const newResidents = [...formData.living_residents];
+                          if (readOnly) return;
+                          const newResidents = [...(formData.living_residents || [])];
                           newResidents[index].name = e.target.value;
                           setFormData(prev => ({ ...prev, living_residents: newResidents }));
                         }}
+                        disabled={readOnly}
                       />
                       <Input
                         label="Relationship"
                         value={resident.relationship}
                         onChange={(e) => {
-                          const newResidents = [...formData.living_residents];
+                          if (readOnly) return;
+                          const newResidents = [...(formData.living_residents || [])];
                           newResidents[index].relationship = e.target.value;
                           setFormData(prev => ({ ...prev, living_residents: newResidents }));
                         }}
+                        disabled={readOnly}
                       />
                       <Input
                         label="Age"
                         value={resident.age}
                         onChange={(e) => {
-                          const newResidents = [...formData.living_residents];
+                          if (readOnly) return;
+                          const newResidents = [...(formData.living_residents || [])];
                           newResidents[index].age = e.target.value;
                           setFormData(prev => ({ ...prev, living_residents: newResidents }));
                         }}
+                        disabled={readOnly}
                       />
                       <div className="flex items-end">
-                        {(formData.living_residents || []).length > 1 && (
+                        {!readOnly && (formData.living_residents || []).length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -4291,21 +4476,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        living_residents: [...prev.living_residents, { name: '', relationship: '', age: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2 mb-4"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add Resident
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          living_residents: [...prev.living_residents, { name: '', relationship: '', age: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2 mb-4"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add Resident
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4314,6 +4501,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="living_income_sharing"
                     value={formData.living_income_sharing}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4321,6 +4509,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="living_expenses"
                     value={formData.living_expenses}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4328,6 +4517,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="living_kitchen"
                     value={formData.living_kitchen}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Textarea
@@ -4335,6 +4525,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="living_domestic_conflicts"
                     value={formData.living_domestic_conflicts}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                   />
                   <Input
@@ -4342,6 +4533,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="living_social_class"
                     value={formData.living_social_class}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                 </div>
 
@@ -4353,31 +4545,37 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         label={`In-law ${index + 1} - Name`}
                         value={inlaw.name}
                         onChange={(e) => {
-                          const newInlaws = [...formData.living_inlaws];
+                          if (readOnly) return;
+                          const newInlaws = [...(formData.living_inlaws || [])];
                           newInlaws[index].name = e.target.value;
                           setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                         }}
+                        disabled={readOnly}
                       />
                       <Input
                         label="Relationship"
                         value={inlaw.relationship}
                         onChange={(e) => {
-                          const newInlaws = [...formData.living_inlaws];
+                          if (readOnly) return;
+                          const newInlaws = [...(formData.living_inlaws || [])];
                           newInlaws[index].relationship = e.target.value;
                           setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                         }}
+                        disabled={readOnly}
                       />
                       <Input
                         label="Age"
                         value={inlaw.age}
                         onChange={(e) => {
-                          const newInlaws = [...formData.living_inlaws];
+                          if (readOnly) return;
+                          const newInlaws = [...(formData.living_inlaws || [])];
                           newInlaws[index].age = e.target.value;
                           setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                         }}
+                        disabled={readOnly}
                       />
                       <div className="flex items-end">
-                        {(formData.living_inlaws || []).length > 1 && (
+                        {!readOnly && (formData.living_inlaws || []).length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -4394,21 +4592,23 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       </div>
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        living_inlaws: [...prev.living_inlaws, { name: '', relationship: '', age: '' }]
-                      }));
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    Add In-law
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          living_inlaws: [...prev.living_inlaws, { name: '', relationship: '', age: '' }]
+                        }));
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Add In-law
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -4444,18 +4644,21 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="premorbid_personality_passive_active"
                     value={formData.premorbid_personality_passive_active}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Assertiveness"
                     name="premorbid_personality_assertive"
                     value={formData.premorbid_personality_assertive}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <Input
                     label="Introvert vs Extrovert"
                     name="premorbid_personality_introvert_extrovert"
                     value={formData.premorbid_personality_introvert_extrovert}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                 </div>
                 <Textarea
@@ -4521,6 +4724,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_appearance"
                     value={formData.physical_appearance}
                     onChange={handleChange}
+                    disabled={readOnly}
                     rows={2}
                     className="md:col-span-2"
                   />
@@ -4529,6 +4733,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     name="physical_body_build"
                     value={formData.physical_body_build}
                     onChange={handleChange}
+                    disabled={readOnly}
                   />
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
@@ -4537,6 +4742,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         name="physical_pallor"
                         checked={formData.physical_pallor}
                         onChange={handleChange}
+                    disabled={readOnly}
                         className="h-4 w-4 text-primary-600 rounded"
                       />
                       <label className="text-sm text-gray-700">Pallor</label>
@@ -4547,6 +4753,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         name="physical_icterus"
                         checked={formData.physical_icterus}
                         onChange={handleChange}
+                    disabled={readOnly}
                         className="h-4 w-4 text-primary-600 rounded"
                       />
                       <label className="text-sm text-gray-700">Icterus</label>
@@ -4557,6 +4764,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         name="physical_oedema"
                         checked={formData.physical_oedema}
                         onChange={handleChange}
+                    disabled={readOnly}
                         className="h-4 w-4 text-primary-600 rounded"
                       />
                       <label className="text-sm text-gray-700">Oedema</label>
@@ -4567,6 +4775,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         name="physical_lymphadenopathy"
                         checked={formData.physical_lymphadenopathy}
                         onChange={handleChange}
+                    disabled={readOnly}
                         className="h-4 w-4 text-primary-600 rounded"
                       />
                       <label className="text-sm text-gray-700">Lymphadenopathy</label>
@@ -4825,33 +5034,38 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             )}
           </Card>
 
-          {/* Submit Button */}
-          <div className="relative mt-8">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-xl"></div>
-            <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-6 lg:p-8 shadow-2xl border border-white/30">
-              <div className="flex flex-col sm:flex-row justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-                  className="px-6 lg:px-8 py-3 bg-white/60 backdrop-blur-md border border-white/30 hover:bg-white/80 hover:border-gray-300/50 text-gray-800 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-            >
-                  <FiX className="mr-2" />
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isUpdating}
-                  className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
-            >
-              <FiSave className="w-4 h-4" />
-                  {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
-            </Button>
+          {/* Submit Button - Hidden in read-only mode */}
+          {!readOnly && (
+            <div className="relative mt-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-xl"></div>
+              <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-6 lg:p-8 shadow-2xl border border-white/30">
+                <div className="flex flex-col sm:flex-row justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(-1)}
+                    className="px-6 lg:px-8 py-3 bg-white/60 backdrop-blur-md border border-white/30 hover:bg-white/80 hover:border-gray-300/50 text-gray-800 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                    <FiX className="mr-2" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isUpdating}
+                    className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+              >
+                <FiSave className="w-4 h-4" />
+                    {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
+              </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </form>
+          )}
+              </form>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );

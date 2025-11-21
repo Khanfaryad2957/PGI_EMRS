@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
   FiSearch, FiEye, FiDownload, FiUpload, FiArchive, 
   FiActivity, FiFileText, FiUsers, FiShield, FiClock, FiTrendingUp,
-  FiMoreVertical,  FiCalendar, FiCheckCircle 
+  FiMoreVertical,  FiCalendar, FiCheckCircle, FiEdit
 } from 'react-icons/fi';
 import {
   useGetAllADLFilesQuery,
-  useRetrieveFileMutation,
-  useReturnFileMutation,
-  useArchiveFileMutation,
+  // useRetrieveFileMutation,
+  // useReturnFileMutation,
+  // useArchiveFileMutation,
 } from '../../features/adl/adlApiSlice';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -21,6 +21,7 @@ import Badge from '../../components/Badge';
 import { formatDate } from '../../utils/formatters';
 
 const ADLFilesPage = () => {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showOnlyComplexCases, setShowOnlyComplexCases] = useState(true); // Default: only show complex cases
@@ -42,37 +43,51 @@ const ADLFilesPage = () => {
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
-  const [retrieveFile] = useRetrieveFileMutation();
-  const [returnFile] = useReturnFileMutation();
-  const [archiveFile] = useArchiveFileMutation();
+  // const [retrieveFile] = useRetrieveFileMutation();
+  // const [returnFile] = useReturnFileMutation();
+  // const [archiveFile] = useArchiveFileMutation();
 
-  const handleRetrieve = async (id) => {
-    try {
-      await retrieveFile(id).unwrap();
-      toast.success('File retrieved successfully');
-    } catch (err) {
-      toast.error(err?.data?.message || 'Failed to retrieve file');
-    }
-  };
+  // const handleRetrieve = async (id) => {
+  //   try {
+  //     await retrieveFile(id).unwrap();
+  //     toast.success('File retrieved successfully');
+  //   } catch (err) {
+  //     toast.error(err?.data?.message || 'Failed to retrieve file');
+  //   }
+  // };
 
-  const handleReturn = async (id) => {
-    try {
-      await returnFile(id).unwrap();
-      toast.success('File returned successfully');
-    } catch (err) {
-      toast.error(err?.data?.message || 'Failed to return file');
-    }
-  };
+  // const handleReturn = async (id) => {
+  //   try {
+  //     await returnFile(id).unwrap();
+  //     toast.success('File returned successfully');
+  //   } catch (err) {
+  //     toast.error(err?.data?.message || 'Failed to return file');
+  //   }
+  // };
 
-  const handleArchive = async (id) => {
-    if (window.confirm('Are you sure you want to archive this file?')) {
-      try {
-        await archiveFile(id).unwrap();
-        toast.success('File archived successfully');
-      } catch (err) {
-        toast.error(err?.data?.message || 'Failed to archive file');
-      }
+  // const handleArchive = async (id) => {
+  //   if (window.confirm('Are you sure you want to archive this file?')) {
+  //     try {
+  //       await archiveFile(id).unwrap();
+  //       toast.success('File archived successfully');
+  //     } catch (err) {
+  //       toast.error(err?.data?.message || 'Failed to archive file');
+  //     }
+  //   }
+  // };
+
+
+  const handleEditADL = (row) => {
+    debugger
+    const adlFileId = row.id
+    // getPatientId(row.id);
+    
+    if (!adlFileId) {
+      toast.error('Invalid patient ID. Unable to edit patient.');
+      return;
     }
+    
+    navigate(`/adl-files/${adlFileId}?edit=true`);
   };
 
 
@@ -92,7 +107,7 @@ const ADLFilesPage = () => {
       header: (
         <div className="flex items-center gap-2">
           <FiFileText className="w-4 h-4 text-primary-600" />
-          <span className="font-semibold">ADL Number</span>
+          <span className="font-semibold">Out Patient Intake Number</span>
         </div>
       ),
       accessor: 'adl_no',
@@ -178,28 +193,6 @@ const ADLFilesPage = () => {
     {
       header: (
         <div className="flex items-center gap-2">
-          <FiCheckCircle className="w-4 h-4 text-primary-600" />
-          <span className="font-semibold">Status</span>
-        </div>
-      ),
-      render: (row) => {
-        const statusColors = {
-          created: 'bg-gradient-to-r from-cyan-100 to-teal-100 text-cyan-800 border-cyan-200',
-          stored: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200',
-          retrieved: 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-amber-200',
-          active: 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border-blue-200',
-          archived: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-gray-200',
-        };
-        return (
-          <Badge className={statusColors[row.file_status] || 'bg-gray-100 text-gray-800 border-gray-200'}>
-            {row.file_status}
-          </Badge>
-        );
-      },
-    },
-    {
-      header: (
-        <div className="flex items-center gap-2">
           <FiCalendar className="w-4 h-4 text-primary-600" />
           <span className="font-semibold">Created</span>
         </div>
@@ -248,49 +241,30 @@ const ADLFilesPage = () => {
       ),
       render: (row) => (
         <div className="flex gap-2">
-          <Link to={`/adl-files/${row.id}`}>
+          {/* <Link to={`/adl-files/${row.id}/view`}> */}
             <Button 
               variant="ghost" 
               size="sm"
+              onClick={() => navigate(`/adl-files/${row.id}/view`)}
               className="h-9 w-9 p-0 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg"
-              title="View Details"
+              title="View  Out Patient Intake Record"
             >
               <FiEye className="w-4 h-4 text-blue-600" />
             </Button>
-          </Link>
-          {row.file_status === 'stored' && (
-            <Button
-              variant="ghost"
+          {/* </Link> */}
+
+          {/* <Link to={`/adl-files/${row.id}/edit`}> */}
+            <Button 
+              variant="ghost" 
               size="sm"
-              onClick={() => handleRetrieve(row.id)}
-              title="Retrieve File"
-              className="h-9 w-9 p-0 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg"
-            >
-              <FiDownload className="w-4 h-4 text-blue-600" />
-            </Button>
-          )}
-          {row.file_status === 'retrieved' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleReturn(row.id)}
-              title="Return File"
+              onClick={() => navigate(`/adl-files/${row.id}/edit`)}
               className="h-9 w-9 p-0 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200 hover:border-green-300 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg"
+              title="Edit Out Patient Intake Record"
             >
-              <FiUpload className="w-4 h-4 text-green-600" />
+              <FiEdit className="w-4 h-4 text-green-600" />
             </Button>
-          )}
-          {row.is_active && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleArchive(row.id)}
-              title="Archive File"
-              className="h-9 w-9 p-0 bg-gradient-to-r from-gray-50 to-slate-50 hover:from-gray-100 hover:to-slate-100 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg"
-            >
-              <FiArchive className="w-4 h-4 text-gray-600" />
-            </Button>
-          )}
+          {/* </Link> */}
+          
         </div>
       ),
     },

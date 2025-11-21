@@ -46,6 +46,8 @@ import Profile from './pages/Profile';
 // API Test (Development only)
 import ApiTest from './pages/ApiTest';
 import ClinicalTodayPatients from './pages/clinical/ClinincalTodayPatients';
+import EditADL from './pages/adl/EditADL';
+import ViewADL from './pages/adl/ViewADL';
 
 function App() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -104,7 +106,9 @@ function App() {
               {/* Additional Detail File - Faculty, Resident and Admin */}
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/adl-files" element={<ADLFilesPage />} />
-                <Route path="/adl-files/:id" element={<ADLFileDetails />} />
+                {/* <Route path="/adl-files/:id" element={<ADLFileDetails />} /> */}
+                <Route path="/adl-files/:id/edit" element={<EditADL />} />
+                <Route path="/adl-files/:id/view" element={<ViewADL />} />
               </Route>
 
               {/* Users - Admin only */}
