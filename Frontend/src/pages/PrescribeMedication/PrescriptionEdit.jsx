@@ -727,9 +727,10 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useGetPrescriptionsByProformaIdQuery, useCreateBulkPrescriptionsMutation ,useUpdatePrescriptionMutation} from "../../features/prescriptions/prescriptionApiSlice";
+import { toast } from 'react-toastify';
+import { useGetPrescriptionByIdQuery, useCreatePrescriptionMutation, useUpdatePrescriptionMutation } from "../../features/prescriptions/prescriptionApiSlice";
 import medicinesData from '../../assets/psychiatric_meds_india.json';
-import { FiSave, FiEdit,FiPlus  } from 'react-icons/fi';
+import { FiSave, FiEdit,FiPlus  ,FiTrash2 } from 'react-icons/fi';
 import Button from '../../components/Button';
 
 
@@ -741,13 +742,19 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode'); // 'create' or 'update' from URL
   
-  const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
-    proforma.id,
+  const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionByIdQuery(
+    { clinical_proforma_id: proforma.id },
     { skip: !proforma.id }
   );
-  // const [createBulkPrescriptions, { isLoading: isSaving }] = useCreateBulkPrescriptionsMutation();
+  const [createPrescription, { isLoading: isSaving }] = useCreatePrescriptionMutation();
+  
   const [updatePrescription, { isLoading: isUpdating }] = useUpdatePrescriptionMutation();
-  const existingPrescriptions = prescriptionsData?.data?.prescriptions || [];
+  const prescriptionData = prescriptionsData?.data?.prescription;
+  
+  // Memoize existingPrescriptions to prevent infinite loops
+  const existingPrescriptions = useMemo(() => {
+    return prescriptionData?.prescription || [];
+  }, [prescriptionData?.prescription]);
   
   // Determine if this is create or update mode
   // Update mode: existingPrescriptions exist OR mode === 'update'
@@ -809,25 +816,42 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
 
   // Update rows when prescriptions data loads
   useEffect(() => {
+    // Only update if we're not currently loading
+    if (loadingPrescriptions) {
+      return;
+    }
+
     if (existingPrescriptions.length > 0) {
-      setPrescriptionRows(
-        existingPrescriptions.slice(0, 5).map(p => ({
-          id: p.id,
-          medicine: p.medicine || '',
-          dosage: p.dosage || '',
-          when: p.when || '',
-          frequency: p.frequency || '',
-          duration: p.duration || '',
-          qty: p.qty || '',
-          details: p.details || '',
-          notes: p.notes || '',
-        }))
-      );
-    } else if (!loadingPrescriptions && existingPrescriptions.length === 0) {
+      const newRows = existingPrescriptions.map(p => ({
+        id: p.id || null,
+        medicine: p.medicine || '',
+        dosage: p.dosage || '',
+        when: p.when_to_take || p.when || '',
+        frequency: p.frequency || '',
+        duration: p.duration || '',
+        qty: p.quantity || p.qty || '',
+        details: p.details || '',
+        notes: p.notes || '',
+      }));
+      
+      // Only update if the data has actually changed
+      setPrescriptionRows(prev => {
+        const prevString = JSON.stringify(prev.map(r => ({ ...r, id: r.id || null })));
+        const newString = JSON.stringify(newRows);
+        if (prevString !== newString) {
+          return newRows;
+        }
+        return prev;
+      });
+    } else {
       // Ensure at least one empty row is shown when no prescriptions exist
-      setPrescriptionRows([
-        { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
-      ]);
+      setPrescriptionRows(prev => {
+        // Only set if we don't already have at least one empty row
+        if (prev.length === 0 || (prev.length === 1 && prev[0].medicine === '' && !prev[0].id)) {
+          return [{ medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }];
+        }
+        return prev;
+      });
     }
   }, [existingPrescriptions, loadingPrescriptions]);
 
@@ -851,23 +875,99 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
       
 
 
-  const removePrescriptionRow = (rowIdx) => {
+  const removePrescriptionRow = async (rowIdx) => {
+    const rowToRemove = prescriptionRows[rowIdx];
+    
+    // Calculate remaining valid prescriptions after removal
+    const remainingPrescriptions = prescriptionRows
+      .filter((_, i) => i !== rowIdx)
+      .filter(row => row.medicine && row.medicine.trim() !== '');
+
+    // If the row has an ID, it's an existing medicine - delete via API
+    if (rowToRemove?.id && isUpdateMode && prescriptionData?.id) {
+      // Check if deletion would leave at least one valid medicine
+      if (remainingPrescriptions.length === 0) {
+        toast.error('Cannot delete. At least one medicine is required.');
+        return;
+      }
+
+      try {
+        // Filter out the medicine with this ID from the prescription array
+        const updatedPrescriptions = remainingPrescriptions.map((p) => ({
+          id: p.id || null,
+          medicine: p.medicine?.trim() || null,
+          dosage: p.dosage?.trim() || null,
+          when_to_take: p.when?.trim() || null,
+          frequency: p.frequency?.trim() || null,
+          duration: p.duration?.trim() || null,
+          quantity: p.qty?.trim() || null,
+          details: p.details?.trim() || null,
+          notes: p.notes?.trim() || null,
+        }));
+
+        // Update prescription via API
+        await updatePrescription({
+          id: prescriptionData.id,
+          clinical_proforma_id: Number(proforma.id),
+          prescription: updatedPrescriptions
+        }).unwrap();
+
+        toast.success('Medicine deleted successfully');
+      } catch (error) {
+        console.error('Error deleting medicine:', error);
+        toast.error(error?.data?.message || error?.data?.error || 'Failed to delete medicine. Please try again.');
+        return; // Don't update local state if API call failed
+      }
+    } else {
+      // For new rows (no ID) or create mode, just validate locally
+      if (remainingPrescriptions.length === 0 && prescriptionRows.length === 1) {
+        toast.error('At least one medicine row is required.');
+        return;
+      }
+    }
+
+    // Update local state - remove the row
     setPrescriptionRows(prev => prev.filter((_, i) => i !== rowIdx));
+    
     // Clean up autocomplete state for removed row
     setMedicineSuggestions(prev => {
       const newState = { ...prev };
       delete newState[rowIdx];
-      return newState;
+      // Reindex remaining suggestions
+      const reindexed = {};
+      Object.keys(newState).forEach(key => {
+        const keyNum = parseInt(key);
+        if (keyNum > rowIdx) {
+          reindexed[keyNum - 1] = newState[key];
+        } else if (keyNum < rowIdx) {
+          reindexed[key] = newState[key];
+        }
+      });
+      return reindexed;
     });
     setShowSuggestions(prev => {
       const newState = { ...prev };
       delete newState[rowIdx];
-      return newState;
+      // Reindex remaining suggestions
+      const reindexed = {};
+      Object.keys(newState).forEach(key => {
+        const keyNum = parseInt(key);
+        if (keyNum > rowIdx) {
+          reindexed[keyNum - 1] = newState[key];
+        } else if (keyNum < rowIdx) {
+          reindexed[key] = newState[key];
+        }
+      });
+      return reindexed;
     });
   };
 
   const updatePrescriptionCell = (rowIdx, field, value) => {
-    setPrescriptionRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
+    setPrescriptionRows(prev => {
+      const newRows = [...prev];
+      newRows[rowIdx] = { ...newRows[rowIdx], [field]: value };
+      return newRows;
+    });
 
     // Handle medicine autocomplete
     if (field === 'medicine') {
@@ -982,8 +1082,6 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
 
 
   const handleSavePrescriptions = async () => {
-    debugger;
-  
     if (!proforma?.id) {
       toast.error("Clinical proforma ID is required");
       return;
@@ -1000,43 +1098,77 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
     }
   
     try {
-      const prescriptionsToSave = validPrescriptions.map((p) => ({
+      // Generate IDs for new items (items without IDs) - backend will also generate, but this ensures consistency
+      const prescriptionArray = validPrescriptions.map((p, index) => ({
+        id: p.id || (index + 1), // Generate ID if not present (1, 2, 3, etc.)
         medicine: p.medicine.trim(),
         dosage: p.dosage?.trim() || null,
-        when: p.when?.trim() || null,
+        when_to_take: p.when?.trim() || null,
         frequency: p.frequency?.trim() || null,
         duration: p.duration?.trim() || null,
-        qty: p.qty?.trim() || null,
+        quantity: p.qty?.trim() || null,
         details: p.details?.trim() || null,
         notes: p.notes?.trim() || null,
       }));
   
-      const payload = {
-        id: parseInt(id),
-        patient_id: parseInt(patientId),
-        clinical_proforma_id: Number(proforma.id),
-        prescriptions: prescriptionsToSave,
-      };
-  
-      await updatePrescription(payload).unwrap();
+      let savedPrescription;
+      if (isUpdateMode && prescriptionData?.id) {
+        // Update existing prescription
+        const result = await updatePrescription({
+          id: prescriptionData.id,
+          clinical_proforma_id: Number(proforma.id),
+          prescription: prescriptionArray
+        }).unwrap();
+        savedPrescription = result?.data?.prescription;
+      }
+      
+      else {
+        // Create new prescription
+        const patientIdInt = patientId 
+          ? (typeof patientId === 'string' ? parseInt(patientId) : patientId)
+          : null;
+        
+        if (!patientIdInt || isNaN(patientIdInt)) {
+          toast.error('Valid patient ID is required');
+          return;
+        }
+        
+        const result = await createPrescription({
+          clinical_proforma_id: Number(proforma.id),
+          patient_id: patientIdInt,
+          prescription: prescriptionArray // Use 'prescription' for new format
+        }).unwrap();
+        savedPrescription = result?.data?.prescription;
+      }
   
       toast.success(
-        `Prescription saved successfully! ${prescriptionsToSave.length} medication(s) recorded.`
+        `Prescription saved successfully! ${prescriptionArray.length} medication(s) recorded.`
       );
   
-      // Reset UI
-      setPrescriptionRows([
-        {
-          medicine: "",
-          dosage: "",
-          when: "",
-          frequency: "",
-          duration: "",
-          qty: "",
-          details: "",
-          notes: "",
-        },
-      ]);
+      // Update state with saved prescription data (which includes generated IDs from backend)
+      if (savedPrescription?.prescription && Array.isArray(savedPrescription.prescription)) {
+        setPrescriptionRows(
+          savedPrescription.prescription.map(p => ({
+            id: p.id || null,
+            medicine: p.medicine || '',
+            dosage: p.dosage || '',
+            when: p.when_to_take || p.when || '',
+            frequency: p.frequency || '',
+            duration: p.duration || '',
+            qty: p.quantity || p.qty || '',
+            details: p.details || '',
+            notes: p.notes || '',
+          }))
+        );
+      } else {
+        // Fallback: Keep current rows but update IDs if they were generated
+        setPrescriptionRows(prev => 
+          prev.map((row, index) => ({
+            ...row,
+            id: row.id || (index + 1) // Ensure IDs are set
+          }))
+        );
+      }
     } catch (error) {
       console.error("Error saving prescriptions:", error);
   
@@ -1062,7 +1194,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
             {proforma.visit_type && ` • ${proforma.visit_type.replace('_', ' ')}`}
           </p>
         </div>
-        {existingPrescriptions.length > 5 && (
+        {existingPrescriptions.length > 0 && (
           <Button
             onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
             variant="outline"
@@ -1107,8 +1239,11 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                         <input
                           ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
                           type="text"
-                          value={row.medicine}
-                          onChange={(e) => updatePrescriptionCell(idx, 'medicine', e.target.value)}
+                          value={row.medicine || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            updatePrescriptionCell(idx, 'medicine', newValue);
+                          }}
                           onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
                           onFocus={() => {
                             if (row.medicine && row.medicine.trim().length > 0) {
@@ -1189,7 +1324,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.dosage}
+                        value={row.dosage || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="e.g., 1-0-1"
@@ -1199,7 +1334,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.when}
+                        value={row.when || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="before/after food"
@@ -1209,7 +1344,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.frequency}
+                        value={row.frequency || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="daily"
@@ -1219,7 +1354,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.duration}
+                        value={row.duration || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="5 days"
@@ -1229,7 +1364,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.qty}
+                        value={row.qty || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="Qty"
@@ -1239,7 +1374,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.details}
+                        value={row.details || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="Details"
@@ -1248,7 +1383,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                     <td className="px-3 py-2">
                       <input
                         type="text"
-                        value={row.notes}
+                        value={row.notes || ''}
                         onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                         placeholder="Notes"
@@ -1395,11 +1530,11 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
               <Button
                 type="button"
                 onClick={handleSavePrescriptions}
-                disabled={isUpdating}
+                disabled={isSaving}
                 className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                {isUpdating ? 'Updating...' : (isUpdateMode ? 'Update Prescriptions' : 'Create Prescriptions')}
+                {isSaving ? 'Saving...' : (isUpdateMode ? 'Update Prescriptions' : 'Create Prescriptions')}
               </Button>
             )}
           </div>

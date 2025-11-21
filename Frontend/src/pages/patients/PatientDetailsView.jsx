@@ -20,7 +20,7 @@ import Button from '../../components/Button';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx-js-style';
 
-import { useGetPrescriptionsByProformaIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
+import { useGetPrescriptionByIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
 
 
 const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
@@ -191,16 +191,16 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
   // Always call the same number of hooks (10) in the same order
   // This ensures React hooks are called in a consistent order every render
   // proformaIds is guaranteed to have exactly 10 elements (padded with null if needed)
-  const prescriptionResult1 = useGetPrescriptionsByProformaIdQuery(proformaIds[0], { skip: !proformaIds[0] });
-  const prescriptionResult2 = useGetPrescriptionsByProformaIdQuery(proformaIds[1], { skip: !proformaIds[1] });
-  const prescriptionResult3 = useGetPrescriptionsByProformaIdQuery(proformaIds[2], { skip: !proformaIds[2] });
-  const prescriptionResult4 = useGetPrescriptionsByProformaIdQuery(proformaIds[3], { skip: !proformaIds[3] });
-  const prescriptionResult5 = useGetPrescriptionsByProformaIdQuery(proformaIds[4], { skip: !proformaIds[4] });
-  const prescriptionResult6 = useGetPrescriptionsByProformaIdQuery(proformaIds[5], { skip: !proformaIds[5] });
-  const prescriptionResult7 = useGetPrescriptionsByProformaIdQuery(proformaIds[6], { skip: !proformaIds[6] });
-  const prescriptionResult8 = useGetPrescriptionsByProformaIdQuery(proformaIds[7], { skip: !proformaIds[7] });
-  const prescriptionResult9 = useGetPrescriptionsByProformaIdQuery(proformaIds[8], { skip: !proformaIds[8] });
-  const prescriptionResult10 = useGetPrescriptionsByProformaIdQuery(proformaIds[9], { skip: !proformaIds[9] });
+  const prescriptionResult1 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[0] }, { skip: !proformaIds[0] });
+  const prescriptionResult2 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[1] }, { skip: !proformaIds[1] });
+  const prescriptionResult3 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[2] }, { skip: !proformaIds[2] });
+  const prescriptionResult4 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[3] }, { skip: !proformaIds[3] });
+  const prescriptionResult5 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[4] }, { skip: !proformaIds[4] });
+  const prescriptionResult6 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[5] }, { skip: !proformaIds[5] });
+  const prescriptionResult7 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[6] }, { skip: !proformaIds[6] });
+  const prescriptionResult8 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[7] }, { skip: !proformaIds[7] });
+  const prescriptionResult9 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[8] }, { skip: !proformaIds[8] });
+  const prescriptionResult10 = useGetPrescriptionByIdQuery({ clinical_proforma_id: proformaIds[9] }, { skip: !proformaIds[9] });
 
   // Combine all prescription results - always use all 10 results
   const prescriptionResults = [
@@ -221,9 +221,10 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
     const prescriptions = [];
     prescriptionResults.forEach((result, index) => {
       const proformaId = proformaIds[index];
-      if (proformaId && result.data?.data?.prescriptions) {
+      if (proformaId && result.data?.data?.prescription?.prescription) {
         const proforma = patientProformas.find(p => p.id === proformaId);
-        result.data.data.prescriptions.forEach(prescription => {
+        const prescriptionData = result.data.data.prescription;
+        prescriptionData.prescription.forEach(prescription => {
           prescriptions.push({
             ...prescription,
             proforma_id: proformaId,
@@ -455,10 +456,10 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
           'Visit Type': prescription.visit_type === 'first_visit' ? 'First Visit' : 'Follow-up',
           'Medicine': prescription.medicine || 'N/A',
           'Dosage': prescription.dosage || 'N/A',
-          'When to Take': prescription.when_to_take || 'N/A',
+          'When to Take': prescription.when_to_take || prescription.when || 'N/A',
           'Frequency': prescription.frequency || 'N/A',
           'Duration': prescription.duration || 'N/A',
-          'Quantity': prescription.quantity || 'N/A',
+          'Quantity': prescription.quantity || prescription.qty || 'N/A',
           'Details': prescription.details || 'N/A',
           'Notes': prescription.notes || 'N/A',
           'Prescribed At': prescription.created_at ? formatDateTime(prescription.created_at) : 'N/A',

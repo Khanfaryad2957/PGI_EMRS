@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../features/auth/authSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetClinicalProformaByPatientIdQuery } from '../../features/clinical/clinicalApiSlice';
-import { useCreateBulkPrescriptionsMutation, useGetPrescriptionsByProformaIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
+import { useCreatePrescriptionMutation, useGetPrescriptionByIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { FiPackage, FiUser, FiSave, FiX, FiPlus, FiTrash2, FiHome, FiUserCheck, FiCalendar, FiFileText, FiClock, FiPrinter, FiSearch, FiDroplet, FiActivity } from 'react-icons/fi';
@@ -62,19 +62,23 @@ const CreatePrescription = ({
     { skip: !patientId }
   );
 
-  const [createBulkPrescriptions, { isLoading: isSavingPrescriptions }] = useCreateBulkPrescriptionsMutation();
+  const [createPrescription, { isLoading: isSavingPrescriptions }] = useCreatePrescriptionMutation();
 
   // Fetch existing prescriptions when clinicalProformaId is provided
   const { 
     data: existingPrescriptionsData, 
     isLoading: isLoadingPrescriptions,
     refetch: refetchPrescriptions
-  } = useGetPrescriptionsByProformaIdQuery(clinicalProformaId, {
-    skip: !clinicalProformaId,
-    refetchOnMountOrArgChange: true
-  });
+  } = useGetPrescriptionByIdQuery(
+    { clinical_proforma_id: clinicalProformaId },
+    {
+      skip: !clinicalProformaId,
+      refetchOnMountOrArgChange: true
+    }
+  );
 
-  const existingPrescriptions = existingPrescriptionsData?.data?.prescriptions || existingPrescriptionsData?.data || [];
+  const prescriptionData = existingPrescriptionsData?.data?.prescription;
+  const existingPrescriptions = prescriptionData?.prescription || [];
 
   const patient = patientData?.data?.patient;
   const clinicalHistory = clinicalHistoryData?.data?.proformas || [];
@@ -397,13 +401,28 @@ const CreatePrescription = ({
         return;
       }
 
-      // Save to backend using bulk API
-      const result = await createBulkPrescriptions({
+      // Save to backend using createPrescription (handles multiple medicines)
+      // Convert patient_id to integer if needed
+      const patientIdInt = patientId 
+        ? (typeof patientId === 'string' ? parseInt(patientId) : patientId)
+        : (proformaForPrescription.patient_id 
+            ? (typeof proformaForPrescription.patient_id === 'string' 
+                ? parseInt(proformaForPrescription.patient_id) 
+                : proformaForPrescription.patient_id)
+            : null);
+      
+      if (!patientIdInt || isNaN(patientIdInt)) {
+        toast.error('Valid patient ID is required');
+        return;
+      }
+      
+      const result = await createPrescription({
+        patient_id: patientIdInt,
         clinical_proforma_id: proformaForPrescription.id,
-        prescriptions: prescriptionsToSave,
+        prescription: prescriptionsToSave, // Use 'prescription' for new format
       }).unwrap();
 
-      toast.success(`Prescription created successfully! ${result?.data?.prescriptions?.length || validPrescriptions.length} medication(s) recorded.`);
+      toast.success(`Prescription created successfully! ${result?.data?.prescription?.prescription?.length || validPrescriptions.length} medication(s) recorded.`);
       
       // Navigate back or to patient details
       if (returnTab) {

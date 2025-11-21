@@ -81,11 +81,17 @@ class Patient {
 
     // 🔹 Present Address fields
     this.present_address_line_1 = data.present_address_line_1 || null;
+    this.present_address_line_2 = data.present_address_line_2 || null;
     this.present_city_town_village = data.present_city_town_village || null;
+    this.present_city_town_village_2 = data.present_city_town_village_2 || null;
     this.present_district = data.present_district || null;
+    this.present_district_2 = data.present_district_2 || null;
     this.present_state = data.present_state || null;
+    this.present_state_2 = data.present_state_2 || null;
     this.present_pin_code = data.present_pin_code || null;
+    this.present_pin_code_2 = data.present_pin_code_2 || null;
     this.present_country = data.present_country || null;
+    this.present_country_2 = data.present_country_2 || null;
 
     // 🔹 Local Address field
     this.local_address = data.local_address || null;
@@ -204,11 +210,17 @@ class Patient {
         
         // Present Address fields
         present_address_line_1,
+        present_address_line_2,
         present_city_town_village,
+        present_city_town_village_2,
         present_district,
+        present_district_2,
         present_state,
+        present_state_2,
         present_pin_code,
+        present_pin_code_2,
         present_country,
+        present_country_2,
         
         // Local Address field
         local_address,
@@ -319,11 +331,17 @@ class Patient {
         permanent_country,
         // Present Address fields
         present_address_line_1,
+        present_address_line_2,
         present_city_town_village,
+        present_city_town_village_2,
         present_district,
+        present_district_2,
         present_state,
+        present_state_2,
         present_pin_code,
+        present_pin_code_2,
         present_country,
+        present_country_2,
         // Local Address field
         local_address,
         assigned_doctor_name,
@@ -441,8 +459,9 @@ class Patient {
           p.state, p.district, p.city, p.pin_code,
           p.permanent_address_line_1, p.permanent_city_town_village, p.permanent_district,
           p.permanent_state, p.permanent_pin_code, p.permanent_country,
-          p.present_address_line_1, p.present_city_town_village, p.present_district,
-          p.present_state, p.present_pin_code, p.present_country,
+          p.present_address_line_1, p.present_address_line_2, p.present_city_town_village, p.present_city_town_village_2,
+          p.present_district, p.present_district_2, p.present_state, p.present_state_2,
+          p.present_pin_code, p.present_pin_code_2, p.present_country, p.present_country_2,
           p.local_address,
           p.assigned_room, p.filled_by,
           p.has_adl_file, p.file_status, p.created_at, p.updated_at,
@@ -893,8 +912,9 @@ class Patient {
         'permanent_address_line_1', 'permanent_city_town_village',
         'permanent_district', 'permanent_state', 'permanent_pin_code', 'permanent_country',
         // Present Address fields
-        'present_address_line_1', 'present_city_town_village',
-        'present_district', 'present_state', 'present_pin_code', 'present_country',
+        'present_address_line_1', 'present_address_line_2', 'present_city_town_village', 'present_city_town_village_2',
+        'present_district', 'present_district_2', 'present_state', 'present_state_2',
+        'present_pin_code', 'present_pin_code_2', 'present_country', 'present_country_2',
         // Local Address field
         'local_address',
         'assigned_room', 'assigned_doctor_id', 'assigned_doctor_name', 'file_status', 'has_adl_file', 
@@ -1189,6 +1209,31 @@ class Patient {
       district : this.district ,
       city : this.city ,
       pin_code : this.pin_code ,
+  
+      // 🔹 Permanent Address fields
+      permanent_address_line_1 : this.permanent_address_line_1 ,
+      permanent_city_town_village : this.permanent_city_town_village ,
+      permanent_district : this.permanent_district ,
+      permanent_state : this.permanent_state ,
+      permanent_pin_code : this.permanent_pin_code ,
+      permanent_country : this.permanent_country ,
+  
+      // 🔹 Present Address fields
+      present_address_line_1 : this.present_address_line_1 ,
+      present_address_line_2 : this.present_address_line_2 ,
+      present_city_town_village : this.present_city_town_village ,
+      present_city_town_village_2 : this.present_city_town_village_2 ,
+      present_district : this.present_district ,
+      present_district_2 : this.present_district_2 ,
+      present_state : this.present_state ,
+      present_state_2 : this.present_state_2 ,
+      present_pin_code : this.present_pin_code ,
+      present_pin_code_2 : this.present_pin_code_2 ,
+      present_country : this.present_country ,
+      present_country_2 : this.present_country_2 ,
+  
+      // 🔹 Local Address field
+      local_address : this.local_address ,
   
       // 🔹 Optional system / metathis fields
       has_adl_file : this.has_adl_file ,

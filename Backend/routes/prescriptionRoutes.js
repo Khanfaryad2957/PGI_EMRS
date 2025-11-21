@@ -8,92 +8,135 @@ const { body, param } = require('express-validator');
  * @swagger
  * components:
  *   schemas:
+ *     PrescriptionItem:
+ *       type: object
+ *       required:
+ *         - medicine
+ *       properties:
+ *         medicine:
+ *           type: string
+ *           description: Medicine name (required)
+ *         dosage:
+ *           type: string
+ *           description: Dosage (e.g., "650mg", "1-0-1")
+ *         when_to_take:
+ *           type: string
+ *           description: When to take medication (e.g., "After food", "Before food")
+ *           example: "After food"
+ *         when:
+ *           type: string
+ *           description: Alias for when_to_take (for backward compatibility)
+ *         frequency:
+ *           type: string
+ *           description: Frequency (e.g., "2 times", "Twice Daily")
+ *         duration:
+ *           type: string
+ *           description: Duration (e.g., "5 days", "1 month")
+ *         quantity:
+ *           type: string
+ *           description: Quantity prescribed
+ *         qty:
+ *           type: string
+ *           description: Alias for quantity (for backward compatibility)
+ *         details:
+ *           type: string
+ *           description: Additional details
+ *         notes:
+ *           type: string
+ *           description: Additional notes
+ *     
  *     Prescription:
  *       type: object
  *       properties:
  *         id:
  *           type: integer
+ *           description: Prescription ID
+ *         patient_id:
+ *           type: string
+ *           format: uuid
+ *           description: Patient ID
  *         clinical_proforma_id:
  *           type: integer
  *           description: Foreign key reference to clinical_proforma table
- *         medicine:
- *           type: string
- *           maxLength: 255
- *         dosage:
- *           type: string
- *           maxLength: 100
- *         when:
- *           type: string
- *           maxLength: 100
- *           description: When to take medication (e.g., before/after food, morning, evening)
- *         frequency:
- *           type: string
- *           maxLength: 100
- *           description: Frequency of administration (e.g., daily, twice daily, SOS)
- *         duration:
- *           type: string
- *           maxLength: 100
- *           description: Duration of treatment (e.g., 5 days, 1 month)
- *         qty:
- *           type: string
- *           maxLength: 50
- *           description: Quantity prescribed
- *         details:
- *           type: string
- *         notes:
- *           type: string
+ *         prescription:
+ *           type: array
+ *           description: Array of prescription items (medications)
+ *           items:
+ *             $ref: '#/components/schemas/PrescriptionItem'
  *         created_at:
  *           type: string
  *           format: date-time
  *         updated_at:
  *           type: string
  *           format: date-time
+ *       example:
+ *         id: 1
+ *         patient_id: "24"
+ *         clinical_proforma_id: 12
+ *         prescription:
+ *           - medicine: "Paracetamol"
+ *             dosage: "650mg"
+ *             when_to_take: "After food"
+ *             frequency: "2 times"
+ *             duration: "5 days"
+ *             quantity: "10"
+ *             details: "If fever persists, revisit"
+ *             notes: "No allergies"
  *     
  *     PrescriptionCreate:
  *       type: object
  *       required:
  *         - clinical_proforma_id
- *         - medicine
+ *         - prescription
  *       properties:
+ *         patient_id:
+ *           type: string
+ *           format: uuid
+ *           description: Patient ID (optional, can be derived from clinical_proforma)
  *         clinical_proforma_id:
  *           type: integer
- *         medicine:
- *           type: string
- *           maxLength: 255
- *         dosage:
- *           type: string
- *           maxLength: 100
- *         when:
- *           type: string
- *           maxLength: 100
- *         frequency:
- *           type: string
- *           maxLength: 100
- *         duration:
- *           type: string
- *           maxLength: 100
- *         qty:
- *           type: string
- *           maxLength: 50
- *         details:
- *           type: string
- *         notes:
- *           type: string
- *     
- *     PrescriptionBulkCreate:
- *       type: object
- *       required:
- *         - clinical_proforma_id
- *         - prescriptions
- *       properties:
- *         clinical_proforma_id:
- *           type: integer
+ *           description: Clinical proforma ID (required)
+ *         prescription:
+ *           type: array
+ *           minItems: 1
+ *           description: Array of prescription items (can add multiple medicines)
+ *           items:
+ *             $ref: '#/components/schemas/PrescriptionItem'
  *         prescriptions:
  *           type: array
  *           minItems: 1
+ *           description: Legacy format - accepts when/qty field names (will be converted to prescription array)
  *           items:
- *             $ref: '#/components/schemas/PrescriptionCreate'
- */
+ *             type: object
+ *             required:
+ *               - medicine
+ *             properties:
+ *               medicine:
+ *                 type: string
+ *               dosage:
+ *                 type: string
+ *               when:
+ *                 type: string
+ *                 description: When to take (legacy field name)
+ *               when_to_take:
+ *                 type: string
+ *                 description: When to take (new field name)
+ *               frequency:
+ *                 type: string
+ *               duration:
+ *                 type: string
+ *               qty:
+ *                 type: string
+ *                 description: Quantity (legacy field name)
+ *               quantity:
+ *                 type: string
+ *                 description: Quantity (new field name)
+ *               details:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *     
+ * */
 
 /**
  * @swagger
@@ -153,72 +196,41 @@ router.post(
 
 /**
  * @swagger
- * /api/prescriptions/bulk:
- *   post:
- *     summary: Create multiple prescriptions (bulk)
- *     tags: [Prescriptions]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/PrescriptionBulkCreate'
- *           example:
- *             clinical_proforma_id: 1
- *             prescriptions:
- *               - medicine: "Paracetamol"
- *                 dosage: "500mg"
- *                 when: "After food"
- *                 frequency: "Twice daily"
- *                 duration: "5 days"
- *                 qty: "10"
- *                 details: "For fever"
- *                 notes: "Take with water"
- *               - medicine: "Ibuprofen"
- *                 dosage: "400mg"
- *                 when: "Before food"
- *                 frequency: "Once daily"
- *                 duration: "3 days"
- *                 qty: "3"
- *     responses:
- *       201:
- *         description: Prescriptions created successfully
- *       400:
- *         description: Validation error
- *       404:
- *         description: Clinical proforma not found
- *       500:
- *         description: Server error
- */
-router.post(
-  '/bulk',
-  authenticateToken,
-  authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  // [
-  //   body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
-  //   body('prescriptions').isArray({ min: 1 }).withMessage('Prescriptions must be a non-empty array'),
-  //   body('prescriptions.*.medicine').notEmpty().trim().withMessage('Each prescription must have a medicine name')
-  // ],
-  prescriptionController.createBulkPrescriptions
-);
-
-/**
- * @swagger
- * /api/prescriptions/proforma/{proforma_id}:
+ * /api/prescriptions:
  *   get:
- *     summary: Get all prescriptions for a clinical proforma
+ *     summary: Get all prescriptions with pagination and filters
  *     tags: [Prescriptions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: proforma_id
- *         required: true
+ *       - in: query
+ *         name: page
  *         schema:
  *           type: integer
- *         description: Clinical proforma ID
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: patient_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by patient ID
+ *       - in: query
+ *         name: clinical_proforma_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by clinical proforma ID
+ *       - in: query
+ *         name: doctor_decision
+ *         schema:
+ *           type: string
+ *           enum: [simple_case, complex_case]
+ *         description: Filter by doctor decision
  *     responses:
  *       200:
  *         description: Prescriptions retrieved successfully
@@ -238,35 +250,47 @@ router.post(
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Prescription'
- *                     count:
- *                       type: integer
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
  *       500:
  *         description: Server error
  */
 router.get(
-  '/proforma/:proforma_id',
+  '/',
   authenticateToken,
-  [
-    param('proforma_id').isInt().withMessage('Proforma ID must be an integer')
-  ],
-  prescriptionController.getPrescriptionsByProformaId
+  prescriptionController.getAllPrescription
 );
 
 /**
  * @swagger
  * /api/prescriptions/{id}:
  *   get:
- *     summary: Get a prescription by ID
+ *     summary: Get a prescription by ID or clinical_proforma_id
  *     tags: [Prescriptions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
+ *         required: false
  *         schema:
  *           type: integer
  *         description: Prescription ID
+ *       - in: query
+ *         name: clinical_proforma_id
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: Clinical proforma ID (alternative to id)
  *     responses:
  *       200:
  *         description: Prescription retrieved successfully
@@ -383,36 +407,6 @@ router.delete(
   prescriptionController.deletePrescription
 );
 
-/**
- * @swagger
- * /api/prescriptions/proforma/{proforma_id}:
- *   delete:
- *     summary: Delete all prescriptions for a clinical proforma
- *     tags: [Prescriptions]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: proforma_id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Clinical proforma ID
- *     responses:
- *       200:
- *         description: Prescriptions deleted successfully
- *       500:
- *         description: Server error
- */
-router.delete(
-  '/proforma/:proforma_id',
-  authenticateToken,
-  authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  [
-    param('proforma_id').isInt().withMessage('Proforma ID must be an integer')
-  ],
-  prescriptionController.deletePrescriptionsByProformaId
-);
 
 module.exports = router;
 

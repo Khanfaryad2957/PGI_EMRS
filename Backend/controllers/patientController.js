@@ -681,6 +681,15 @@ class PatientController {
         'district',
         'city',
         'pin_code',
+        // Permanent Address fields
+        'permanent_address_line_1', 'permanent_city_town_village',
+        'permanent_district', 'permanent_state', 'permanent_pin_code', 'permanent_country',
+        // Present Address fields
+        'present_address_line_1', 'present_address_line_2', 'present_city_town_village', 'present_city_town_village_2',
+        'present_district', 'present_district_2', 'present_state', 'present_state_2',
+        'present_pin_code', 'present_pin_code_2', 'present_country', 'present_country_2',
+        // Local Address field
+        'local_address',
         'assigned_room',
         'assigned_doctor_id',
         'assigned_doctor_name',

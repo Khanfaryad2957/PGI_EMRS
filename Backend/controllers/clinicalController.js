@@ -210,14 +210,12 @@ class ClinicalController {
         }
 
         if (!existingAdlFile) {
-          // ADL number must be provided manually in the request
-          if (!req.body.adl_no) {
-            return res.status(400).json({
-              success: false,
-              message: 'ADL number is required for complex cases. Please provide adl_no in the request.'
-            });
+          // Auto-generate ADL number if not provided
+          let nextAdlNo = req.body.adl_no;
+          if (!nextAdlNo) {
+            nextAdlNo = Patient.generateADLNo();
+            console.log(`[createClinicalProforma] ✅ Auto-generated ADL number: ${nextAdlNo}`);
           }
-          const nextAdlNo = req.body.adl_no;
 
           // Prepare ADL data with complex case fields
           // Note: is_active has a default value in the table, so we don't need to include it
@@ -304,11 +302,18 @@ class ClinicalController {
           let createdPrescriptions = [];
           if (data.prescriptions && Array.isArray(data.prescriptions) && data.prescriptions.length > 0) {
             try {
-              const prescriptionsWithProformaId = data.prescriptions.map(prescription => ({
-                ...prescription,
-                clinical_proforma_id: clinicalRecord.id
-              }));
-              createdPrescriptions = await Prescription.createBulk(prescriptionsWithProformaId);
+              // Ensure patient_id is an integer
+              const patientIdInt = parseInt(data.patient_id || clinicalRecord.patient_id);
+              if (isNaN(patientIdInt)) {
+                throw new Error("Invalid patient_id: must be an integer");
+              }
+              
+              const prescription = await Prescription.create({
+                patient_id: patientIdInt,
+                clinical_proforma_id: clinicalRecord.id,
+                prescription: data.prescriptions
+              });
+              createdPrescriptions = [prescription];
             } catch (prescriptionError) {
             console.error('[createClinicalProforma] Failed to create prescriptions:', prescriptionError);
             }
@@ -408,11 +413,18 @@ class ClinicalController {
         let createdPrescriptions = [];
         if (data.prescriptions && Array.isArray(data.prescriptions) && data.prescriptions.length > 0) {
           try {
-            const prescriptionsWithProformaId = data.prescriptions.map(prescription => ({
-              ...prescription,
-              clinical_proforma_id: simpleClinical.id
-            }));
-            createdPrescriptions = await Prescription.createBulk(prescriptionsWithProformaId);
+            // Ensure patient_id is an integer
+            const patientIdInt = parseInt(data.patient_id || simpleClinical.patient_id);
+            if (isNaN(patientIdInt)) {
+              throw new Error("Invalid patient_id: must be an integer");
+            }
+            
+            const prescription = await Prescription.create({
+              patient_id: patientIdInt,
+              clinical_proforma_id: simpleClinical.id,
+              prescription: data.prescriptions
+            });
+            createdPrescriptions = [prescription];
           } catch (prescriptionError) {
             console.error('Failed to create prescriptions:', prescriptionError);
           }
@@ -745,14 +757,12 @@ class ClinicalController {
           
           // Create new ADL file if it doesn't exist or changing to complex case
           if (!adlFile && (changingToComplexCase || !proforma.adl_file_id)) {
-            // ADL number must be provided manually in the request
-            if (!req.body.adl_no) {
-              return res.status(400).json({
-                success: false,
-                message: 'ADL number is required for complex cases. Please provide adl_no in the request.'
-              });
+            // Auto-generate ADL number if not provided
+            let nextAdlNo = req.body.adl_no;
+            if (!nextAdlNo) {
+              nextAdlNo = Patient.generateADLNo();
+              console.log(`[updateClinicalProforma] ✅ Auto-generated ADL number: ${nextAdlNo}`);
             }
-            const nextAdlNo = req.body.adl_no;
 
             // Prepare ADL data
             const adlData = {
@@ -835,11 +845,18 @@ class ClinicalController {
           
           // Create new prescriptions if any were provided
           if (prescriptions.length > 0) {
-            const prescriptionsWithProformaId = prescriptions.map(prescription => ({
-              ...prescription,
-              clinical_proforma_id: proforma.id
-            }));
-            updatedPrescriptions = await Prescription.createBulk(prescriptionsWithProformaId);
+            // Ensure patient_id is an integer
+            const patientIdInt = parseInt(proforma.patient_id);
+            if (isNaN(patientIdInt)) {
+              throw new Error("Invalid patient_id: must be an integer");
+            }
+            
+            const prescription = await Prescription.create({
+              patient_id: patientIdInt,
+              clinical_proforma_id: proforma.id,
+              prescription: prescriptions
+            });
+            updatedPrescriptions = [prescription];
           }
         } catch (prescriptionError) {
           console.error('Failed to update prescriptions:', prescriptionError);

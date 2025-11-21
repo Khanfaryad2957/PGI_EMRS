@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../features/auth/authSlice';
-import { useGetPrescriptionsByProformaIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
+import { useGetPrescriptionByIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
 import { useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import Card from '../../components/Card';
@@ -34,13 +34,14 @@ const PrescriptionView = () => {
     { skip: !actualPatientId }
   );
 
-  const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
-    clinicalProformaId,
+  const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionByIdQuery(
+    { clinical_proforma_id: clinicalProformaId },
     { skip: !clinicalProformaId }
   );
 
   const patient = patientData?.data?.patient;
-  const prescriptions = prescriptionsData?.data?.prescriptions || [];
+  const prescriptionData = prescriptionsData?.data?.prescription;
+  const prescriptions = prescriptionData?.prescription || [];
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -287,14 +288,14 @@ const PrescriptionView = () => {
                   </thead>
                   <tbody>
                     {prescriptions.map((prescription, idx) => (
-                      <tr key={prescription.id}>
+                      <tr key={idx}>
                         <td className="text-center">{idx + 1}</td>
                         <td className="font-medium">{prescription.medicine || '-'}</td>
                         <td>{prescription.dosage || '-'}</td>
-                        <td>{prescription.when || '-'}</td>
+                        <td>{prescription.when_to_take || '-'}</td>
                         <td>{prescription.frequency || '-'}</td>
                         <td>{prescription.duration || '-'}</td>
-                        <td className="text-center">{prescription.qty || '-'}</td>
+                        <td className="text-center">{prescription.quantity || '-'}</td>
                         <td>{prescription.details || '-'}</td>
                         <td>{prescription.notes || '-'}</td>
                       </tr>
@@ -469,20 +470,20 @@ const PrescriptionView = () => {
                   </thead>
                   <tbody>
                     {prescriptions.map((prescription, idx) => (
-                      <tr key={prescription.id} className="border-t hover:bg-gray-50">
+                      <tr key={idx} className="border-t hover:bg-gray-50">
                         <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
                         <td className="px-4 py-3 font-medium">{prescription.medicine || '-'}</td>
                         <td className="px-4 py-3">{prescription.dosage || '-'}</td>
-                        <td className="px-4 py-3">{prescription.when || '-'}</td>
+                        <td className="px-4 py-3">{prescription.when_to_take || '-'}</td>
                         <td className="px-4 py-3">{prescription.frequency || '-'}</td>
                         <td className="px-4 py-3">{prescription.duration || '-'}</td>
-                        <td className="px-4 py-3">{prescription.qty || '-'}</td>
+                        <td className="px-4 py-3">{prescription.quantity || '-'}</td>
                         <td className="px-4 py-3">{prescription.details || '-'}</td>
                         <td className="px-4 py-3">{prescription.notes || '-'}</td>
                         {(isJrSr(currentUser?.role) || isAdmin(currentUser?.role)) && (
                           <td className="px-4 py-3">
                             <Button
-                              onClick={() => navigate(`/prescriptions/edit/${prescription.id}?returnTab=${returnTab || ''}`)}
+                              onClick={() => navigate(`/prescriptions/edit?clinical_proforma_id=${clinicalProformaId}&patient_id=${actualPatientId}&returnTab=${returnTab || ''}`)}
                               variant="ghost"
                               size="sm"
                               className="flex items-center gap-1 text-blue-600 hover:text-blue-800"

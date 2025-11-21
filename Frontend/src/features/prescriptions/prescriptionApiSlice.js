@@ -2,16 +2,38 @@ import { apiSlice } from '../../app/api/apiSlice';
 
 export const prescriptionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getPrescriptionsByProformaId: builder.query({
-      query: (proformaId) => `/prescriptions/proforma/${proformaId}`,
-      providesTags: (result, error, proformaId) => [
-        { type: 'Prescription', id: `proforma-${proformaId}` },
-        'Prescription',
-      ],
+    getAllPrescription: builder.query({
+      query: ({ page = 1, limit = 10, patient_id, clinical_proforma_id, doctor_decision } = {}) => {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('limit', limit);
+        if (patient_id) params.append('patient_id', patient_id);
+        if (clinical_proforma_id) params.append('clinical_proforma_id', clinical_proforma_id);
+        if (doctor_decision) params.append('doctor_decision', doctor_decision);
+        return `/prescriptions?${params.toString()}`;
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.prescriptions.map(({ id }) => ({ type: 'Prescription', id })),
+              { type: 'Prescription', id: 'LIST' },
+            ]
+          : [{ type: 'Prescription', id: 'LIST' }],
     }),
     getPrescriptionById: builder.query({
-      query: (id) => `/prescriptions/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Prescription', id }],
+      query: ({ id, clinical_proforma_id }) => {
+        const params = new URLSearchParams();
+        if (clinical_proforma_id) {
+          params.append('clinical_proforma_id', clinical_proforma_id);
+        }
+        const queryString = params.toString();
+        return `/prescriptions/${id || 1}${queryString ? `?${queryString}` : ''}`;
+      },
+      providesTags: (result, error, { id, clinical_proforma_id }) => [
+        { type: 'Prescription', id },
+        { type: 'Prescription', id: `proforma-${clinical_proforma_id}` },
+        'Prescription',
+      ],
     }),
     createPrescription: builder.mutation({
       query: (prescriptionData) => ({
@@ -24,24 +46,25 @@ export const prescriptionApiSlice = apiSlice.injectEndpoints({
         'Prescription',
       ],
     }),
-    createBulkPrescriptions: builder.mutation({
-      query: ({ clinical_proforma_id, prescriptions }) => ({
-        url: '/prescriptions/bulk',
-        method: 'POST',
-        body: { clinical_proforma_id, prescriptions },
-      }),
-      invalidatesTags: (result, error, { clinical_proforma_id }) => [
-        { type: 'Prescription', id: `proforma-${clinical_proforma_id}` },
-        'Prescription',
-      ],
-    }),
     updatePrescription: builder.mutation({
-      query: ({ id, ...data }) => ({
-        url: `/prescriptions/${id}`,
-        method: 'PUT',
-        body: data,
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Prescription', id }, 'Prescription'],
+      query: ({ id, clinical_proforma_id, ...data }) => {
+        // If we have clinical_proforma_id but no id, we need to find the prescription first
+        // For now, use id if available, otherwise use 1 as placeholder (backend will handle finding by clinical_proforma_id)
+        const prescriptionId = id || (clinical_proforma_id ? 1 : null);
+        if (!prescriptionId) {
+          throw new Error('Either id or clinical_proforma_id is required');
+        }
+        return {
+          url: `/prescriptions/${prescriptionId}`,
+          method: 'PUT',
+          body: { ...data, clinical_proforma_id },
+        };
+      },
+      invalidatesTags: (result, error, { id, clinical_proforma_id }) => [
+        { type: 'Prescription', id },
+        { type: 'Prescription', id: `proforma-${clinical_proforma_id}` },
+        'Prescription'
+      ],
     }),
     deletePrescription: builder.mutation({
       query: (id) => ({
@@ -54,10 +77,9 @@ export const prescriptionApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
-  useGetPrescriptionsByProformaIdQuery,
+  useGetAllPrescriptionQuery,
   useGetPrescriptionByIdQuery,
   useCreatePrescriptionMutation,
-  useCreateBulkPrescriptionsMutation,
   useUpdatePrescriptionMutation,
   useDeletePrescriptionMutation,
 } = prescriptionApiSlice;

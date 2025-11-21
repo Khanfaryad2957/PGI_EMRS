@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -50,7 +50,6 @@ const formatDateForDatePicker = (dateValue) => {
 // import CreateClinicalProforma from '../clinical/CreateClinicalProforma';
 import { useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
 import { useGetADLFileByIdQuery } from '../../features/adl/adlApiSlice';
-import { useGetPrescriptionsByProformaIdQuery, useCreateBulkPrescriptionsMutation } from '../../features/prescriptions/prescriptionApiSlice';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import {
   MARITAL_STATUS, FAMILY_TYPE_OPTIONS, LOCALITY_OPTIONS, RELIGION_OPTIONS, SEX_OPTIONS,
@@ -63,922 +62,941 @@ import EditADL from '../adl/EditADL';
 import medicinesData from '../../assets/psychiatric_meds_india.json';
 import PrescriptionEdit from '../PrescribeMedication/PrescriptionEdit';
 // Prescription Card Component for displaying prescriptions per proforma
+import { SelectWithOther } from '../../components/SelectWithOther';
+import {IconInput} from '../../components/IconInput';
 
+// const SelectWithOther = ({
+//   customValue,
+//   setCustomValue,
+//   showCustomInput,
+//   formData,
+//   customFieldName,
+//   inputLabel = "Specify",
+//   ...selectProps
+// }) => {
+//   const [isOpen, setIsOpen] = useState(false);
+//   const [customInputValue, setCustomInputValue] = useState(customValue || formData[customFieldName] || '');
+//   const dropdownRef = useRef(null);
+//   const triggerRef = useRef(null);
+//   const customInputRef = useRef(null);
+//   const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 });
 
+//   // Check if "others" or "other" is selected
+//   const isOthersSelected = selectProps.value === 'others' || selectProps.value === 'other';
 
-const SelectWithOther = ({
-  customValue,
-  setCustomValue,
-  showCustomInput,
-  formData,
-  customFieldName,
-  inputLabel = "Specify",
-  ...selectProps
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [customInputValue, setCustomInputValue] = useState(customValue || formData[customFieldName] || '');
-  const dropdownRef = useRef(null);
-  const triggerRef = useRef(null);
-  const customInputRef = useRef(null);
-  const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 });
+//   // Update custom input value when customValue changes
+//   useEffect(() => {
+//     setCustomInputValue(customValue || formData[customFieldName] || '');
+//   }, [customValue, formData, customFieldName]);
 
-  // Check if "others" or "other" is selected
-  const isOthersSelected = selectProps.value === 'others' || selectProps.value === 'other';
-
-  // Update custom input value when customValue changes
-  useEffect(() => {
-    setCustomInputValue(customValue || formData[customFieldName] || '');
-  }, [customValue, formData, customFieldName]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target) &&
-        triggerRef.current && !triggerRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Update portal menu position when open/resize/scroll
-  useEffect(() => {
-    if (!isOpen || !triggerRef.current) return;
-    const updatePosition = () => {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setMenuStyle({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-      });
-    };
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isOpen]);
-
-  // Focus custom input when "Others" is selected and dropdown opens
-  useEffect(() => {
-    if (isOpen && showCustomInput && customInputRef.current) {
-      setTimeout(() => {
-        customInputRef.current?.focus();
-      }, 100);
-    }
-  }, [isOpen, showCustomInput]);
-
-  const selectedOption = selectProps.options.find(opt => opt.value === selectProps.value);
-
-  const handleSelect = (optionValue) => {
-    const event = {
-      target: {
-        name: selectProps.name,
-        value: optionValue
-      }
-    };
-    selectProps.onChange(event);
-
-    if (optionValue !== 'others' && optionValue !== 'other') {
-      setIsOpen(false);
-    }
-  };
-
-  const handleCustomInputChange = (e) => {
-    const value = e.target.value;
-    setCustomInputValue(value);
-    setCustomValue(value);
-
-    // Update form data
-    const event = {
-      target: {
-        name: customFieldName,
-        value: value
-      }
-    };
-    selectProps.onChange(event);
-  };
-
-  const handleCustomInputKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      setIsOpen(false);
-    }
-  };
-
-  const Menu = (
-    <div
-      className="bg-white border-2 border-primary-200 rounded-xl shadow-2xl overflow-hidden"
-      style={{
-        maxHeight: '300px',
-        zIndex: selectProps.dropdownZIndex || 999999,
-      }}
-    >
-      <div className="overflow-y-auto py-1" style={{ maxHeight: showCustomInput ? '200px' : '280px' }}>
-        {selectProps.options
-          .filter(opt => opt.value !== 'others' && opt.value !== 'other')
-          .map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`
-                w-full px-4 py-3 text-left
-                flex items-center justify-between
-                transition-colors duration-150
-                ${selectProps.value === option.value
-                  ? 'bg-primary-50 text-primary-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'}
-                ${index !== 0 ? 'border-t border-gray-100' : ''}
-              `}
-            >
-              <span className="flex-1">{option.label}</span>
-              {selectProps.value === option.value && (
-                <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
-              )}
-            </button>
-          ))}
-
-        {/* "Others" or "Other" option(s) */}
-        {selectProps.options
-          .filter(opt => opt.value === 'others' || opt.value === 'other')
-          .map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`
-                w-full px-4 py-3 text-left
-                flex items-center justify-between
-                transition-colors duration-150
-                ${isOthersSelected
-                  ? 'bg-primary-50 text-primary-700 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'}
-                border-t border-gray-100
-              `}
-            >
-              <span className="flex-1">{option.label}</span>
-              {isOthersSelected && (
-                <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
-              )}
-            </button>
-          ))}
-
-        {/* Custom input field when "Others" is selected */}
-        {isOthersSelected && (
-          <div className="p-3 border-t border-gray-200 bg-gray-50">
-            <label className="block text-xs font-medium text-gray-700 mb-2">
-              {inputLabel}
-            </label>
-            <input
-              ref={customInputRef}
-              type="text"
-              value={customInputValue}
-              onChange={handleCustomInputChange}
-              onKeyDown={handleCustomInputKeyDown}
-              placeholder={`Enter ${inputLabel.toLowerCase()}`}
-              className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className={`w-full relative overflow-visible ${selectProps.containerClassName || ''}`}>
-      {selectProps.label && (
-        <label
-          htmlFor={selectProps.name}
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          {selectProps.label}
-          {selectProps.required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-      )}
-
-      <div className="relative">
-        {/* Hidden native select for form submission */}
-        <select
-          id={selectProps.name}
-          name={selectProps.name}
-          value={selectProps.value}
-          onChange={selectProps.onChange}
-          required={selectProps.required}
-          disabled={selectProps.disabled}
-          className="sr-only"
-          tabIndex={-1}
-        >
-          <option value="">{selectProps.placeholder}</option>
-          {selectProps.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Custom dropdown trigger */}
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => !selectProps.disabled && setIsOpen(!isOpen)}
-          disabled={selectProps.disabled}
-          className={`
-            w-full px-4 py-3 pr-10
-            bg-white border-2 rounded-xl
-            text-left font-medium
-            transition-all duration-200 ease-in-out
-            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
-            hover:border-primary-400
-            disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:border-gray-300
-            ${selectProps.error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'}
-            ${!selectProps.value ? 'text-gray-500' : 'text-gray-900'}
-            ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/20' : ''}
-            ${selectProps.className}
-          `}
-        >
-          {isOthersSelected && customInputValue
-            ? customInputValue
-            : selectedOption
-              ? selectedOption.label
-              : selectProps.placeholder}
-        </button>
-
-        {/* Custom dropdown arrow */}
-        <div className={`
-          absolute right-3 top-1/2 -translate-y-1/2
-          pointer-events-none
-          transition-all duration-200
-          ${isOpen ? 'rotate-180' : 'rotate-0'}
-          ${selectProps.disabled ? 'text-gray-400' : selectProps.error ? 'text-red-500' : 'text-primary-600'}
-        `}>
-          <FiChevronDown className="h-5 w-5" />
-        </div>
-
-        {/* Dropdown menu */}
-        {isOpen && !selectProps.disabled && (
-          (selectProps.usePortal !== false)
-            ? createPortal(
-              <div
-                ref={dropdownRef}
-                style={{
-                  position: 'fixed',
-                  top: menuStyle.top,
-                  left: menuStyle.left,
-                  width: menuStyle.width,
-                  zIndex: selectProps.dropdownZIndex || 999999,
-                }}
-              >
-                {Menu}
-              </div>,
-              document.body
-            )
-            : (
-              <div
-                ref={dropdownRef}
-                className="absolute"
-                style={{
-                  top: 'calc(100% + 8px)',
-                  left: 0,
-                  right: 0,
-                  zIndex: selectProps.dropdownZIndex || 999999,
-                }}
-              >
-                {Menu}
-              </div>
-            )
-        )}
-      </div>
-
-      {selectProps.error && (
-        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-          <span className="inline-block w-1 h-1 rounded-full bg-red-600"></span>
-          {selectProps.error}
-        </p>
-      )}
-    </div>
-  );
-};
-// const PrescriptionCard = ({ proforma, index, patientId }) => {
-//   const navigate = useNavigate();
-//   const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
-//     proforma.id,
-//     { skip: !proforma.id }
-//   );
-//   const [createBulkPrescriptions, { isLoading: isSaving }] = useCreateBulkPrescriptionsMutation();
-
-//   const existingPrescriptions = prescriptionsData?.data?.prescriptions || [];
-
-//   // Flatten medicines data for autocomplete
-//   const allMedicines = useMemo(() => {
-//     const medicines = [];
-//     const data = medicinesData.psychiatric_medications;
-
-//     const extractMedicines = (obj) => {
-//       if (Array.isArray(obj)) {
-//         obj.forEach(med => {
-//           medicines.push({
-//             name: med.name,
-//             displayName: med.name,
-//             type: 'generic',
-//             brands: med.brands || [],
-//             strengths: med.strengths || []
-//           });
-//           if (med.brands && Array.isArray(med.brands)) {
-//             med.brands.forEach(brand => {
-//               medicines.push({
-//                 name: brand,
-//                 displayName: `${brand} (${med.name})`,
-//                 type: 'brand',
-//                 genericName: med.name,
-//                 strengths: med.strengths || []
-//               });
-//             });
-//           }
-//         });
-//       } else if (typeof obj === 'object' && obj !== null) {
-//         Object.values(obj).forEach(value => {
-//           extractMedicines(value);
-//         });
+//   // Close dropdown when clicking outside
+//   useEffect(() => {
+//     const handleClickOutside = (event) => {
+//       if (
+//         dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+//         triggerRef.current && !triggerRef.current.contains(event.target)
+//       ) {
+//         setIsOpen(false);
 //       }
 //     };
 
-//     extractMedicines(data);
-//     const uniqueMedicines = Array.from(
-//       new Map(medicines.map(m => [m.name.toLowerCase(), m])).values()
-//     );
-//     return uniqueMedicines.sort((a, b) => a.name.localeCompare(b.name));
+//     document.addEventListener('mousedown', handleClickOutside);
+//     return () => document.removeEventListener('mousedown', handleClickOutside);
 //   }, []);
 
-//   // Medicine autocomplete state for each row
-//   const [medicineSuggestions, setMedicineSuggestions] = useState({});
-//   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
-//   const [showSuggestions, setShowSuggestions] = useState({});
-//   const [suggestionPositions, setSuggestionPositions] = useState({});
-//   const inputRefs = useRef({});
-
-//   // Initialize with empty row, will be populated when prescriptions load
-//   const [prescriptionRows, setPrescriptionRows] = useState([
-//     { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
-//   ]);
-
-//   // Update rows when prescriptions data loads
+//   // Update portal menu position when open/resize/scroll
 //   useEffect(() => {
-//     if (existingPrescriptions.length > 0) {
-//       setPrescriptionRows(
-//         existingPrescriptions.slice(0, 5).map(p => ({
-//           id: p.id,
-//           medicine: p.medicine || '',
-//           dosage: p.dosage || '',
-//           when: p.when || '',
-//           frequency: p.frequency || '',
-//           duration: p.duration || '',
-//           qty: p.qty || '',
-//           details: p.details || '',
-//           notes: p.notes || '',
-//         }))
-//       );
-//     } else if (!loadingPrescriptions && existingPrescriptions.length === 0) {
-//       // Ensure at least one empty row is shown when no prescriptions exist
-//       setPrescriptionRows([
-//         { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
-//       ]);
+//     if (!isOpen || !triggerRef.current) return;
+//     const updatePosition = () => {
+//       const rect = triggerRef.current.getBoundingClientRect();
+//       setMenuStyle({
+//         top: rect.bottom + 8,
+//         left: rect.left,
+//         width: rect.width,
+//       });
+//     };
+//     updatePosition();
+//     window.addEventListener('scroll', updatePosition, true);
+//     window.addEventListener('resize', updatePosition);
+//     return () => {
+//       window.removeEventListener('scroll', updatePosition, true);
+//       window.removeEventListener('resize', updatePosition);
+//     };
+//   }, [isOpen]);
+
+//   // Focus custom input when "Others" is selected and dropdown opens
+//   useEffect(() => {
+//     if (isOpen && showCustomInput && customInputRef.current) {
+//       setTimeout(() => {
+//         customInputRef.current?.focus();
+//       }, 100);
 //     }
-//   }, [existingPrescriptions, loadingPrescriptions]);
+//   }, [isOpen, showCustomInput]);
 
-//   const addPrescriptionRow = () => {
-//     setPrescriptionRows(prev => [...prev, { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
-//   };
+//   const selectedOption = selectProps.options.find(opt => opt.value === selectProps.value);
 
-
-
-
-//   const removePrescriptionRow = (rowIdx) => {
-//     setPrescriptionRows(prev => prev.filter((_, i) => i !== rowIdx));
-//     // Clean up autocomplete state for removed row
-//     setMedicineSuggestions(prev => {
-//       const newState = { ...prev };
-//       delete newState[rowIdx];
-//       return newState;
-//     });
-//     setShowSuggestions(prev => {
-//       const newState = { ...prev };
-//       delete newState[rowIdx];
-//       return newState;
-//     });
-//   };
-
-//   const updatePrescriptionCell = (rowIdx, field, value) => {
-//     setPrescriptionRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
-
-//     // Handle medicine autocomplete
-//     if (field === 'medicine') {
-//       const searchTerm = value.toLowerCase().trim();
-//       if (searchTerm.length > 0) {
-//         const filtered = allMedicines.filter(med =>
-//           med.name.toLowerCase().includes(searchTerm) ||
-//           med.displayName.toLowerCase().includes(searchTerm) ||
-//           (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
-//         ).slice(0, 10);
-//         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: filtered }));
-//         setShowSuggestions(prev => ({ ...prev, [rowIdx]: true }));
-//         setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: -1 }));
-
-//         // Calculate position for dropdown
-//         setTimeout(() => {
-//           const input = inputRefs.current[`medicine-${rowIdx}`];
-//           if (input) {
-//             const rect = input.getBoundingClientRect();
-//             const dropdownHeight = 240;
-//             const spaceAbove = rect.top;
-//             const spaceBelow = window.innerHeight - rect.bottom;
-//             const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
-
-//             setSuggestionPositions(prev => ({
-//               ...prev,
-//               [rowIdx]: {
-//                 top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-//                 left: rect.left,
-//                 width: rect.width
-//               }
-//             }));
-//           }
-//         }, 0);
-//       } else {
-//         setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
-//         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+//   const handleSelect = (optionValue) => {
+//     const event = {
+//       target: {
+//         name: selectProps.name,
+//         value: optionValue
 //       }
+//     };
+//     selectProps.onChange(event);
+
+//     if (optionValue !== 'others' && optionValue !== 'other') {
+//       setIsOpen(false);
 //     }
 //   };
 
-//   const selectMedicine = (rowIdx, medicine) => {
-//     setPrescriptionRows(prev => prev.map((r, i) =>
-//       i === rowIdx ? { ...r, medicine: medicine.name } : r
-//     ));
-//     setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
-//     setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+//   const handleCustomInputChange = (e) => {
+//     const value = e.target.value;
+//     setCustomInputValue(value);
+//     setCustomValue(value);
+
+//     // Update form data
+//     const event = {
+//       target: {
+//         name: customFieldName,
+//         value: value
+//       }
+//     };
+//     selectProps.onChange(event);
 //   };
 
-//   const handleMedicineKeyDown = (e, rowIdx) => {
-//     const suggestions = medicineSuggestions[rowIdx] || [];
-//     const currentIndex = activeSuggestionIndex[rowIdx] || -1;
-
-//     if (e.key === 'ArrowDown') {
+//   const handleCustomInputKeyDown = (e) => {
+//     if (e.key === 'Enter') {
 //       e.preventDefault();
-//       const nextIndex = currentIndex < suggestions.length - 1 ? currentIndex + 1 : currentIndex;
-//       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: nextIndex }));
-//     } else if (e.key === 'ArrowUp') {
-//       e.preventDefault();
-//       const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1;
-//       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: prevIndex }));
-//     } else if (e.key === 'Enter' && currentIndex >= 0 && suggestions[currentIndex]) {
-//       e.preventDefault();
-//       selectMedicine(rowIdx, suggestions[currentIndex]);
-//     } else if (e.key === 'Escape') {
-//       setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+//       setIsOpen(false);
 //     }
 //   };
 
-//   const handleSavePrescriptions = async () => {
-//     if (!proforma.id) {
-//       toast.error('Clinical proforma ID is required');
-//       return;
-//     }
+//   const Menu = (
+//     <div
+//       className="bg-white border-2 border-primary-200 rounded-xl shadow-2xl overflow-hidden"
+//       style={{
+//         maxHeight: '300px',
+//         zIndex: selectProps.dropdownZIndex || 999999,
+//       }}
+//     >
+//       <div className="overflow-y-auto py-1" style={{ maxHeight: showCustomInput ? '200px' : '280px' }}>
+//         {selectProps.options
+//           .filter(opt => opt.value !== 'others' && opt.value !== 'other')
+//           .map((option, index) => (
+//             <button
+//               key={option.value}
+//               type="button"
+//               onClick={() => handleSelect(option.value)}
+//               className={`
+//                 w-full px-4 py-3 text-left
+//                 flex items-center justify-between
+//                 transition-colors duration-150
+//                 ${selectProps.value === option.value
+//                   ? 'bg-primary-50 text-primary-700 font-semibold'
+//                   : 'text-gray-700 hover:bg-gray-50'}
+//                 ${index !== 0 ? 'border-t border-gray-100' : ''}
+//               `}
+//             >
+//               <span className="flex-1">{option.label}</span>
+//               {selectProps.value === option.value && (
+//                 <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
+//               )}
+//             </button>
+//           ))}
 
-//     // Filter out empty prescriptions
-//     const validPrescriptions = prescriptionRows.filter(p => p.medicine && p.medicine.trim());
+//         {/* "Others" or "Other" option(s) */}
+//         {selectProps.options
+//           .filter(opt => opt.value === 'others' || opt.value === 'other')
+//           .map((option) => (
+//             <button
+//               key={option.value}
+//               type="button"
+//               onClick={() => handleSelect(option.value)}
+//               className={`
+//                 w-full px-4 py-3 text-left
+//                 flex items-center justify-between
+//                 transition-colors duration-150
+//                 ${isOthersSelected
+//                   ? 'bg-primary-50 text-primary-700 font-semibold'
+//                   : 'text-gray-700 hover:bg-gray-50'}
+//                 border-t border-gray-100
+//               `}
+//             >
+//               <span className="flex-1">{option.label}</span>
+//               {isOthersSelected && (
+//                 <FiCheck className="h-5 w-5 text-primary-600 flex-shrink-0 ml-2" />
+//               )}
+//             </button>
+//           ))}
 
-//     if (validPrescriptions.length === 0) {
-//       toast.error('Please add at least one medication with a valid medicine name');
-//       return;
-//     }
-
-//     try {
-//       const prescriptionsToSave = validPrescriptions.map(p => ({
-//         medicine: p.medicine.trim(),
-//         dosage: p.dosage?.trim() || null,
-//         when: p.when?.trim() || null,
-//         frequency: p.frequency?.trim() || null,
-//         duration: p.duration?.trim() || null,
-//         qty: p.qty?.trim() || null,
-//         details: p.details?.trim() || null,
-//         notes: p.notes?.trim() || null,
-//       }));
-
-//       await createBulkPrescriptions({
-//         clinical_proforma_id: proforma.id,
-//         prescriptions: prescriptionsToSave,
-//       }).unwrap();
-
-//       toast.success(`Prescription saved successfully! ${prescriptionsToSave.length} medication(s) recorded.`);
-
-//       // The query will automatically refetch due to cache invalidation
-//       // Reset form to show one empty row for next entry
-//       setPrescriptionRows([{ medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
-//     } catch (error) {
-//       console.error('Error saving prescriptions:', error);
-//       toast.error(error?.data?.message || 'Failed to save prescriptions. Please try again.');
-//     }
-//   };
+//         {/* Custom input field when "Others" is selected */}
+//         {isOthersSelected && (
+//           <div className="p-3 border-t border-gray-200 bg-gray-50">
+//             <label className="block text-xs font-medium text-gray-700 mb-2">
+//               {inputLabel}
+//             </label>
+//             <input
+//               ref={customInputRef}
+//               type="text"
+//               value={customInputValue}
+//               onChange={handleCustomInputChange}
+//               onKeyDown={handleCustomInputKeyDown}
+//               placeholder={`Enter ${inputLabel.toLowerCase()}`}
+//               className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+//               onClick={(e) => e.stopPropagation()}
+//             />
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
 
 //   return (
-//     <div className="border border-gray-200 rounded-lg p-6 bg-gradient-to-r from-amber-50 to-yellow-50">
-//       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-//         <div>
-//           <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
-//           <p className="text-sm text-gray-500 mt-1">
-//             {proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}
-//             {proforma.visit_type && ` • ${proforma.visit_type.replace('_', ' ')}`}
-//           </p>
+//     <div className={`w-full relative overflow-visible ${selectProps.containerClassName || ''}`}>
+//       {selectProps.label && (
+//         <label
+//           htmlFor={selectProps.name}
+//           className="block text-sm font-medium text-gray-700 mb-2"
+//         >
+//           {selectProps.label}
+//           {selectProps.required && <span className="text-red-500 ml-1">*</span>}
+//         </label>
+//       )}
+
+//       <div className="relative">
+//         {/* Hidden native select for form submission */}
+//         <select
+//           id={selectProps.name}
+//           name={selectProps.name}
+//           value={selectProps.value}
+//           onChange={selectProps.onChange}
+//           required={selectProps.required}
+//           disabled={selectProps.disabled}
+//           className="sr-only"
+//           tabIndex={-1}
+//         >
+//           <option value="">{selectProps.placeholder}</option>
+//           {selectProps.options.map((option) => (
+//             <option key={option.value} value={option.value}>
+//               {option.label}
+//             </option>
+//           ))}
+//         </select>
+
+//         {/* Custom dropdown trigger */}
+//         <button
+//           ref={triggerRef}
+//           type="button"
+//           onClick={() => !selectProps.disabled && setIsOpen(!isOpen)}
+//           disabled={selectProps.disabled}
+//           className={`
+//             w-full px-4 py-3 pr-10
+//             bg-white border-2 rounded-xl
+//             text-left font-medium
+//             transition-all duration-200 ease-in-out
+//             focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
+//             hover:border-primary-400
+//             disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:border-gray-300
+//             ${selectProps.error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'}
+//             ${!selectProps.value ? 'text-gray-500' : 'text-gray-900'}
+//             ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/20' : ''}
+//             ${selectProps.className}
+//           `}
+//         >
+//           {isOthersSelected && customInputValue
+//             ? customInputValue
+//             : selectedOption
+//               ? selectedOption.label
+//               : selectProps.placeholder}
+//         </button>
+
+//         {/* Custom dropdown arrow */}
+//         <div className={`
+//           absolute right-3 top-1/2 -translate-y-1/2
+//           pointer-events-none
+//           transition-all duration-200
+//           ${isOpen ? 'rotate-180' : 'rotate-0'}
+//           ${selectProps.disabled ? 'text-gray-400' : selectProps.error ? 'text-red-500' : 'text-primary-600'}
+//         `}>
+//           <FiChevronDown className="h-5 w-5" />
 //         </div>
-//         {existingPrescriptions.length > 5 && (
-//           <Button
-//             onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
-//             variant="outline"
-//             size="sm"
-//             className="flex items-center gap-2"
-//           >
-//             <FiEdit className="w-4 h-4" />
-//             View All
-//           </Button>
+
+//         {/* Dropdown menu */}
+//         {isOpen && !selectProps.disabled && (
+//           (selectProps.usePortal !== false)
+//             ? createPortal(
+//               <div
+//                 ref={dropdownRef}
+//                 style={{
+//                   position: 'fixed',
+//                   top: menuStyle.top,
+//                   left: menuStyle.left,
+//                   width: menuStyle.width,
+//                   zIndex: selectProps.dropdownZIndex || 999999,
+//                 }}
+//               >
+//                 {Menu}
+//               </div>,
+//               document.body
+//             )
+//             : (
+//               <div
+//                 ref={dropdownRef}
+//                 className="absolute"
+//                 style={{
+//                   top: 'calc(100% + 8px)',
+//                   left: 0,
+//                   right: 0,
+//                   zIndex: selectProps.dropdownZIndex || 999999,
+//                 }}
+//               >
+//                 {Menu}
+//               </div>
+//             )
 //         )}
 //       </div>
 
-//       {loadingPrescriptions ? (
-//         <div className="text-center py-4">
-//           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mx-auto"></div>
-//           <p className="text-sm text-gray-500 mt-2">Loading prescriptions...</p>
-//         </div>
-//       ) : (
-//         <div className="space-y-4">
-//           <div className="overflow-x-auto bg-white rounded-lg border border-amber-200">
-//             <table className="min-w-full text-sm">
-//               <thead className="bg-amber-100 text-gray-700">
-//                 <tr>
-//                   <th className="px-3 py-2 text-left w-10">#</th>
-//                   <th className="px-3 py-2 text-left">Medicine</th>
-//                   <th className="px-3 py-2 text-left">Dosage</th>
-//                   <th className="px-3 py-2 text-left">When</th>
-//                   <th className="px-3 py-2 text-left">Frequency</th>
-//                   <th className="px-3 py-2 text-left">Duration</th>
-//                   <th className="px-3 py-2 text-left">Qty</th>
-//                   <th className="px-3 py-2 text-left">Details</th>
-//                   <th className="px-3 py-2 text-left">Notes</th>
-//                   <th className="px-3 py-2 text-left w-20"></th>
-//                 </tr>
-//               </thead>
-//               <tbody>
-//                 {prescriptionRows.map((row, idx) => (
-//                   <tr key={row.id || idx} className="border-t hover:bg-gray-50">
-//                     <td className="px-3 py-2 text-gray-600">{idx + 1}</td>
-//                     <td className="px-3 py-2" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
-//                       <div style={{ position: 'relative', overflow: 'visible' }}>
-//                         <input
-//                           ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
-//                           type="text"
-//                           value={row.medicine}
-//                           onChange={(e) => updatePrescriptionCell(idx, 'medicine', e.target.value)}
-//                           onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
-//                           onFocus={() => {
-//                             if (row.medicine && row.medicine.trim().length > 0) {
-//                               const searchTerm = row.medicine.toLowerCase().trim();
-//                               const filtered = allMedicines.filter(med =>
-//                                 med.name.toLowerCase().includes(searchTerm) ||
-//                                 med.displayName.toLowerCase().includes(searchTerm) ||
-//                                 (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
-//                               ).slice(0, 10);
-//                               setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
-//                               setShowSuggestions(prev => ({ ...prev, [idx]: true }));
-
-//                               setTimeout(() => {
-//                                 const input = inputRefs.current[`medicine-${idx}`];
-//                                 if (input) {
-//                                   const rect = input.getBoundingClientRect();
-//                                   const dropdownHeight = 240;
-//                                   const spaceAbove = rect.top;
-//                                   const spaceBelow = window.innerHeight - rect.bottom;
-//                                   const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
-
-//                                   setSuggestionPositions(prev => ({
-//                                     ...prev,
-//                                     [idx]: {
-//                                       top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-//                                       left: rect.left,
-//                                       width: rect.width
-//                                     }
-//                                   }));
-//                                 }
-//                               }, 0);
-//                             }
-//                           }}
-//                           onBlur={() => {
-//                             setTimeout(() => {
-//                               setShowSuggestions(prev => ({ ...prev, [idx]: false }));
-//                             }, 200);
-//                           }}
-//                           className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                           placeholder="Type to search medicine..."
-//                           autoComplete="off"
-//                         />
-//                         {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
-//                           <div
-//                             className="fixed bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50"
-//                             style={{
-//                               top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
-//                               left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
-//                               width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : '300px',
-//                               minWidth: '300px',
-//                               maxWidth: '400px'
-//                             }}
-//                           >
-//                             {medicineSuggestions[idx].map((med, medIdx) => (
-//                               <div
-//                                 key={`${med.name}-${medIdx}`}
-//                                 onClick={() => selectMedicine(idx, med)}
-//                                 onMouseDown={(e) => e.preventDefault()}
-//                                 className={`px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors ${activeSuggestionIndex[idx] === medIdx ? 'bg-amber-100' : ''
-//                                   } ${medIdx === 0 ? 'rounded-t-lg' : ''} ${medIdx === medicineSuggestions[idx].length - 1 ? 'rounded-b-lg' : ''
-//                                   }`}
-//                               >
-//                                 <div className="font-medium text-gray-900">{med.name}</div>
-//                                 {med.displayName !== med.name && (
-//                                   <div className="text-xs text-gray-500">{med.displayName}</div>
-//                                 )}
-//                                 {med.strengths && med.strengths.length > 0 && (
-//                                   <div className="text-xs text-gray-400 mt-1">
-//                                     Available: {med.strengths.join(', ')}
-//                                   </div>
-//                                 )}
-//                               </div>
-//                             ))}
-//                           </div>
-//                         )}
-//                       </div>
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.dosage}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="e.g., 1-0-1"
-//                         list={`dosageOptions-${proforma.id}-${idx}`}
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.when}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="before/after food"
-//                         list={`whenOptions-${proforma.id}-${idx}`}
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.frequency}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="daily"
-//                         list={`frequencyOptions-${proforma.id}-${idx}`}
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.duration}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="5 days"
-//                         list={`durationOptions-${proforma.id}-${idx}`}
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.qty}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="Qty"
-//                         list={`quantityOptions-${proforma.id}-${idx}`}
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.details}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="Details"
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2">
-//                       <input
-//                         type="text"
-//                         value={row.notes}
-//                         onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
-//                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-//                         placeholder="Notes"
-//                       />
-//                     </td>
-//                     <td className="px-3 py-2 text-right">
-//                       {prescriptionRows.length > 1 && (
-//                         <button
-//                           type="button"
-//                           onClick={() => removePrescriptionRow(idx)}
-//                           className="text-red-600 hover:text-red-800 hover:underline text-xs flex items-center gap-1"
-//                         >
-//                           <FiTrash2 className="w-3 h-3" />
-//                           Remove
-//                         </button>
-//                       )}
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-
-//           {/* Datalist suggestions for prescription fields */}
-//           {prescriptionRows.map((_, rowIdx) => (
-//             <div key={`datalists-${rowIdx}`} style={{ display: 'none' }}>
-//               <datalist id={`dosageOptions-${proforma.id}-${rowIdx}`}>
-//                 <option value="1-0-1" />
-//                 <option value="1-1-1" />
-//                 <option value="1-0-0" />
-//                 <option value="0-1-0" />
-//                 <option value="0-0-1" />
-//                 <option value="1-1-0" />
-//                 <option value="0-1-1" />
-//                 <option value="1-0-1½" />
-//                 <option value="½-0-½" />
-//                 <option value="SOS" />
-//                 <option value="STAT" />
-//                 <option value="PRN" />
-//                 <option value="OD" />
-//                 <option value="BD" />
-//                 <option value="TDS" />
-//                 <option value="QID" />
-//                 <option value="HS" />
-//                 <option value="Q4H" />
-//                 <option value="Q6H" />
-//                 <option value="Q8H" />
-//               </datalist>
-//               <datalist id={`whenOptions-${proforma.id}-${rowIdx}`}>
-//                 <option value="Before Food" />
-//                 <option value="After Food" />
-//                 <option value="With Food" />
-//                 <option value="Empty Stomach" />
-//                 <option value="Bedtime" />
-//                 <option value="Morning" />
-//                 <option value="Afternoon" />
-//                 <option value="Evening" />
-//                 <option value="Night" />
-//                 <option value="Any Time" />
-//                 <option value="Before Breakfast" />
-//                 <option value="After Breakfast" />
-//                 <option value="Before Lunch" />
-//                 <option value="After Lunch" />
-//                 <option value="Before Dinner" />
-//                 <option value="After Dinner" />
-//               </datalist>
-//               <datalist id={`frequencyOptions-${proforma.id}-${rowIdx}`}>
-//                 <option value="Once Daily" />
-//                 <option value="Twice Daily" />
-//                 <option value="Thrice Daily" />
-//                 <option value="Four Times Daily" />
-//                 <option value="Every Hour" />
-//                 <option value="Every 2 Hours" />
-//                 <option value="Every 4 Hours" />
-//                 <option value="Every 6 Hours" />
-//                 <option value="Every 8 Hours" />
-//                 <option value="Every 12 Hours" />
-//                 <option value="Alternate Day" />
-//                 <option value="Weekly" />
-//                 <option value="Monthly" />
-//                 <option value="SOS" />
-//                 <option value="Continuous" />
-//                 <option value="Once" />
-//                 <option value="Tapering Dose" />
-//               </datalist>
-//               <datalist id={`durationOptions-${proforma.id}-${rowIdx}`}>
-//                 <option value="3 Days" />
-//                 <option value="5 Days" />
-//                 <option value="7 Days" />
-//                 <option value="10 Days" />
-//                 <option value="14 Days" />
-//                 <option value="21 Days" />
-//                 <option value="1 Month" />
-//                 <option value="2 Months" />
-//                 <option value="3 Months" />
-//                 <option value="6 Months" />
-//                 <option value="Until Symptoms Subside" />
-//                 <option value="Continuous" />
-//                 <option value="As Directed" />
-//               </datalist>
-//               <datalist id={`quantityOptions-${proforma.id}-${rowIdx}`}>
-//                 <option value="1" />
-//                 <option value="2" />
-//                 <option value="3" />
-//                 <option value="5" />
-//                 <option value="7" />
-//                 <option value="10" />
-//                 <option value="15" />
-//                 <option value="20" />
-//                 <option value="30" />
-//                 <option value="60" />
-//                 <option value="90" />
-//                 <option value="100" />
-//                 <option value="Custom" />
-//               </datalist>
-//             </div>
-//           ))}
-
-//           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-//             <div className="flex items-center gap-3">
-//               <Button
-//                 type="button"
-//                 onClick={addPrescriptionRow}
-//                 variant="outline"
-//                 size="sm"
-//                 className="flex items-center gap-2"
-//               >
-//                 <FiPlus className="w-4 h-4" />
-//                 Add Medicine
-//               </Button>
-//               {existingPrescriptions.length > 0 && (
-//                 <Button
-//                   onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
-//                   variant="outline"
-//                   size="sm"
-//                   className="flex items-center gap-2"
-//                 >
-//                   <FiEdit className="w-4 h-4" />
-//                   View All Prescriptions
-//                 </Button>
-//               )}
-//             </div>
-//             {proforma.id && (
-//               <Button
-//                 type="button"
-//                 onClick={handleSavePrescriptions}
-//                 disabled={isSaving}
-//                 className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-//               >
-//                 <FiSave className="w-4 h-4" />
-//                 {isSaving ? 'Saving...' : 'Save Prescriptions'}
-//               </Button>
-//             )}
-//           </div>
-//         </div>
+//       {selectProps.error && (
+//         <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+//           <span className="inline-block w-1 h-1 rounded-full bg-red-600"></span>
+//           {selectProps.error}
+//         </p>
 //       )}
 //     </div>
 //   );
 // };
+// // const PrescriptionCard = ({ proforma, index, patientId }) => {
+// //   const navigate = useNavigate();
+// //   const { data: prescriptionsData, isLoading: loadingPrescriptions } = useGetPrescriptionsByProformaIdQuery(
+// //     proforma.id,
+// //     { skip: !proforma.id }
+// //   );
+// //   const [createBulkPrescriptions, { isLoading: isSaving }] = useCreateBulkPrescriptionsMutation();
 
-// Enhanced Input component with glassmorphism styling (matching CreatePatient)
-const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
-  // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
-  const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
+// //   const existingPrescriptions = prescriptionsData?.data?.prescriptions || [];
 
-  return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-        {icon && <span className="text-primary-600">{icon}</span>}
-        {label}
-        {loading && (
-          <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
-        )}
-      </label>
-      <div className="relative">
-        {icon && (
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-            <span className="text-gray-500">{icon}</span>
-          </div>
-        )}
-        <input
-          {...inputProps}
-          className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
-        />
-      </div>
-      {error && (
-        <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
-          <FiX className="w-3 h-3" />
-          {error}
-        </p>
-      )}
-    </div>
-  );
-};
+// //   // Flatten medicines data for autocomplete
+// //   const allMedicines = useMemo(() => {
+// //     const medicines = [];
+// //     const data = medicinesData.psychiatric_medications;
+
+// //     const extractMedicines = (obj) => {
+// //       if (Array.isArray(obj)) {
+// //         obj.forEach(med => {
+// //           medicines.push({
+// //             name: med.name,
+// //             displayName: med.name,
+// //             type: 'generic',
+// //             brands: med.brands || [],
+// //             strengths: med.strengths || []
+// //           });
+// //           if (med.brands && Array.isArray(med.brands)) {
+// //             med.brands.forEach(brand => {
+// //               medicines.push({
+// //                 name: brand,
+// //                 displayName: `${brand} (${med.name})`,
+// //                 type: 'brand',
+// //                 genericName: med.name,
+// //                 strengths: med.strengths || []
+// //               });
+// //             });
+// //           }
+// //         });
+// //       } else if (typeof obj === 'object' && obj !== null) {
+// //         Object.values(obj).forEach(value => {
+// //           extractMedicines(value);
+// //         });
+// //       }
+// //     };
+
+// //     extractMedicines(data);
+// //     const uniqueMedicines = Array.from(
+// //       new Map(medicines.map(m => [m.name.toLowerCase(), m])).values()
+// //     );
+// //     return uniqueMedicines.sort((a, b) => a.name.localeCompare(b.name));
+// //   }, []);
+
+// //   // Medicine autocomplete state for each row
+// //   const [medicineSuggestions, setMedicineSuggestions] = useState({});
+// //   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState({});
+// //   const [showSuggestions, setShowSuggestions] = useState({});
+// //   const [suggestionPositions, setSuggestionPositions] = useState({});
+// //   const inputRefs = useRef({});
+
+// //   // Initialize with empty row, will be populated when prescriptions load
+// //   const [prescriptionRows, setPrescriptionRows] = useState([
+// //     { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
+// //   ]);
+
+// //   // Update rows when prescriptions data loads
+// //   useEffect(() => {
+// //     if (existingPrescriptions.length > 0) {
+// //       setPrescriptionRows(
+// //         existingPrescriptions.slice(0, 5).map(p => ({
+// //           id: p.id,
+// //           medicine: p.medicine || '',
+// //           dosage: p.dosage || '',
+// //           when: p.when || '',
+// //           frequency: p.frequency || '',
+// //           duration: p.duration || '',
+// //           qty: p.qty || '',
+// //           details: p.details || '',
+// //           notes: p.notes || '',
+// //         }))
+// //       );
+// //     } else if (!loadingPrescriptions && existingPrescriptions.length === 0) {
+// //       // Ensure at least one empty row is shown when no prescriptions exist
+// //       setPrescriptionRows([
+// //         { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }
+// //       ]);
+// //     }
+// //   }, [existingPrescriptions, loadingPrescriptions]);
+
+// //   const addPrescriptionRow = () => {
+// //     setPrescriptionRows(prev => [...prev, { medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
+// //   };
+
+
+
+
+// //   const removePrescriptionRow = (rowIdx) => {
+// //     setPrescriptionRows(prev => prev.filter((_, i) => i !== rowIdx));
+// //     // Clean up autocomplete state for removed row
+// //     setMedicineSuggestions(prev => {
+// //       const newState = { ...prev };
+// //       delete newState[rowIdx];
+// //       return newState;
+// //     });
+// //     setShowSuggestions(prev => {
+// //       const newState = { ...prev };
+// //       delete newState[rowIdx];
+// //       return newState;
+// //     });
+// //   };
+
+// //   const updatePrescriptionCell = (rowIdx, field, value) => {
+// //     setPrescriptionRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
+
+// //     // Handle medicine autocomplete
+// //     if (field === 'medicine') {
+// //       const searchTerm = value.toLowerCase().trim();
+// //       if (searchTerm.length > 0) {
+// //         const filtered = allMedicines.filter(med =>
+// //           med.name.toLowerCase().includes(searchTerm) ||
+// //           med.displayName.toLowerCase().includes(searchTerm) ||
+// //           (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
+// //         ).slice(0, 10);
+// //         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: filtered }));
+// //         setShowSuggestions(prev => ({ ...prev, [rowIdx]: true }));
+// //         setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: -1 }));
+
+// //         // Calculate position for dropdown
+// //         setTimeout(() => {
+// //           const input = inputRefs.current[`medicine-${rowIdx}`];
+// //           if (input) {
+// //             const rect = input.getBoundingClientRect();
+// //             const dropdownHeight = 240;
+// //             const spaceAbove = rect.top;
+// //             const spaceBelow = window.innerHeight - rect.bottom;
+// //             const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+
+// //             setSuggestionPositions(prev => ({
+// //               ...prev,
+// //               [rowIdx]: {
+// //                 top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+// //                 left: rect.left,
+// //                 width: rect.width
+// //               }
+// //             }));
+// //           }
+// //         }, 0);
+// //       } else {
+// //         setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+// //         setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+// //       }
+// //     }
+// //   };
+
+// //   const selectMedicine = (rowIdx, medicine) => {
+// //     setPrescriptionRows(prev => prev.map((r, i) =>
+// //       i === rowIdx ? { ...r, medicine: medicine.name } : r
+// //     ));
+// //     setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+// //     setMedicineSuggestions(prev => ({ ...prev, [rowIdx]: [] }));
+// //   };
+
+// //   const handleMedicineKeyDown = (e, rowIdx) => {
+// //     const suggestions = medicineSuggestions[rowIdx] || [];
+// //     const currentIndex = activeSuggestionIndex[rowIdx] || -1;
+
+// //     if (e.key === 'ArrowDown') {
+// //       e.preventDefault();
+// //       const nextIndex = currentIndex < suggestions.length - 1 ? currentIndex + 1 : currentIndex;
+// //       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: nextIndex }));
+// //     } else if (e.key === 'ArrowUp') {
+// //       e.preventDefault();
+// //       const prevIndex = currentIndex > 0 ? currentIndex - 1 : -1;
+// //       setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: prevIndex }));
+// //     } else if (e.key === 'Enter' && currentIndex >= 0 && suggestions[currentIndex]) {
+// //       e.preventDefault();
+// //       selectMedicine(rowIdx, suggestions[currentIndex]);
+// //     } else if (e.key === 'Escape') {
+// //       setShowSuggestions(prev => ({ ...prev, [rowIdx]: false }));
+// //     }
+// //   };
+
+// //   const handleSavePrescriptions = async () => {
+// //     if (!proforma.id) {
+// //       toast.error('Clinical proforma ID is required');
+// //       return;
+// //     }
+
+// //     // Filter out empty prescriptions
+// //     const validPrescriptions = prescriptionRows.filter(p => p.medicine && p.medicine.trim());
+
+// //     if (validPrescriptions.length === 0) {
+// //       toast.error('Please add at least one medication with a valid medicine name');
+// //       return;
+// //     }
+
+// //     try {
+// //       const prescriptionsToSave = validPrescriptions.map(p => ({
+// //         medicine: p.medicine.trim(),
+// //         dosage: p.dosage?.trim() || null,
+// //         when: p.when?.trim() || null,
+// //         frequency: p.frequency?.trim() || null,
+// //         duration: p.duration?.trim() || null,
+// //         qty: p.qty?.trim() || null,
+// //         details: p.details?.trim() || null,
+// //         notes: p.notes?.trim() || null,
+// //       }));
+
+// //       await createBulkPrescriptions({
+// //         clinical_proforma_id: proforma.id,
+// //         prescriptions: prescriptionsToSave,
+// //       }).unwrap();
+
+// //       toast.success(`Prescription saved successfully! ${prescriptionsToSave.length} medication(s) recorded.`);
+
+// //       // The query will automatically refetch due to cache invalidation
+// //       // Reset form to show one empty row for next entry
+// //       setPrescriptionRows([{ medicine: '', dosage: '', when: '', frequency: '', duration: '', qty: '', details: '', notes: '' }]);
+// //     } catch (error) {
+// //       console.error('Error saving prescriptions:', error);
+// //       toast.error(error?.data?.message || 'Failed to save prescriptions. Please try again.');
+// //     }
+// //   };
+
+// //   return (
+// //     <div className="border border-gray-200 rounded-lg p-6 bg-gradient-to-r from-amber-50 to-yellow-50">
+// //       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+// //         <div>
+// //           <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
+// //           <p className="text-sm text-gray-500 mt-1">
+// //             {proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}
+// //             {proforma.visit_type && ` • ${proforma.visit_type.replace('_', ' ')}`}
+// //           </p>
+// //         </div>
+// //         {existingPrescriptions.length > 5 && (
+// //           <Button
+// //             onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
+// //             variant="outline"
+// //             size="sm"
+// //             className="flex items-center gap-2"
+// //           >
+// //             <FiEdit className="w-4 h-4" />
+// //             View All
+// //           </Button>
+// //         )}
+// //       </div>
+
+// //       {loadingPrescriptions ? (
+// //         <div className="text-center py-4">
+// //           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mx-auto"></div>
+// //           <p className="text-sm text-gray-500 mt-2">Loading prescriptions...</p>
+// //         </div>
+// //       ) : (
+// //         <div className="space-y-4">
+// //           <div className="overflow-x-auto bg-white rounded-lg border border-amber-200">
+// //             <table className="min-w-full text-sm">
+// //               <thead className="bg-amber-100 text-gray-700">
+// //                 <tr>
+// //                   <th className="px-3 py-2 text-left w-10">#</th>
+// //                   <th className="px-3 py-2 text-left">Medicine</th>
+// //                   <th className="px-3 py-2 text-left">Dosage</th>
+// //                   <th className="px-3 py-2 text-left">When</th>
+// //                   <th className="px-3 py-2 text-left">Frequency</th>
+// //                   <th className="px-3 py-2 text-left">Duration</th>
+// //                   <th className="px-3 py-2 text-left">Qty</th>
+// //                   <th className="px-3 py-2 text-left">Details</th>
+// //                   <th className="px-3 py-2 text-left">Notes</th>
+// //                   <th className="px-3 py-2 text-left w-20"></th>
+// //                 </tr>
+// //               </thead>
+// //               <tbody>
+// //                 {prescriptionRows.map((row, idx) => (
+// //                   <tr key={row.id || idx} className="border-t hover:bg-gray-50">
+// //                     <td className="px-3 py-2 text-gray-600">{idx + 1}</td>
+// //                     <td className="px-3 py-2" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
+// //                       <div style={{ position: 'relative', overflow: 'visible' }}>
+// //                         <input
+// //                           ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
+// //                           type="text"
+// //                           value={row.medicine}
+// //                           onChange={(e) => updatePrescriptionCell(idx, 'medicine', e.target.value)}
+// //                           onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
+// //                           onFocus={() => {
+// //                             if (row.medicine && row.medicine.trim().length > 0) {
+// //                               const searchTerm = row.medicine.toLowerCase().trim();
+// //                               const filtered = allMedicines.filter(med =>
+// //                                 med.name.toLowerCase().includes(searchTerm) ||
+// //                                 med.displayName.toLowerCase().includes(searchTerm) ||
+// //                                 (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
+// //                               ).slice(0, 10);
+// //                               setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
+// //                               setShowSuggestions(prev => ({ ...prev, [idx]: true }));
+
+// //                               setTimeout(() => {
+// //                                 const input = inputRefs.current[`medicine-${idx}`];
+// //                                 if (input) {
+// //                                   const rect = input.getBoundingClientRect();
+// //                                   const dropdownHeight = 240;
+// //                                   const spaceAbove = rect.top;
+// //                                   const spaceBelow = window.innerHeight - rect.bottom;
+// //                                   const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+
+// //                                   setSuggestionPositions(prev => ({
+// //                                     ...prev,
+// //                                     [idx]: {
+// //                                       top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+// //                                       left: rect.left,
+// //                                       width: rect.width
+// //                                     }
+// //                                   }));
+// //                                 }
+// //                               }, 0);
+// //                             }
+// //                           }}
+// //                           onBlur={() => {
+// //                             setTimeout(() => {
+// //                               setShowSuggestions(prev => ({ ...prev, [idx]: false }));
+// //                             }, 200);
+// //                           }}
+// //                           className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                           placeholder="Type to search medicine..."
+// //                           autoComplete="off"
+// //                         />
+// //                         {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
+// //                           <div
+// //                             className="fixed bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50"
+// //                             style={{
+// //                               top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
+// //                               left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
+// //                               width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : '300px',
+// //                               minWidth: '300px',
+// //                               maxWidth: '400px'
+// //                             }}
+// //                           >
+// //                             {medicineSuggestions[idx].map((med, medIdx) => (
+// //                               <div
+// //                                 key={`${med.name}-${medIdx}`}
+// //                                 onClick={() => selectMedicine(idx, med)}
+// //                                 onMouseDown={(e) => e.preventDefault()}
+// //                                 className={`px-3 py-2 cursor-pointer hover:bg-amber-50 transition-colors ${activeSuggestionIndex[idx] === medIdx ? 'bg-amber-100' : ''
+// //                                   } ${medIdx === 0 ? 'rounded-t-lg' : ''} ${medIdx === medicineSuggestions[idx].length - 1 ? 'rounded-b-lg' : ''
+// //                                   }`}
+// //                               >
+// //                                 <div className="font-medium text-gray-900">{med.name}</div>
+// //                                 {med.displayName !== med.name && (
+// //                                   <div className="text-xs text-gray-500">{med.displayName}</div>
+// //                                 )}
+// //                                 {med.strengths && med.strengths.length > 0 && (
+// //                                   <div className="text-xs text-gray-400 mt-1">
+// //                                     Available: {med.strengths.join(', ')}
+// //                                   </div>
+// //                                 )}
+// //                               </div>
+// //                             ))}
+// //                           </div>
+// //                         )}
+// //                       </div>
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.dosage}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="e.g., 1-0-1"
+// //                         list={`dosageOptions-${proforma.id}-${idx}`}
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.when}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="before/after food"
+// //                         list={`whenOptions-${proforma.id}-${idx}`}
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.frequency}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="daily"
+// //                         list={`frequencyOptions-${proforma.id}-${idx}`}
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.duration}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="5 days"
+// //                         list={`durationOptions-${proforma.id}-${idx}`}
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.qty}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="Qty"
+// //                         list={`quantityOptions-${proforma.id}-${idx}`}
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.details}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="Details"
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2">
+// //                       <input
+// //                         type="text"
+// //                         value={row.notes}
+// //                         onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
+// //                         className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+// //                         placeholder="Notes"
+// //                       />
+// //                     </td>
+// //                     <td className="px-3 py-2 text-right">
+// //                       {prescriptionRows.length > 1 && (
+// //                         <button
+// //                           type="button"
+// //                           onClick={() => removePrescriptionRow(idx)}
+// //                           className="text-red-600 hover:text-red-800 hover:underline text-xs flex items-center gap-1"
+// //                         >
+// //                           <FiTrash2 className="w-3 h-3" />
+// //                           Remove
+// //                         </button>
+// //                       )}
+// //                     </td>
+// //                   </tr>
+// //                 ))}
+// //               </tbody>
+// //             </table>
+// //           </div>
+
+// //           {/* Datalist suggestions for prescription fields */}
+// //           {prescriptionRows.map((_, rowIdx) => (
+// //             <div key={`datalists-${rowIdx}`} style={{ display: 'none' }}>
+// //               <datalist id={`dosageOptions-${proforma.id}-${rowIdx}`}>
+// //                 <option value="1-0-1" />
+// //                 <option value="1-1-1" />
+// //                 <option value="1-0-0" />
+// //                 <option value="0-1-0" />
+// //                 <option value="0-0-1" />
+// //                 <option value="1-1-0" />
+// //                 <option value="0-1-1" />
+// //                 <option value="1-0-1½" />
+// //                 <option value="½-0-½" />
+// //                 <option value="SOS" />
+// //                 <option value="STAT" />
+// //                 <option value="PRN" />
+// //                 <option value="OD" />
+// //                 <option value="BD" />
+// //                 <option value="TDS" />
+// //                 <option value="QID" />
+// //                 <option value="HS" />
+// //                 <option value="Q4H" />
+// //                 <option value="Q6H" />
+// //                 <option value="Q8H" />
+// //               </datalist>
+// //               <datalist id={`whenOptions-${proforma.id}-${rowIdx}`}>
+// //                 <option value="Before Food" />
+// //                 <option value="After Food" />
+// //                 <option value="With Food" />
+// //                 <option value="Empty Stomach" />
+// //                 <option value="Bedtime" />
+// //                 <option value="Morning" />
+// //                 <option value="Afternoon" />
+// //                 <option value="Evening" />
+// //                 <option value="Night" />
+// //                 <option value="Any Time" />
+// //                 <option value="Before Breakfast" />
+// //                 <option value="After Breakfast" />
+// //                 <option value="Before Lunch" />
+// //                 <option value="After Lunch" />
+// //                 <option value="Before Dinner" />
+// //                 <option value="After Dinner" />
+// //               </datalist>
+// //               <datalist id={`frequencyOptions-${proforma.id}-${rowIdx}`}>
+// //                 <option value="Once Daily" />
+// //                 <option value="Twice Daily" />
+// //                 <option value="Thrice Daily" />
+// //                 <option value="Four Times Daily" />
+// //                 <option value="Every Hour" />
+// //                 <option value="Every 2 Hours" />
+// //                 <option value="Every 4 Hours" />
+// //                 <option value="Every 6 Hours" />
+// //                 <option value="Every 8 Hours" />
+// //                 <option value="Every 12 Hours" />
+// //                 <option value="Alternate Day" />
+// //                 <option value="Weekly" />
+// //                 <option value="Monthly" />
+// //                 <option value="SOS" />
+// //                 <option value="Continuous" />
+// //                 <option value="Once" />
+// //                 <option value="Tapering Dose" />
+// //               </datalist>
+// //               <datalist id={`durationOptions-${proforma.id}-${rowIdx}`}>
+// //                 <option value="3 Days" />
+// //                 <option value="5 Days" />
+// //                 <option value="7 Days" />
+// //                 <option value="10 Days" />
+// //                 <option value="14 Days" />
+// //                 <option value="21 Days" />
+// //                 <option value="1 Month" />
+// //                 <option value="2 Months" />
+// //                 <option value="3 Months" />
+// //                 <option value="6 Months" />
+// //                 <option value="Until Symptoms Subside" />
+// //                 <option value="Continuous" />
+// //                 <option value="As Directed" />
+// //               </datalist>
+// //               <datalist id={`quantityOptions-${proforma.id}-${rowIdx}`}>
+// //                 <option value="1" />
+// //                 <option value="2" />
+// //                 <option value="3" />
+// //                 <option value="5" />
+// //                 <option value="7" />
+// //                 <option value="10" />
+// //                 <option value="15" />
+// //                 <option value="20" />
+// //                 <option value="30" />
+// //                 <option value="60" />
+// //                 <option value="90" />
+// //                 <option value="100" />
+// //                 <option value="Custom" />
+// //               </datalist>
+// //             </div>
+// //           ))}
+
+// //           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+// //             <div className="flex items-center gap-3">
+// //               <Button
+// //                 type="button"
+// //                 onClick={addPrescriptionRow}
+// //                 variant="outline"
+// //                 size="sm"
+// //                 className="flex items-center gap-2"
+// //               >
+// //                 <FiPlus className="w-4 h-4" />
+// //                 Add Medicine
+// //               </Button>
+// //               {existingPrescriptions.length > 0 && (
+// //                 <Button
+// //                   onClick={() => navigate(`/prescriptions/view?clinical_proforma_id=${proforma.id}&patient_id=${patientId}`)}
+// //                   variant="outline"
+// //                   size="sm"
+// //                   className="flex items-center gap-2"
+// //                 >
+// //                   <FiEdit className="w-4 h-4" />
+// //                   View All Prescriptions
+// //                 </Button>
+// //               )}
+// //             </div>
+// //             {proforma.id && (
+// //               <Button
+// //                 type="button"
+// //                 onClick={handleSavePrescriptions}
+// //                 disabled={isSaving}
+// //                 className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+// //               >
+// //                 <FiSave className="w-4 h-4" />
+// //                 {isSaving ? 'Saving...' : 'Save Prescriptions'}
+// //               </Button>
+// //             )}
+// //           </div>
+// //         </div>
+// //       )}
+// //     </div>
+// //   );
+// // };
+
+// // Enhanced Input component with glassmorphism styling (matching CreatePatient)
+// const IconInput = ({ icon, label, loading = false, error, defaultValue, disabled, onChange, ...props }) => {
+//   // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
+//   const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
+  
+//   // Ensure onChange is always a function when value is provided to prevent React warnings
+//   // If value is provided but onChange is missing, null, or undefined, add readOnly and no-op onChange
+//   if (inputProps.value !== undefined) {
+//     // Remove any undefined/null onChange from props
+//     if (inputProps.onChange === undefined || inputProps.onChange === null) {
+//       delete inputProps.onChange;
+//     }
+    
+//     // Set onChange explicitly - use provided onChange if it's a function, otherwise use no-op
+//     if (typeof onChange === 'function') {
+//       inputProps.onChange = onChange;
+//     } else if (!inputProps.onChange) {
+//       // No valid onChange handler - make it read-only with no-op onChange
+//       inputProps.readOnly = true;
+//       inputProps.onChange = () => {}; // No-op function to satisfy React's requirement
+//     }
+//   }
+
+//   return (
+//     <div className="space-y-2">
+//       <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+//         {icon && <span className="text-primary-600">{icon}</span>}
+//         {label}
+//         {loading && (
+//           <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
+//         )}
+//       </label>
+//       <div className="relative">
+//         {icon && (
+//           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+//             <span className="text-gray-500">{icon}</span>
+//           </div>
+//         )}
+//         <input
+//           {...inputProps}
+//           disabled={disabled}
+//           className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
+//         />
+//       </div>
+//       {error && (
+//         <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
+//           <FiX className="w-3 h-3" />
+//           {error}
+//         </p>
+//       )}
+//     </div>
+//   );
+// };
 
 const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, adlData, usersData, userRole, onSave, onCancel }) => {
   // Track current doctor_decision from EditClinicalProforma form
@@ -1119,28 +1137,29 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   }, [patientProformas.length, selectedProforma?.doctor_decision]);
 
   // Check if case is complex
-  // Check saved proformas, selected proforma being edited, current form data, or if ADL files exist
+  // Check saved proformas, selected proforma being edited, or if ADL files exist
+  // NOTE: We don't include currentDoctorDecision here because we only want to show ADL card
+  // after the form is saved, not when the dropdown is changed
   const isComplexCase = patient?.case_complexity === 'complex' ||
     patient?.has_adl_file === true ||
     patientAdlFiles.length > 0 ||
-    patientProformas.some(p => p.doctor_decision === 'complex_case') ||
-    selectedProforma?.doctor_decision === 'complex_case' ||
-    currentDoctorDecision === 'complex_case';
+    patientProformas.some(p => p.doctor_decision === 'complex_case' && p.adl_file_id) ||
+    (selectedProforma?.doctor_decision === 'complex_case' && selectedProforma?.adl_file_id);
 
   // Show ADL file section if:
   // 1. User has permission (Admin, JR, or SR)
-  // 2. AND (ADL files exist OR case is complex OR selected proforma has ADL file ID)
-  // Always show if ADL files exist, even if case isn't marked as complex
+  // 2. AND (ADL files exist OR selected proforma has ADL file ID)
+  // Only show if ADL file actually exists (not just based on dropdown selection)
   const hasAdlFiles = patientAdlFiles.length > 0 || selectedProforma?.adl_file_id;
-  const canViewADLFile = canViewAllSections && (hasAdlFiles || isComplexCase || selectedProforma?.adl_file_id);
+  const canViewADLFile = canViewAllSections && hasAdlFiles;
   const isSelectedComplexCase = selectedProforma?.doctor_decision === 'complex_case' && selectedProforma?.adl_file_id;
 
-  // Auto-expand ADL card when ADL files exist or complex case
+  // Auto-expand ADL card when ADL files exist
   useEffect(() => {
-    if (hasAdlFiles || isComplexCase) {
+    if (hasAdlFiles) {
       setExpandedCards(prev => ({ ...prev, adl: true }));
     }
-  }, [hasAdlFiles, isComplexCase]);
+  }, [hasAdlFiles]);
 
   // Auto-expand prescription card when proformas exist
   useEffect(() => {
@@ -1250,11 +1269,17 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
       // Present Address fields
       present_address_line_1: getVal(patient?.present_address_line_1, getVal(initialFormData?.present_address_line_1)),
+      present_address_line_2: getVal(patient?.present_address_line_2, getVal(initialFormData?.present_address_line_2)),
       present_city_town_village: getVal(patient?.present_city_town_village, getVal(initialFormData?.present_city_town_village)),
+      present_city_town_village_2: getVal(patient?.present_city_town_village_2, getVal(initialFormData?.present_city_town_village_2)),
       present_district: getVal(patient?.present_district, getVal(initialFormData?.present_district)),
+      present_district_2: getVal(patient?.present_district_2, getVal(initialFormData?.present_district_2)),
       present_state: getVal(patient?.present_state, getVal(initialFormData?.present_state)),
+      present_state_2: getVal(patient?.present_state_2, getVal(initialFormData?.present_state_2)),
       present_pin_code: getVal(patient?.present_pin_code, getVal(initialFormData?.present_pin_code)),
+      present_pin_code_2: getVal(patient?.present_pin_code_2, getVal(initialFormData?.present_pin_code_2)),
       present_country: getVal(patient?.present_country, getVal(initialFormData?.present_country)),
+      present_country_2: getVal(patient?.present_country_2, getVal(initialFormData?.present_country_2)),
 
       // Local Address field
       local_address: getVal(patient?.local_address, getVal(initialFormData?.local_address)),
@@ -1398,11 +1423,17 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
         // Present Address
         if ('present_address_line_1' in patient) updated.present_address_line_1 = getValue(patient.present_address_line_1);
+        if ('present_address_line_2' in patient) updated.present_address_line_2 = getValue(patient.present_address_line_2);
         if ('present_city_town_village' in patient) updated.present_city_town_village = getValue(patient.present_city_town_village);
+        if ('present_city_town_village_2' in patient) updated.present_city_town_village_2 = getValue(patient.present_city_town_village_2);
         if ('present_district' in patient) updated.present_district = getValue(patient.present_district);
+        if ('present_district_2' in patient) updated.present_district_2 = getValue(patient.present_district_2);
         if ('present_state' in patient) updated.present_state = getValue(patient.present_state);
+        if ('present_state_2' in patient) updated.present_state_2 = getValue(patient.present_state_2);
         if ('present_pin_code' in patient) updated.present_pin_code = getValue(patient.present_pin_code);
+        if ('present_pin_code_2' in patient) updated.present_pin_code_2 = getValue(patient.present_pin_code_2);
         if ('present_country' in patient) updated.present_country = getValue(patient.present_country);
+        if ('present_country_2' in patient) updated.present_country_2 = getValue(patient.present_country_2);
 
         // Local Address
         if ('local_address' in patient) updated.local_address = getValue(patient.local_address);
@@ -1847,11 +1878,17 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
 
         // Present Address fields
         present_address_line_1: formData.present_address_line_1 || null,
+        present_address_line_2: formData.present_address_line_2 || null,
         present_city_town_village: formData.present_city_town_village || null,
+        present_city_town_village_2: formData.present_city_town_village_2 || null,
         present_district: formData.present_district || null,
+        present_district_2: formData.present_district_2 || null,
         present_state: formData.present_state || null,
+        present_state_2: formData.present_state_2 || null,
         present_pin_code: formData.present_pin_code || null,
+        present_pin_code_2: formData.present_pin_code_2 || null,
         present_country: formData.present_country || null,
+        present_country_2: formData.present_country_2 || null,
 
         // Local Address field
         local_address: formData.local_address || null,
@@ -1868,13 +1905,9 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         ...updatePatientData
       }).unwrap();
 
-
-
+      // If we reach here, the update was successful
       toast.success('Patient updated successfully!');
-      if (patient.id) {
-        await cr
-      }
-      navigate('/patients');
+      
       // Call onSave callback if provided
       if (onSave) {
         onSave();
@@ -2395,6 +2428,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                           label="Patient Income (₹)"
                           name="patient_income"
                           value={formData.patient_income}
+                          onChange={handleChange}
                           type="number"
                           placeholder="Patient income"
                           min="0"
@@ -3011,7 +3045,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
               {patientProformas.length > 0 ? (
                 <div className="space-y-6">
                   {patientProformas.map((proforma, index) => (
-                    <>
+                    <React.Fragment key={proforma.id || index}>
                       {/* <PrescriptionCard
                       key={proforma.id || index}
                       proforma={proforma}
@@ -3019,14 +3053,13 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                       patientId={patient?.id}
                     /> */}
                       <PrescriptionEdit
-                        key={proforma.id || index}
                         proforma={proforma}
                         index={index}
                         patientId={patient?.id}
                       />
 
 
-                    </>
+                    </React.Fragment>
 
 
                   ))}

@@ -7,58 +7,22 @@ const { validationResult } = require('express-validator');
  */
 
 
-
-// const createPrescription = async (req, res) => {
-//   try {
-//     // const errors = validationResult(req);
-//     // if (!errors.isEmpty()) {
-//     //   return res.status(400).json({
-//     //     success: false,
-//     //     message: 'Validation failed',
-//     //     errors: errors.array()
-//     //   });
-//     // }
-
-//     const prescriptionData = req.body;
-
-//     // Verify clinical proforma exists
-//     const proforma = await ClinicalProforma.findById(prescriptionData.clinical_proforma_id);
-//     if (!proforma) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Clinical proforma not found'
-//       });
-//     }
-
-//     const prescription = await Prescription.create(prescriptionData);
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Prescription created successfully',
-//       data: {
-//         prescription: prescription.toJSON()
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error creating prescription:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to create prescription',
-//       error: error.message
-//     });
-//   }
-// };
-
-
 const createPrescription = async (req, res) => {
   try {
     const data = req.body;
 
     // Ensure required IDs exist
-    if (!data.clinical_proforma_id || !data.patient_id) {
+    if (!data.clinical_proforma_id) {
       return res.status(400).json({
         success: false,
-        message: "patient_id and clinical_proforma_id are required"
+        message: "clinical_proforma_id is required"
+      });
+    }
+
+    if (!data.patient_id) {
+      return res.status(400).json({
+        success: false,
+        message: "patient_id is required"
       });
     }
 
@@ -71,20 +35,68 @@ const createPrescription = async (req, res) => {
       });
     }
 
-    // Create prescription (all other fields may be NULL)
+    // Handle both new structure (prescription array) and legacy structure (prescriptions array)
+    let prescriptionArray = [];
+    
+    if (data.prescription && Array.isArray(data.prescription)) {
+      // New structure - ensure each item has a unique ID
+      prescriptionArray = data.prescription.map((p, index) => ({
+        id: p.id || (index + 1),
+        medicine: p.medicine || null,
+        dosage: p.dosage || null,
+        when_to_take: p.when_to_take || p.when || null,
+        frequency: p.frequency || null,
+        duration: p.duration || null,
+        quantity: p.quantity || p.qty || null,
+        details: p.details || null,
+        notes: p.notes || null
+      }));
+    } else if (data.prescriptions && Array.isArray(data.prescriptions)) {
+      // Legacy structure - convert to new format
+      prescriptionArray = data.prescriptions.map((p, index) => ({
+        id: p.id || (index + 1),
+        medicine: p.medicine || null,
+        dosage: p.dosage || null,
+        when_to_take: p.when_to_take || p.when || null,
+        frequency: p.frequency || null,
+        duration: p.duration || null,
+        quantity: p.quantity || p.qty || null,
+        details: p.details || null,
+        notes: p.notes || null
+      }));
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "prescription array is required and cannot be empty"
+      });
+    }
+
+    if (prescriptionArray.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one medication is required"
+      });
+    }
+
+    // Ensure patient_id is an integer
+    const patientIdInt = parseInt(data.patient_id);
+    if (isNaN(patientIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: "patient_id must be a valid integer"
+      });
+    }
+
+    // Create prescription with multiple medicines
     const prescription = await Prescription.create({
-      patient_id: data.patient_id,
+      patient_id: patientIdInt,
       clinical_proforma_id: data.clinical_proforma_id,
-      medicine_name: data.medicine_name || null,
-      dosage: data.dosage || null,
-      duration: data.duration || null,
-      frequency: data.frequency || null,
-      notes: data.notes || null
+      prescription: prescriptionArray
     });
 
     return res.status(201).json({
       success: true,
-      message: "Prescription created successfully",
+      message: `Prescription created successfully with ${prescriptionArray.length} medication(s)`,
       data: {
         prescription: prescription.toJSON()
       }
@@ -100,156 +112,28 @@ const createPrescription = async (req, res) => {
   }
 };
 
-/**
- * Create multiple prescriptions (bulk)
- */
-// const createBulkPrescriptions = async (req, res) => {
-//   try {
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Validation failed',
-//         errors: errors.array()
-//       });
-//     }
-
-//     const { prescriptions, clinical_proforma_id } = req.body;
-
-//     if (!Array.isArray(prescriptions) || prescriptions.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Prescriptions array is required and cannot be empty'
-//       });
-//     }
-
-//     // Verify clinical proforma exists
-//     const proforma = await ClinicalProforma.findById(clinical_proforma_id);
-//     if (!proforma) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Clinical proforma not found'
-//       });
-//     }
-
-//     // Add clinical_proforma_id to each prescription
-//     const prescriptionsWithProformaId = prescriptions.map(prescription => ({
-//       ...prescription,
-//       clinical_proforma_id
-//     }));
-
-//     const createdPrescriptions = await Prescription.createBulk(prescriptionsWithProformaId);
-
-//     res.status(201).json({
-//       success: true,
-//       message: `${createdPrescriptions.length} prescription(s) created successfully`,
-//       data: {
-//         prescriptions: createdPrescriptions.map(p => p.toJSON()),
-//         count: createdPrescriptions.length
-//       }
-//     });
-//   } catch (error) {
-//     console.error('Error creating bulk prescriptions:', error);
-//     console.error('Error stack:', error.stack);
-//     console.error('Request body:', JSON.stringify(req.body, null, 2));
-//     res.status(500).json({
-//       success: false,
-//       message: 'Failed to create prescriptions',
-//       error: error.message,
-//       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-//     });
-//   }
-// };
-
-const createBulkPrescriptions = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
-
-    const { prescriptions, clinical_proforma_id, patient_id } = req.body;
-
-    // Verify clinical proforma exists
-    const proforma = await ClinicalProforma.findById(clinical_proforma_id);
-    if (!proforma) {
-      return res.status(404).json({
-        success: false,
-        message: 'Clinical proforma not found'
-      });
-    }
-
-    // If no prescriptions → nothing to create
-    if (!prescriptions || prescriptions.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'No prescriptions to create'
-      });
-    }
-
-    // Create prescription rows with ONLY required fields
-    const created = await Prescription.insertMany(
-      prescriptions.map(() => ({
-        patient_id,               // NEW COLUMN
-        clinical_proforma_id,     // existing
-        // all other fields NULL by default
-      }))
-    );
-
-    return res.status(201).json({
-      success: true,
-      message: 'Prescriptions created successfully',
-      data: created
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Server error'
-    });
-  }
-};
-
 
 /**
- * Get all prescriptions for a clinical proforma
- */
-const getPrescriptionsByProformaId = async (req, res) => {
-  try {
-    const { proforma_id } = req.params;
-
-    const prescriptions = await Prescription.findByClinicalProformaId(parseInt(proforma_id));
-
-    res.status(200).json({
-      success: true,
-      message: 'Prescriptions retrieved successfully',
-      data: {
-        prescriptions: prescriptions.map(p => p.toJSON()),
-        count: prescriptions.length
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching prescriptions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch prescriptions',
-      error: error.message
-    });
-  }
-};
-
-/**
- * Get a single prescription by ID
+ * Get a single prescription by ID or clinical_proforma_id
  */
 const getPrescriptionById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { clinical_proforma_id } = req.query;
 
-    const prescription = await Prescription.findById(parseInt(id));
+    let prescription;
+
+    // If clinical_proforma_id is provided in query, use it
+    if (clinical_proforma_id) {
+      prescription = await Prescription.findByClinicalProformaId(parseInt(clinical_proforma_id));
+    } else if (id) {
+      prescription = await Prescription.findById(parseInt(id));
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Either id or clinical_proforma_id is required'
+      });
+    }
 
     if (!prescription) {
       return res.status(404).json({
@@ -292,7 +176,13 @@ const updatePrescription = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    const prescription = await Prescription.findById(parseInt(id));
+    // Find prescription by id or by clinical_proforma_id
+    let prescription;
+    if (id) {
+      prescription = await Prescription.findById(parseInt(id));
+    } else if (updateData.clinical_proforma_id) {
+      prescription = await Prescription.findByClinicalProformaId(updateData.clinical_proforma_id);
+    }
 
     if (!prescription) {
       return res.status(404).json({
@@ -301,13 +191,35 @@ const updatePrescription = async (req, res) => {
       });
     }
 
+    // Handle both new structure (prescription array) and legacy structure (individual prescriptions array)
+    if (updateData.prescriptions && Array.isArray(updateData.prescriptions)) {
+      // Legacy bulk update - convert to new structure
+      const prescriptionArray = updateData.prescriptions.map((p, index) => ({
+        id: p.id || (index + 1),
+        medicine: p.medicine || null,
+        dosage: p.dosage || null,
+        when_to_take: p.when_to_take || p.when || null,
+        frequency: p.frequency || null,
+        duration: p.duration || null,
+        quantity: p.quantity || p.qty || null,
+        details: p.details || null,
+        notes: p.notes || null
+      }));
+
+      updateData.prescription = prescriptionArray;
+      delete updateData.prescriptions;
+    }
+
     await prescription.update(updateData);
+
+    // Refetch to get updated data
+    const updatedPrescription = await Prescription.findByClinicalProformaId(prescription.clinical_proforma_id);
 
     res.status(200).json({
       success: true,
       message: 'Prescription updated successfully',
       data: {
-        prescription: prescription.toJSON()
+        prescription: updatedPrescription ? updatedPrescription.toJSON() : prescription.toJSON()
       }
     });
   } catch (error) {
@@ -315,6 +227,46 @@ const updatePrescription = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update prescription',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all prescriptions with pagination and filters
+ */
+const getAllPrescription = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filters = {};
+
+    // Extract filters from query parameters
+    if (req.query.patient_id) {
+      filters.patient_id = req.query.patient_id;
+    }
+    if (req.query.clinical_proforma_id) {
+      filters.clinical_proforma_id = req.query.clinical_proforma_id;
+    }
+    if (req.query.doctor_decision) {
+      filters.doctor_decision = req.query.doctor_decision;
+    }
+
+    const result = await Prescription.findAll(page, limit, filters);
+
+    res.status(200).json({
+      success: true,
+      message: 'Prescriptions retrieved successfully',
+      data: {
+        prescriptions: result.prescriptions.map(p => p.toJSON()),
+        pagination: result.pagination
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching prescriptions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch prescriptions',
       error: error.message
     });
   }
@@ -352,39 +304,12 @@ const deletePrescription = async (req, res) => {
   }
 };
 
-/**
- * Delete all prescriptions for a clinical proforma
- */
-const deletePrescriptionsByProformaId = async (req, res) => {
-  try {
-    const { proforma_id } = req.params;
-
-    const deletedCount = await Prescription.deleteByClinicalProformaId(parseInt(proforma_id));
-
-    res.status(200).json({
-      success: true,
-      message: `${deletedCount} prescription(s) deleted successfully`,
-      data: {
-        deleted_count: deletedCount
-      }
-    });
-  } catch (error) {
-    console.error('Error deleting prescriptions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete prescriptions',
-      error: error.message
-    });
-  }
-};
 
 module.exports = {
   createPrescription,
-  createBulkPrescriptions,
-  getPrescriptionsByProformaId,
   getPrescriptionById,
+  getAllPrescription,
   updatePrescription,
-  deletePrescription,
-  deletePrescriptionsByProformaId
+  deletePrescription
 };
 

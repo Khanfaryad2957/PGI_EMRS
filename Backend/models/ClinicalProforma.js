@@ -1,6 +1,7 @@
 
 const db = require('../config/database');
 const ADLFile = require('./ADLFile');
+const Patient = require('./Patient');
 
 class ClinicalProforma {
   constructor(data) {
@@ -253,11 +254,12 @@ class ClinicalProforma {
       // The clinical_proforma table should only store a reference (adl_file_id) to the ADL file
       if (doctor_decision === 'complex_case' && requires_adl_file === true && complexCaseData && Object.keys(complexCaseData).length > 0) {
         try {
-          // ADL number must be provided manually in complexCaseData
-          if (!complexCaseData.adl_no) {
-            throw new Error('ADL number is required for complex cases. Please provide adl_no in the request.');
+          // Auto-generate ADL number if not provided
+          let nextAdlNo = complexCaseData.adl_no;
+          if (!nextAdlNo) {
+            nextAdlNo = Patient.generateADLNo();
+            console.log(`[ClinicalProforma.create] ✅ Auto-generated ADL number: ${nextAdlNo}`);
           }
-          const nextAdlNo = complexCaseData.adl_no;
 
           // Create ADL file with complex case data
           const adlData = {

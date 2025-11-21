@@ -9,7 +9,7 @@ import {
   useDeleteClinicalOptionMutation,
   useGetAllClinicalProformasQuery
 } from '../../features/clinical/clinicalApiSlice';
-import { useGetADLFileByIdQuery, useUpdateADLFileMutation, useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
+import { useGetADLFileByIdQuery, useGetAllADLFilesQuery,useUpdateADLFileMutation, useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { CLINICAL_PROFORMA_FORM, VISIT_TYPES, DOCTOR_DECISION, CASE_SEVERITY } from '../../utils/constants';
@@ -21,7 +21,7 @@ import Textarea from '../../components/Textarea';
 import Button from '../../components/Button';
 import { FiArrowLeft, FiAlertCircle, FiSave, FiHeart, FiActivity, FiUser, FiClipboard, FiList, FiCheckSquare, FiFileText, FiX, FiPlus, FiChevronDown, FiChevronUp, FiLoader } from 'react-icons/fi';
 import icd11Codes from '../../assets/ICD11_Codes.json';
-import { useUpdatePrescriptionMutation, useCreatePrescriptionMutation } from '../../features/prescriptions/prescriptionApiSlice';
+import { useUpdatePrescriptionMutation,useGetAllPrescriptionQuery, useCreatePrescriptionMutation } from '../../features/prescriptions/prescriptionApiSlice';
 import PrescriptionEdit from '../PrescribeMedication/PrescriptionEdit';
 import EditADL from '../adl/EditADL';
 import DatePicker from '../../components/CustomDatePicker';
@@ -30,345 +30,6 @@ import { CheckboxGroup } from '../../components/CheckboxGroup';
 import { ICD11CodeSelector } from '../../components/ICD11CodeSelector';
 
 
-
-
-// const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
-//   // Remove defaultValue if value is provided to avoid controlled/uncontrolled warning
-//   const inputProps = props.value !== undefined ? { ...props } : { ...props, defaultValue };
-
-//   return (
-//     <div className="space-y-2">
-//       <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-//         {icon && <span className="text-primary-600">{icon}</span>}
-//         {label}
-//         {loading && (
-//           <FiLoader className="w-4 h-4 text-blue-500 animate-spin" />
-//         )}
-//       </label>
-//       <div className="relative">
-//         {icon && (
-//           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-//             <span className="text-gray-500">{icon}</span>
-//           </div>
-//         )}
-//         <input
-//           {...inputProps}
-//           className={`w-full px-4 py-3 ${icon ? 'pl-11' : 'pl-4'} bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium ${inputProps.className || ''}`}
-//         />
-//       </div>
-//       {error && (
-//         <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-medium">
-//           <FiX className="w-3 h-3" />
-//           {error}
-//         </p>
-//       )}
-//     </div>
-//   );
-// };
-// // CheckboxGroup Component
-// const CheckboxGroup = ({ label, name, value = [], onChange, options = [], rightInlineExtra = null }) => {
-//   const [localOptions, setLocalOptions] = useState(options);
-//   const [showAdd, setShowAdd] = useState(false);
-//   const [customOption, setCustomOption] = useState('');
-//   const { data: remoteOptions } = useGetClinicalOptionsQuery(name);
-//   const [addOption] = useAddClinicalOptionMutation();
-//   const [deleteOption] = useDeleteClinicalOptionMutation();
-
-//   const iconByGroup = {
-//     mood: <FiHeart className="w-6 h-6 text-rose-600" />,
-//     behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
-//     speech: <FiUser className="w-6 h-6 text-sky-600" />,
-//     thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
-//     perception: <FiList className="w-6 h-6 text-cyan-600" />,
-//     somatic: <FiActivity className="w-6 h-6 text-emerald-600" />,
-//     bio_functions: <FiCheckSquare className="w-6 h-6 text-emerald-600" />,
-//     adjustment: <FiList className="w-6 h-6 text-amber-600" />,
-//     cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
-//     fits: <FiActivity className="w-6 h-6 text-red-600" />,
-//     sexual_problem: <FiHeart className="w-6 h-6 text-pink-600" />,
-//     substance_use: <FiList className="w-6 h-6 text-teal-600" />,
-//     associated_medical_surgical: <FiFileText className="w-6 h-6 text-indigo-600" />,
-//     mse_behaviour: <FiActivity className="w-6 h-6 text-violet-600" />,
-//     mse_affect: <FiHeart className="w-6 h-6 text-rose-600" />,
-//     mse_thought: <FiClipboard className="w-6 h-6 text-indigo-600" />,
-//     mse_perception: <FiList className="w-6 h-6 text-cyan-600" />,
-//     mse_cognitive_function: <FiActivity className="w-6 h-6 text-fuchsia-600" />,
-//   };
-
-//   useEffect(() => {
-//     setLocalOptions(Array.from(new Set([...(remoteOptions || []), ...(options || [])])));
-//   }, [remoteOptions, options]);
-
-//   const toggle = (opt) => {
-//     const exists = value.includes(opt);
-//     const next = exists ? value.filter(v => v !== opt) : [...value, opt];
-//     onChange({ target: { name, value: next } });
-//   };
-
-//   const handleDelete = (opt) => {
-//     setLocalOptions((prev) => prev.filter((o) => o !== opt));
-//     if (value.includes(opt)) {
-//       const next = value.filter((v) => v !== opt);
-//       onChange({ target: { name, value: next } });
-//     }
-//     deleteOption({ group: name, label: opt }).catch(() => { });
-//   };
-
-//   const handleAddClick = () => setShowAdd(true);
-//   const handleCancelAdd = () => {
-//     setShowAdd(false);
-//     setCustomOption('');
-//   };
-
-//   const handleSaveAdd = () => {
-//     const opt = customOption.trim();
-//     if (!opt) {
-//       setShowAdd(false);
-//       return;
-//     }
-//     setLocalOptions((prev) => (prev.includes(opt) ? prev : [...prev, opt]));
-//     const next = value.includes(opt) ? value : [...value, opt];
-//     onChange({ target: { name, value: next } });
-//     setCustomOption('');
-//     setShowAdd(false);
-//     addOption({ group: name, label: opt }).catch(() => { });
-//   };
-
-//   return (
-//     <div className="space-y-2">
-//       {label && (
-//         <div className="flex items-center gap-3 text-base font-semibold text-gray-800">
-//           <span>{iconByGroup[name] || <FiList className="w-6 h-6 text-gray-500" />}</span>
-//           <span>{label}</span>
-//         </div>
-//       )}
-//       <div className="flex flex-wrap items-center gap-3">
-//         {localOptions?.map((opt) => (
-//           <div key={opt} className="relative inline-flex items-center group">
-//             <button
-//               type="button"
-//               onClick={() => handleDelete(opt)}
-//               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 pointer-events-none transition-opacity duration-150 group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-red-600"
-//               aria-label={`Remove ${opt}`}
-//             >
-//               <FiX className="w-3 h-3" />
-//             </button>
-//             <label
-//               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors duration-150 cursor-pointer
-//                 ${value.includes(opt)
-//                   ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-//                   : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
-//                 }`}
-//             >
-//               <input
-//                 type="checkbox"
-//                 checked={value.includes(opt)}
-//                 onChange={() => toggle(opt)}
-//                 className="h-4 w-4 text-primary-600 rounded"
-//               />
-//               <span>{opt}</span>
-//             </label>
-//           </div>
-//         ))}
-//         {rightInlineExtra && (
-//           <div className="inline-flex items-center">
-//             {rightInlineExtra}
-//           </div>
-//         )}
-//         <div className="flex items-center gap-2">
-//           {showAdd && (
-//             <Input
-//               placeholder="Enter option name"
-//               value={customOption}
-//               onChange={(e) => setCustomOption(e.target.value)}
-//               className="max-w-xs"
-//             />
-//           )}
-//           {showAdd ? (
-//             <>
-//               <Button
-//                 type="button"
-//                 onClick={handleCancelAdd}
-//                 className="bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-red-600 hover:to-red-700 hover:shadow-xl hover:shadow-red-500/40"
-//               >
-//                 <FiX className="w-4 h-4" /> Cancel
-//               </Button>
-//               <Button
-//                 type="button"
-//                 onClick={handleSaveAdd}
-//                 className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
-//               >
-//                 <FiSave className="w-4 h-4" /> Save
-//               </Button>
-//             </>
-//           ) : (
-//             <Button
-//               type="button"
-//               onClick={handleAddClick}
-//               className="bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 px-4 py-2 rounded-md flex items-center gap-2 transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:shadow-green-500/40"
-//             >
-//               <FiPlus className="w-4 h-4" /> Add
-//             </Button>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// // ICD-11 Code Selector Component
-// const ICD11CodeSelector = ({ value, onChange, error }) => {
-//   const [selectedPath, setSelectedPath] = useState([]);
-//   const [selectedCode, setSelectedCode] = useState(value || '');
-
-//   const getChildren = (levelIndex, parentItem) => {
-//     if (levelIndex === 0) {
-//       return icd11Codes.filter(item => item.level === 0);
-//     }
-//     if (!parentItem && levelIndex > 0) return [];
-//     const level = levelIndex;
-//     return icd11Codes.filter(item => {
-//       if (item.level !== level) return false;
-//       if (level === 1) {
-//         const level0Code = selectedPath[0]?.code || '';
-//         return item.parent_code === level0Code;
-//       } else if (level === 2) {
-//         const level0Code = selectedPath[0]?.code || '';
-//         const level1Item = selectedPath[1];
-//         const level1Code = level1Item?.code || '';
-//         if (level1Code && item.parent_code === level1Code) return true;
-//         if (item.parent_code === level0Code) return true;
-//         if (item.parent_code === '' && level0Code && item.code) {
-//           if (level0Code === '06' && item.code.startsWith('6')) return true;
-//           if (item.code.startsWith(level0Code)) return true;
-//         }
-//         return false;
-//       } else {
-//         const prevLevelItem = selectedPath[levelIndex - 1];
-//         if (!prevLevelItem) return false;
-//         const prevLevelCode = prevLevelItem.code || '';
-//         return item.parent_code === prevLevelCode;
-//       }
-//     });
-//   };
-
-//   useEffect(() => {
-//     if (value && !selectedPath.length && value !== selectedCode) {
-//       const codeItem = icd11Codes.find(item => item.code === value);
-//       if (codeItem) {
-//         const path = [];
-//         let current = codeItem;
-//         while (current) {
-//           path.unshift(current);
-//           let parent = null;
-//           if (current.parent_code) {
-//             parent = icd11Codes.find(item => item.code === current.parent_code);
-//             if (!parent && current.level > 0) {
-//               if (current.level === 1) {
-//                 parent = icd11Codes.find(item => item.level === 0 && item.code === current.parent_code);
-//               } else if (current.level === 2) {
-//                 parent = icd11Codes.find(item =>
-//                   (item.level === 1 && item.parent_code === current.parent_code) ||
-//                   (item.level === 0 && item.code === current.parent_code)
-//                 );
-//               } else {
-//                 parent = icd11Codes.find(item => item.code === current.parent_code);
-//               }
-//             }
-//           }
-//           current = parent;
-//         }
-//         if (path.length > 0) {
-//           setSelectedPath(path);
-//           setSelectedCode(value);
-//         }
-//       }
-//     }
-//   }, [value]);
-
-//   useEffect(() => {
-//     if (value !== selectedCode) {
-//       setSelectedCode(value || '');
-//     }
-//   }, [value]);
-
-//   const handleLevelChange = (levelIndex, selectedItem) => {
-//     const newPath = selectedPath.slice(0, levelIndex);
-//     if (selectedItem) {
-//       newPath[levelIndex] = selectedItem;
-//     }
-//     setSelectedPath(newPath);
-//     let deepestCode = '';
-//     for (let i = newPath.length - 1; i >= 0; i--) {
-//       if (newPath[i]?.code) {
-//         deepestCode = newPath[i].code;
-//         break;
-//       }
-//     }
-//     setSelectedCode(deepestCode);
-//     onChange({ target: { name: 'icd_code', value: deepestCode } });
-//   };
-
-//   const renderDropdown = (levelIndex) => {
-//     const parentItem = levelIndex > 0 ? selectedPath[levelIndex - 1] : null;
-//     const children = getChildren(levelIndex, parentItem);
-//     if (children.length === 0 && levelIndex > 0) return null;
-//     const selectedItem = selectedPath[levelIndex];
-//     const labelText = levelIndex === 0 ? 'Category' :
-//       levelIndex === 1 ? 'Subcategory' :
-//         levelIndex === 2 ? 'Code Group' : 'Specific Code';
-//     return (
-//       <div key={levelIndex} className="flex-shrink-0 min-w-[200px]">
-//         <label className="block text-sm font-medium text-gray-700 mb-1">
-//           {labelText}
-//         </label>
-//         <Select
-//           value={selectedItem ? JSON.stringify(selectedItem) : ''}
-//           onChange={(e) => {
-//             const item = e.target.value ? JSON.parse(e.target.value) : null;
-//             handleLevelChange(levelIndex, item);
-//           }}
-//           options={[
-//             { value: '', label: `Select ${labelText}` },
-//             ...children?.map(item => ({
-//               value: JSON.stringify(item),
-//               label: `${item.code || '(Category)'} - ${item.title}`
-//             }))
-//           ]}
-//           error={levelIndex === 0 && error}
-//         />
-//       </div>
-//     );
-//   };
-
-//   return (
-//     <div className="space-y-4">
-//       <label className="block text-sm font-medium text-gray-700 mb-1">
-//         ICD Code
-//       </label>
-//       <div className="flex flex-wrap items-end gap-4">
-//         {renderDropdown(0)}
-//         {selectedPath[0] && renderDropdown(1)}
-//         {selectedPath[1] && renderDropdown(2)}
-//         {selectedPath[2] && selectedPath[2].has_children && renderDropdown(3)}
-//         {selectedPath[3] && selectedPath[3].has_children && renderDropdown(4)}
-//         {selectedPath[4] && selectedPath[4].has_children && renderDropdown(5)}
-//       </div>
-//       {selectedCode && (
-//         <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-//           <p className="text-sm text-blue-800">
-//             <strong>Selected ICD-11 Code:</strong> <span className="font-mono font-semibold">{selectedCode}</span>
-//             {selectedPath[selectedPath.length - 1] && (
-//               <span className="ml-2 text-blue-600">
-//                 - {selectedPath[selectedPath.length - 1].title}
-//               </span>
-//             )}
-//           </p>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
 
 const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: propOnUpdate = null, onFormDataChange = null }) => {
   const { id } = useParams();
@@ -386,8 +47,11 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   // Use propInitialData if provided, otherwise use fetched data
   // const proforma = propInitialData ? null : (proformaData?.data?.proforma);
 
-  const proforma = proformaData?.data?.proformas?.find(p => p.patient_id === id)
-  console.log(proforma);
+  // Convert id to number for comparison since patient_id is a number
+  // URL params return strings, but patient_id in database is integer
+  const patientIdFromUrl = id ? parseInt(id, 10) : null;
+  const proforma = proformaData?.data?.proformas?.find(p => p.patient_id === patientIdFromUrl);
+  // console.log(patient_id);
   const isComplexCase = proforma?.doctor_decision === 'complex_case' && proforma?.adl_file_id;
 
   // Determine if this is create or update mode
@@ -411,8 +75,6 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
     { skip: !isComplexCase }
   );
 
-  const adlFile = adlFileData?.data?.adlFile || adlFileData?.data?.file;
-
   // Fetch patient data - use patient_id from propInitialData or proforma
   const patientId = propInitialData?.patient_id || proforma?.patient_id;
   const { data: patientData } = useGetPatientByIdQuery(
@@ -421,6 +83,21 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   );
   const patient = patientData?.data?.patient;
 
+  const { data: existingAdlFileData } = useGetAllADLFilesQuery({});
+  console.log("existingAdlFile", existingAdlFileData);
+
+  const existingAdlFile = existingAdlFileData?.data?.files?.find(f => f.patient_id === patient?.id && f.clinical_proforma_id === proforma?.id);
+  // const adlFile = adlFileData?.data?.adlFile || adlFileData?.data?.file;
+console.log("existingAdlFile", existingAdlFile);
+console.log("existingAdlFileData", existingAdlFileData);
+
+  const { data: existingPrescriptionData } = useGetAllPrescriptionQuery({});
+  console.log("existingPrescriptionData", existingPrescriptionData);
+
+  const existingPrescription = existingPrescriptionData?.data?.prescriptions?.find(p => p.patient_id === patient?.id && p.clinical_proforma_id === proforma?.id);
+  // const prescription = prescriptionData?.data?.prescription;
+console.log("existingPrescription", existingPrescription);
+console.log("existingPrescriptionData", existingPrescriptionData);
   // Fetch doctors list
   const { data: doctorsData } = useGetDoctorsQuery({ page: 1, limit: 100 });
   const doctors = doctorsData?.data?.doctors || [];
@@ -430,6 +107,10 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   // const [updateADLFile] = useUpdateADLFileMutation();
   const [createADLFile, { isLoading: isCreatingADLFile }] = useCreateADLFileMutation();
   // Helper functions
+
+  
+
+
   const normalizeArrayField = (value) => {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string') {
@@ -714,9 +395,12 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
       if (shouldUpdate) {
 
         setFormData(initialFormData);
-        // Notify parent of initial form data
+        // Notify parent of initial form data (defer to avoid setState during render)
         if (onFormDataChange) {
-          onFormDataChange(initialFormData);
+          // Use setTimeout to defer the call until after render
+          setTimeout(() => {
+            onFormDataChange(initialFormData);
+          }, 0);
         }
         prevInitialDataRef.current = {
           ...initialFormData,
@@ -737,8 +421,11 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
         [name]: newValue,
       };
       // Notify parent component of form data changes, especially doctor_decision
+      // Defer to avoid setState during render warning
       if (onFormDataChange) {
-        onFormDataChange(updated);
+        setTimeout(() => {
+          onFormDataChange(updated);
+        }, 0);
       }
       return updated;
     });
@@ -885,22 +572,41 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
       // ============================================
       // TRY–CATCH #2: Create ADL if complex decision
       // ============================================
+      // if (formData.doctor_decision === "complex_case") {
+      //   try {
+      //     await createADLFile({
+      //       patient_id: patient.id,
+      //       clinical_proforma_id: proforma.id,
+      //     }).unwrap();
+      //     toast.success("ADL file created");
+      //   } catch (err) {
+      //     toast.error(err?.data?.message || "Failed to create ADL file");
+      //   }
+      // }
+
+
       if (formData.doctor_decision === "complex_case") {
-        try {
-          await createADLFile({
-            patient_id: patient.id,
-            clinical_proforma_id: proforma.id,
-          }).unwrap();
-          toast.success("ADL file created");
-        } catch (err) {
-          toast.error(err?.data?.message || "Failed to create ADL file");
+
+        // Only call API if ADL does NOT exist
+        if (!existingAdlFile && patient.id && proforma.id) {
+          try {
+            await createADLFile({
+              patient_id: patient.id,
+              clinical_proforma_id: proforma.id,
+            }).unwrap();
+      
+            toast.success("ADL file created");
+          } catch (err) {
+            toast.error(err?.data?.message || "Failed to create ADL file");
+          }
         }
       }
+      
 
       // ======================================
       // TRY–CATCH #3: Create Bulk Prescriptions
       // ======================================
-      if (patient.id && proforma.id) {
+      if (!existingPrescription && patient.id && proforma.id) {
         try {
           await createPrescriptions({
             patient_id: patient.id,
@@ -1350,16 +1056,9 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
                       onChange={handleChange}
                       options={CASE_SEVERITY}
                     /> */}
-                    <Select
-                      label="Doctor Decision"
-                      name="doctor_decision"
-                      value={formData.doctor_decision}
-                      onChange={handleChange}
-                      options={DOCTOR_DECISION}
-                      required
-                    />
+                
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Textarea
                     label="Disposal & Referral"
                     name="disposal"
@@ -1400,6 +1099,15 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
                     rows={4}
                     placeholder="Treatment details..."
                   />
+
+<Select
+                      label="Doctor Decision"
+                      name="doctor_decision"
+                      value={formData.doctor_decision}
+                      onChange={handleChange}
+                      options={DOCTOR_DECISION}
+                      required
+                    />
                   </div>
                 </div>
               </div>

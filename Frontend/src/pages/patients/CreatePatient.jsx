@@ -478,12 +478,12 @@ const CreatePatient = () => {
         permanent_country: formData.permanent_country || null,
         
         // Present Address fields
-        present_address_line_1: formData.present_address_line_1 || null,
-        present_city_town_village: formData.present_city_town_village || null,
-        present_district: formData.present_district || null,
-        present_state: formData.present_state || null,
-        present_pin_code: formData.present_pin_code || null,
-        present_country: formData.present_country || null,
+        present_address_line_2: formData.present_address_line_2 || null,
+        present_city_town_village_2: formData.present_city_town_village_2 || null,
+        present_district_2: formData.present_district_2 || null,
+        present_state_2: formData.present_state_2 || null,
+        present_pin_code_2: formData.present_pin_code_2 || null,
+        present_country_2: formData.present_country_2 || null,
         
         // Local Address field
         local_address: formData.local_address || null,
@@ -616,12 +616,12 @@ const CreatePatient = () => {
         permanent_country: formData.permanent_country || null,
         
         // Present Address fields
-        present_address_line_1: formData.present_address_line_1 || null,
-        present_city_town_village: formData.present_city_town_village || null,
-        present_district: formData.present_district || null,
-        present_state: formData.present_state || null,
-        present_pin_code: formData.present_pin_code || null,
-        present_country: formData.present_country || null,
+        present_address_line_2: formData.present_address_line_2 || null,
+        present_city_town_village_2: formData.present_city_town_village_2 || null,
+        present_district_2: formData.present_district_2 || null,
+        present_state_2: formData.present_state_2 || null,
+        present_pin_code_2: formData.present_pin_code_2 || null,
+        present_country_2: formData.present_country_2 || null,
         
         // Local Address field
         local_address: formData.local_address || null,
