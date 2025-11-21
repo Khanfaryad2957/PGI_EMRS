@@ -732,6 +732,7 @@ import { useGetPrescriptionByIdQuery, useCreatePrescriptionMutation, useUpdatePr
 import medicinesData from '../../assets/psychiatric_meds_india.json';
 import { FiSave, FiEdit,FiPlus  ,FiTrash2 } from 'react-icons/fi';
 import Button from '../../components/Button';
+import { PRESCRIPTION_OPTIONS } from '../../utils/constants';
 
 
 
@@ -982,22 +983,21 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
         setShowSuggestions(prev => ({ ...prev, [rowIdx]: true }));
         setActiveSuggestionIndex(prev => ({ ...prev, [rowIdx]: -1 }));
 
-        // Calculate position for dropdown
+        // Calculate position for dropdown - always position below the input field
         setTimeout(() => {
           const input = inputRefs.current[`medicine-${rowIdx}`];
           if (input) {
             const rect = input.getBoundingClientRect();
-            const dropdownHeight = 240;
-            const spaceAbove = rect.top;
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+            // Height for 4 items (approximately 56px per item = 224px)
+            const dropdownHeight = 224;
 
             setSuggestionPositions(prev => ({
               ...prev,
               [rowIdx]: {
-                top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-                left: rect.left,
-                width: rect.width
+                top: rect.bottom + 4, // Always position directly below the input field
+                left: rect.left, // Align with left edge of input
+                width: rect.width, // Match exact width of input field
+                maxHeight: dropdownHeight
               }
             }));
           }
@@ -1260,17 +1260,16 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
                                 const input = inputRefs.current[`medicine-${idx}`];
                                 if (input) {
                                   const rect = input.getBoundingClientRect();
-                                  const dropdownHeight = 240;
-                                  const spaceAbove = rect.top;
-                                  const spaceBelow = window.innerHeight - rect.bottom;
-                                  const positionAbove = spaceAbove > dropdownHeight || spaceAbove > spaceBelow;
+                                  // Height for 4 items (approximately 56px per item = 224px)
+                                  const dropdownHeight = 224;
 
                                   setSuggestionPositions(prev => ({
                                     ...prev,
                                     [idx]: {
-                                      top: positionAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-                                      left: rect.left,
-                                      width: rect.width
+                                      top: rect.bottom + 4, // Always position directly below the input field
+                                      left: rect.left, // Align with left edge of input
+                                      width: rect.width, // Match exact width of input field
+                                      maxHeight: dropdownHeight
                                     }
                                   }));
                                 }
@@ -1411,93 +1410,29 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
           {prescriptionRows.map((_, rowIdx) => (
             <div key={`datalists-${rowIdx}`} style={{ display: 'none' }}>
               <datalist id={`dosageOptions-${proforma.id}-${rowIdx}`}>
-                <option value="1-0-1" />
-                <option value="1-1-1" />
-                <option value="1-0-0" />
-                <option value="0-1-0" />
-                <option value="0-0-1" />
-                <option value="1-1-0" />
-                <option value="0-1-1" />
-                <option value="1-0-1½" />
-                <option value="½-0-½" />
-                <option value="SOS" />
-                <option value="STAT" />
-                <option value="PRN" />
-                <option value="OD" />
-                <option value="BD" />
-                <option value="TDS" />
-                <option value="QID" />
-                <option value="HS" />
-                <option value="Q4H" />
-                <option value="Q6H" />
-                <option value="Q8H" />
+                {PRESCRIPTION_OPTIONS.DOSAGE.map((option) => (
+                  <option key={option.value} value={option.value} />
+                ))}
               </datalist>
               <datalist id={`whenOptions-${proforma.id}-${rowIdx}`}>
-                <option value="Before Food" />
-                <option value="After Food" />
-                <option value="With Food" />
-                <option value="Empty Stomach" />
-                <option value="Bedtime" />
-                <option value="Morning" />
-                <option value="Afternoon" />
-                <option value="Evening" />
-                <option value="Night" />
-                <option value="Any Time" />
-                <option value="Before Breakfast" />
-                <option value="After Breakfast" />
-                <option value="Before Lunch" />
-                <option value="After Lunch" />
-                <option value="Before Dinner" />
-                <option value="After Dinner" />
+                {PRESCRIPTION_OPTIONS.WHEN.map((option) => (
+                  <option key={option.value} value={option.value} />
+                ))}
               </datalist>
               <datalist id={`frequencyOptions-${proforma.id}-${rowIdx}`}>
-                <option value="Once Daily" />
-                <option value="Twice Daily" />
-                <option value="Thrice Daily" />
-                <option value="Four Times Daily" />
-                <option value="Every Hour" />
-                <option value="Every 2 Hours" />
-                <option value="Every 4 Hours" />
-                <option value="Every 6 Hours" />
-                <option value="Every 8 Hours" />
-                <option value="Every 12 Hours" />
-                <option value="Alternate Day" />
-                <option value="Weekly" />
-                <option value="Monthly" />
-                <option value="SOS" />
-                <option value="Continuous" />
-                <option value="Once" />
-                <option value="Tapering Dose" />
+                {PRESCRIPTION_OPTIONS.FREQUENCY.map((option) => (
+                  <option key={option.value} value={option.value} />
+                ))}
               </datalist>
               <datalist id={`durationOptions-${proforma.id}-${rowIdx}`}>
-                <option value="3 Days" />
-                <option value="5 Days" />
-                <option value="7 Days" />
-                <option value="10 Days" />
-                <option value="14 Days" />
-                <option value="21 Days" />
-                <option value="1 Month" />
-                <option value="2 Months" />
-                <option value="3 Months" />
-                <option value="6 Months" />
-                <option value="Until Symptoms Subside" />
-                <option value="Continuous" />
-                <option value="As Directed" />
+                {PRESCRIPTION_OPTIONS.DURATION.map((option) => (
+                  <option key={option.value} value={option.value} />
+                ))}
               </datalist>
               <datalist id={`quantityOptions-${proforma.id}-${rowIdx}`}>
-                <option value="1" />
-                <option value="2" />
-                <option value="3" />
-                <option value="5" />
-                <option value="7" />
-                <option value="10" />
-                <option value="15" />
-                <option value="20" />
-                <option value="30" />
-                <option value="60" />
-                <option value="90" />
-                <option value="100" />
-                <option value="Custom" />
+                {PRESCRIPTION_OPTIONS.QUANTITY.map((option) => (
+                  <option key={option.value} value={option.value} />
+                ))}
               </datalist>
             </div>
           ))}

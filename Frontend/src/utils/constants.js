@@ -698,3 +698,113 @@ export const QUANTITY_OPTIONS = [
   { value: '100', label: '100' }
 ]
 
+
+
+
+
+export const PRESCRIPTION_OPTIONS = {
+  Medicine: [
+    { value: 'medicine', label: 'Medicine' },
+    { value: 'dosage', label: 'Dosage' },
+    { value: 'when_to_take', label: 'When to Take' },
+    { value: 'frequency', label: 'Frequency' },
+    { value: 'duration', label: 'Duration' },
+    { value: 'quantity', label: 'Quantity' },
+    { value: 'details', label: 'Details' },
+    { value: 'notes', label: 'Notes' },
+  ],
+
+  DOSAGE: [
+    { value: "1-0-1", label: "1-0-1" },
+    { value: "1-1-1", label: "1-1-1" },
+    { value: "1-0-0", label: "1-0-0" },
+    { value: "0-1-0", label: "0-1-0" },
+    { value: "0-0-1", label: "0-0-1" },
+    { value: "1-1-0", label: "1-1-0" },
+    { value: "0-1-1", label: "0-1-1" },
+    { value: "1-0-1½", label: "1-0-1½" },
+    { value: "½-0-½", label: "½-0-½" },
+    { value: "SOS", label: "SOS" },
+    { value: "STAT", label: "STAT" },
+    { value: "PRN", label: "PRN" },
+    { value: "OD", label: "OD" },
+    { value: "BD", label: "BD" },
+    { value: "TDS", label: "TDS" },
+    { value: "QID", label: "QID" },
+    { value: "HS", label: "HS" },
+    { value: "Q4H", label: "Q4H" },
+    { value: "Q6H", label: "Q6H" },
+    { value: "Q8H", label: "Q8H" }
+  ],
+
+  WHEN: [
+    { value: "Before Food", label: "Before Food" },
+    { value: "After Food", label: "After Food" },
+    { value: "With Food", label: "With Food" },
+    { value: "Empty Stomach", label: "Empty Stomach" },
+    { value: "Bedtime", label: "Bedtime" },
+    { value: "Morning", label: "Morning" },
+    { value: "Afternoon", label: "Afternoon" },
+    { value: "Evening", label: "Evening" },
+    { value: "Night", label: "Night" },
+    { value: "Any Time", label: "Any Time" },
+    { value: "Before Breakfast", label: "Before Breakfast" },
+    { value: "After Breakfast", label: "After Breakfast" },
+    { value: "Before Lunch", label: "Before Lunch" },
+    { value: "After Lunch", label: "After Lunch" },
+    { value: "Before Dinner", label: "Before Dinner" },
+    { value: "After Dinner", label: "After Dinner" }
+  ],
+
+  FREQUENCY: [
+    { value: "Once Daily", label: "Once Daily" },
+    { value: "Twice Daily", label: "Twice Daily" },
+    { value: "Thrice Daily", label: "Thrice Daily" },
+    { value: "Four Times Daily", label: "Four Times Daily" },
+    { value: "Every Hour", label: "Every Hour" },
+    { value: "Every 2 Hours", label: "Every 2 Hours" },
+    { value: "Every 4 Hours", label: "Every 4 Hours" },
+    { value: "Every 6 Hours", label: "Every 6 Hours" },
+    { value: "Every 8 Hours", label: "Every 8 Hours" },
+    { value: "Every 12 Hours", label: "Every 12 Hours" },
+    { value: "Alternate Day", label: "Alternate Day" },
+    { value: "Weekly", label: "Weekly" },
+    { value: "Monthly", label: "Monthly" },
+    { value: "SOS", label: "SOS" },
+    { value: "Continuous", label: "Continuous" },
+    { value: "Once", label: "Once" },
+    { value: "Tapering Dose", label: "Tapering Dose" }
+  ],
+
+  DURATION: [
+    { value: "3 Days", label: "3 Days" },
+    { value: "5 Days", label: "5 Days" },
+    { value: "7 Days", label: "7 Days" },
+    { value: "10 Days", label: "10 Days" },
+    { value: "14 Days", label: "14 Days" },
+    { value: "21 Days", label: "21 Days" },
+    { value: "1 Month", label: "1 Month" },
+    { value: "2 Months", label: "2 Months" },
+    { value: "3 Months", label: "3 Months" },
+    { value: "6 Months", label: "6 Months" },
+    { value: "Until Symptoms Subside", label: "Until Symptoms Subside" },
+    { value: "Continuous", label: "Continuous" },
+    { value: "As Directed", label: "As Directed" }
+  ],
+
+  QUANTITY: [
+    { value: "1", label: "1" },
+    { value: "2", label: "2" },
+    { value: "3", label: "3" },
+    { value: "5", label: "5" },
+    { value: "7", label: "7" },
+    { value: "10", label: "10" },
+    { value: "15", label: "15" },
+    { value: "20", label: "20" },
+    { value: "30", label: "30" },
+    { value: "60", label: "60" },
+    { value: "90", label: "90" },
+    { value: "100", label: "100" },
+    { value: "Custom", label: "Custom" }
+  ]
+};
