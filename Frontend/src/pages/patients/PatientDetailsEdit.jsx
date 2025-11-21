@@ -2957,7 +2957,7 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                 <FiFolder className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Deatail Work-Up File</h3>
+                <h3 className="text-xl font-bold text-gray-900">Out Patient Intake Record</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {patientAdlFiles.length > 0
                     ? `${patientAdlFiles.length} file${patientAdlFiles.length > 1 ? 's' : ''} found`

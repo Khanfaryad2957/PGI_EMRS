@@ -9,8 +9,9 @@ import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Textarea from '../../components/Textarea';
 import Button from '../../components/Button';
-import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText } from 'react-icons/fi';
+import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText, FiCalendar } from 'react-icons/fi';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import DatePicker from '../../components/CustomDatePicker';
 
 const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = null, clinicalProformaId: propClinicalProformaId = null }) => {
   const navigate = useNavigate();
@@ -129,6 +130,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       // Complaints
       complaints_patient: parseArray(adlFile.complaints_patient).length > 0 ? parseArray(adlFile.complaints_patient) : [{ complaint: '', duration: '' }],
       complaints_informant: parseArray(adlFile.complaints_informant).length > 0 ? parseArray(adlFile.complaints_informant) : [{ complaint: '', duration: '' }],
+      // Onset, Precipitating Factor, Course
+      onset_duration: adlFile.onset_duration || '',
+      precipitating_factor: adlFile.precipitating_factor || '',
+      course: adlFile.course || '',
       // Past History
       past_history_medical: adlFile.past_history_medical || '',
       past_history_psychiatric_dates: formatDateField(adlFile.past_history_psychiatric_dates),
@@ -318,6 +323,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
     informants: [{ relationship: '', name: '', reliability: '' }],
     complaints_patient: [{ complaint: '', duration: '' }],
     complaints_informant: [{ complaint: '', duration: '' }],
+    onset_duration: '',
+    precipitating_factor: '',
+    course: '',
     past_history_medical: '',
     past_history_psychiatric_dates: '',
     past_history_psychiatric_diagnosis: '',
@@ -619,103 +627,53 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     className="disabled:bg-gray-100 disabled:cursor-not-allowed"
                               />
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <Input
+                          label="Marital Status"
+                          name="marital_status"
+                    value={patient?.marital_status || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Education"
+                          name="education"
+                    value={patient?.education || patient?.education_level || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Occupation"
+                          name="occupation"
+                    value={patient?.occupation || ''}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        <Input
+                          label="Name of the City/District"
+                          name="city_district"
+                    value={(() => {
+                      const city = patient?.city || patient?.present_city_town_village || '';
+                      const district = patient?.district || patient?.present_district || '';
+                      if (city && district) {
+                        return `${city}, ${district}`;
+                      }
+                      return city || district || '';
+                    })()}
+                          onChange={handleChange}
+                          disabled={true}
+                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                        </div>
                       </div>
 
                     </div>
           </Card>
-      {/* History of Present Illness */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
-        <div
-          className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
-          onClick={() => toggleCard('history')}
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <FiFileText className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">History of Present Illness</h3>
-              <p className="text-sm text-gray-500 mt-1">Spontaneous narrative, specific enquiry, drug intake, treatment</p>
-            </div>
-          </div>
-          {expandedCards.history ? (
-            <FiChevronUp className="h-6 w-6 text-gray-500" />
-          ) : (
-            <FiChevronDown className="h-6 w-6 text-gray-500" />
-          )}
-        </div>
 
-        {expandedCards.history && (
-          <div className="p-6 space-y-6">
-            <Textarea
-              label="A. Spontaneous narrative account"
-              name="history_narrative"
-              value={formData.history_narrative}
-              onChange={handleChange}
-              placeholder="Patient's spontaneous account of the illness..."
-              rows={4}
-            />
-            
-            <Textarea
-              label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
-              name="history_specific_enquiry"
-              value={formData.history_specific_enquiry}
-              onChange={handleChange}
-              placeholder="Detailed specific enquiries..."
-              rows={5}
-            />
-            
-            <Textarea
-              label="C. Intake of dependence producing and prescription drugs"
-              name="history_drug_intake"
-              value={formData.history_drug_intake}
-              onChange={handleChange}
-              placeholder="List all dependence producing substances and prescription drugs..."
-              rows={3}
-            />
-            
-            <div className="border-t pt-4">
-              <h4 className="font-semibold text-gray-800 mb-3">D. Treatment received so far in this illness</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Place"
-                  name="history_treatment_place"
-                  value={formData.history_treatment_place}
-                  onChange={handleChange}
-                  placeholder="Location of treatment"
-                />
-                <Input
-                  label="Dates"
-                  name="history_treatment_dates"
-                  value={formData.history_treatment_dates}
-                  onChange={handleChange}
-                  placeholder="Treatment dates"
-                />
-                <Textarea
-                  label="Drugs"
-                  name="history_treatment_drugs"
-                  value={formData.history_treatment_drugs}
-                  onChange={handleChange}
-                  placeholder="Medications administered"
-                  rows={2}
-                  className="md:col-span-2"
-                />
-                <Textarea
-                  label="Response"
-                  name="history_treatment_response"
-                  value={formData.history_treatment_response}
-                  onChange={handleChange}
-                  placeholder="Patient's response to treatment"
-                  rows={2}
-                  className="md:col-span-2"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Informants */}
+         {/* Informants */}
       <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
@@ -833,8 +791,11 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           )}
         </div>
 
-        {expandedCards.complaints && (
+        {expandedCards.complaints && formData && (
           <div className="p-6 space-y-6">
+            {/* Illness Details - Onset, Precipitating Factor, Course */}
+           
+
             <div>
               <h4 className="font-semibold text-gray-800 mb-3">Chief Complaints as per patient</h4>
               {(formData.complaints_patient || [{ complaint: '', duration: '' }])?.map((complaint, index) => (
@@ -960,9 +921,139 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 Add Complaint
               </Button>
             </div>
+            <div className="border-b pb-6 mb-6">
+              <h4 className="font-semibold text-gray-800 mb-4">Onset, Precipitating Factor, Course</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Input
+                    label="Onset"
+                    name="onset_duration"
+                    value={formData?.onset_duration || ''}
+                    onChange={handleChange}
+                    placeholder="e.g., Gradual over 6 months"
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Precipitating Factor"
+                    name="precipitating_factor"
+                    value={formData?.precipitating_factor || ''}
+                    onChange={handleChange}
+                    placeholder="e.g., Job loss, family conflict"
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Course"
+                    name="course"
+                    value={formData?.course || ''}
+                    onChange={handleChange}
+                    placeholder="e.g., Progressive, episodic, continuous"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </Card>
+
+
+      
+      {/* History of Present Illness */}
+      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+        <div
+          className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+          onClick={() => toggleCard('history')}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <FiFileText className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">History of Present Illness</h3>
+              <p className="text-sm text-gray-500 mt-1">Spontaneous narrative, specific enquiry, drug intake, treatment</p>
+            </div>
+          </div>
+          {expandedCards.history ? (
+            <FiChevronUp className="h-6 w-6 text-gray-500" />
+          ) : (
+            <FiChevronDown className="h-6 w-6 text-gray-500" />
+          )}
+        </div>
+
+        {expandedCards.history && (
+          <div className="p-6 space-y-6">
+            <Textarea
+              label="A. Spontaneous narrative account"
+              name="history_narrative"
+              value={formData.history_narrative}
+              onChange={handleChange}
+              placeholder="Patient's spontaneous account of the illness..."
+              rows={4}
+            />
+            
+            <Textarea
+              label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
+              name="history_specific_enquiry"
+              value={formData.history_specific_enquiry}
+              onChange={handleChange}
+              placeholder="Detailed specific enquiries..."
+              rows={5}
+            />
+            
+            <Textarea
+              label="C. Intake of dependence producing and prescription drugs"
+              name="history_drug_intake"
+              value={formData.history_drug_intake}
+              onChange={handleChange}
+              placeholder="List all dependence producing substances and prescription drugs..."
+              rows={3}
+            />
+            
+            <div className="border-t pt-4">
+              <h4 className="font-semibold text-gray-800 mb-3">D. Treatment received so far in this illness</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Place"
+                  name="history_treatment_place"
+                  value={formData.history_treatment_place}
+                  onChange={handleChange}
+                  placeholder="Location of treatment"
+                />
+                <Input
+                  label="Dates"
+                  name="history_treatment_dates"
+                  value={formData.history_treatment_dates}
+                  onChange={handleChange}
+                  placeholder="Treatment dates"
+                />
+                <Textarea
+                  label="Drugs"
+                  name="history_treatment_drugs"
+                  value={formData.history_treatment_drugs}
+                  onChange={handleChange}
+                  placeholder="Medications administered"
+                  rows={2}
+                  className="md:col-span-2"
+                />
+                <Textarea
+                  label="Response"
+                  name="history_treatment_response"
+                  value={formData.history_treatment_response}
+                  onChange={handleChange}
+                  placeholder="Patient's response to treatment"
+                  rows={2}
+                  className="md:col-span-2"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
+     
+
+      
 
       {/* Past History - Detailed */}
       <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
@@ -1071,6 +1162,194 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
         {expandedCards.familyHistory && (
           <div className="p-6 space-y-6">
+            {/* Family Tree Visualization - ERD Style */}
+            <div className="border-2 border-gray-200 rounded-xl p-4 md:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-50 mb-6 overflow-x-auto shadow-inner">
+              <h4 className="font-bold text-lg md:text-xl text-gray-800 mb-6 md:mb-8 text-center uppercase tracking-wide">Family Tree - Entity Relationship Diagram</h4>
+              <div className="relative flex flex-col items-center min-h-[450px] md:min-h-[550px] py-6 md:py-8">
+                {/* Parents Row - Responsive: Stack on mobile, side-by-side on desktop */}
+                <div className="relative flex flex-col md:flex-row justify-center gap-6 md:gap-16 lg:gap-24 mb-8 md:mb-12 w-full" style={{ zIndex: 2 }}>
+                  {/* Father Entity */}
+                  <div className="relative flex flex-col items-center" id="father-entity">
+                    <div className={`relative bg-white border-2 rounded-lg p-4 md:p-5 shadow-xl w-full md:min-w-[170px] md:max-w-[170px] lg:min-w-[190px] lg:max-w-[190px] text-center transition-all hover:shadow-2xl hover:scale-105 ${formData.family_history_father_deceased ? 'border-red-500 bg-red-50 opacity-80' : 'border-blue-500 bg-blue-50'}`} style={{ borderWidth: '3px' }}>
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 md:px-4 py-1.5 rounded-md shadow-lg whitespace-nowrap">
+                        FATHER
+                      </div>
+                      <div className="mt-4 pt-2">
+                        <div className="text-xs md:text-sm font-bold text-gray-800 mb-2">
+                          {formData.family_history_father_age ? `Age: ${formData.family_history_father_age}` : 'Not specified'}
+                        </div>
+                        {formData.family_history_father_education && (
+                          <div className="text-xs text-gray-700 mt-2 truncate" title={formData.family_history_father_education}>
+                            <span className="font-semibold">Edu:</span> {formData.family_history_father_education}
+                          </div>
+                        )}
+                        {formData.family_history_father_occupation && (
+                          <div className="text-xs text-gray-600 mt-1 truncate" title={formData.family_history_father_occupation}>
+                            <span className="font-semibold">Occ:</span> {formData.family_history_father_occupation}
+                          </div>
+                        )}
+                        {formData.family_history_father_deceased && (
+                          <div className="absolute -top-2 -right-2">
+                            <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full font-bold shadow-lg">✝</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Connection line from father - Desktop: down to horizontal line, Mobile: down to patient */}
+                    <div className="hidden md:block absolute top-full left-1/2 transform -translate-x-1/2" style={{ zIndex: 1, marginTop: '2px' }}>
+                      <div className="w-1 h-14 bg-blue-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-blue-500"></div>
+                      </div>
+                    </div>
+                    <div className="md:hidden absolute top-full left-1/2 transform -translate-x-1/2" style={{ zIndex: 1, marginTop: '2px' }}>
+                      <div className="w-1 h-12 bg-blue-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-blue-500"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Horizontal connector between parents - Desktop only */}
+                  <div className="hidden md:block absolute top-[85px] left-1/2 transform -translate-x-1/2" style={{ zIndex: 1 }}>
+                    <div className="flex items-center">
+                      <div className="w-[calc(50%-100px)] lg:w-[calc(50%-140px)] h-0.5 bg-gray-400"></div>
+                      <div className="w-0 h-0 border-t-[5px] border-b-[5px] border-l-[10px] border-transparent border-l-gray-400"></div>
+                      <div className="w-[calc(50%-100px)] lg:w-[calc(50%-140px)] h-0.5 bg-gray-400"></div>
+                    </div>
+                  </div>
+
+                  {/* Mother Entity */}
+                  <div className="relative flex flex-col items-center" id="mother-entity">
+                    <div className={`relative bg-white border-2 rounded-lg p-4 md:p-5 shadow-xl w-full md:min-w-[170px] md:max-w-[170px] lg:min-w-[190px] lg:max-w-[190px] text-center transition-all hover:shadow-2xl hover:scale-105 ${formData.family_history_mother_deceased ? 'border-red-500 bg-red-50 opacity-80' : 'border-pink-500 bg-pink-50'}`} style={{ borderWidth: '3px' }}>
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white text-xs font-bold px-3 md:px-4 py-1.5 rounded-md shadow-lg whitespace-nowrap">
+                        MOTHER
+                      </div>
+                      <div className="mt-4 pt-2">
+                        <div className="text-xs md:text-sm font-bold text-gray-800 mb-2">
+                          {formData.family_history_mother_age ? `Age: ${formData.family_history_mother_age}` : 'Not specified'}
+                        </div>
+                        {formData.family_history_mother_education && (
+                          <div className="text-xs text-gray-700 mt-2 truncate" title={formData.family_history_mother_education}>
+                            <span className="font-semibold">Edu:</span> {formData.family_history_mother_education}
+                          </div>
+                        )}
+                        {formData.family_history_mother_occupation && (
+                          <div className="text-xs text-gray-600 mt-1 truncate" title={formData.family_history_mother_occupation}>
+                            <span className="font-semibold">Occ:</span> {formData.family_history_mother_occupation}
+                          </div>
+                        )}
+                        {formData.family_history_mother_deceased && (
+                          <div className="absolute -top-2 -right-2">
+                            <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full font-bold shadow-lg">✝</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Connection line from mother - Desktop: down to horizontal line, Mobile: down to patient */}
+                    <div className="hidden md:block absolute top-full left-1/2 transform -translate-x-1/2" style={{ zIndex: 1, marginTop: '2px' }}>
+                      <div className="w-1 h-14 bg-pink-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-pink-500"></div>
+                      </div>
+                    </div>
+                    <div className="md:hidden absolute top-full left-1/2 transform -translate-x-1/2" style={{ zIndex: 1, marginTop: '2px' }}>
+                      <div className="w-1 h-12 bg-pink-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-pink-500"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vertical connector from horizontal line to patient - Desktop only */}
+                <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2" style={{ top: '155px', zIndex: 1 }}>
+                  <div className="w-1 h-20 bg-gray-400 relative">
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-gray-400"></div>
+                  </div>
+                </div>
+                {/* Mobile: Connection from center to patient */}
+                <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '200px', zIndex: 1 }}>
+                  <div className="w-1 h-10 bg-gray-400 relative">
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-gray-400"></div>
+                  </div>
+                </div>
+
+                {/* Patient Entity (Center) - Primary Entity */}
+                <div className="relative bg-gradient-to-br from-amber-200 via-amber-100 to-yellow-100 border-4 border-amber-600 rounded-xl p-5 md:p-6 shadow-2xl w-full md:min-w-[210px] md:max-w-[210px] lg:min-w-[230px] lg:max-w-[230px] text-center mb-8 md:mb-12 z-10 transform transition-all hover:scale-105" style={{ zIndex: 2 }}>
+                  <div className="absolute -top-4 md:-top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-xs md:text-sm font-bold px-4 md:px-5 py-2 rounded-md shadow-xl whitespace-nowrap">
+                    PATIENT (PRIMARY)
+                  </div>
+                  <div className="mt-5 pt-1">
+                    <div className="text-base md:text-lg font-bold text-gray-900 truncate mb-2" title={patient?.name || 'Patient Name'}>
+                      {patient?.name || 'Patient Name'}
+                    </div>
+                    {patient?.age && (
+                      <div className="text-xs md:text-sm font-semibold text-gray-700 mt-1">Age: {patient.age}</div>
+                    )}
+                    {patient?.sex && (
+                      <div className="text-xs text-gray-600 mt-1 font-medium">({patient.sex === 'M' ? 'Male' : patient.sex === 'F' ? 'Female' : patient.sex})</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connection line from patient to siblings */}
+                {(formData.family_history_siblings && formData.family_history_siblings.length > 0 && formData.family_history_siblings.some(s => s.age || s.sex || s.education || s.occupation)) && (
+                  <>
+                    <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2" style={{ top: '360px', zIndex: 1 }}>
+                      <div className="w-1 h-10 bg-green-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-green-500"></div>
+                      </div>
+                    </div>
+                    <div className="md:hidden absolute left-1/2 transform -translate-x-1/2" style={{ top: '340px', zIndex: 1 }}>
+                      <div className="w-1 h-10 bg-green-500 relative">
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-transparent border-t-green-500"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Siblings Row - Child Entities */}
+                {(formData.family_history_siblings && formData.family_history_siblings.length > 0 && formData.family_history_siblings.some(s => s.age || s.sex || s.education || s.occupation)) && (
+                  <div className="flex flex-wrap justify-center gap-3 md:gap-4 max-w-5xl w-full" style={{ zIndex: 2 }}>
+                    {formData.family_history_siblings.map((sibling, index) => {
+                      if (!sibling.age && !sibling.sex && !sibling.education && !sibling.occupation) return null;
+                      return (
+                        <div key={index} className="relative flex flex-col items-center w-full sm:w-auto" id={`sibling-entity-${index}`}>
+                          <div className="relative bg-white border-2 border-green-500 rounded-lg p-3 md:p-4 shadow-xl w-full sm:min-w-[130px] sm:max-w-[130px] md:min-w-[150px] md:max-w-[150px] text-center transition-all hover:shadow-2xl hover:scale-105 bg-green-50" style={{ borderWidth: '3px' }}>
+                            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white text-xs font-bold px-2 md:px-3 py-1.5 rounded-md shadow-lg whitespace-nowrap">
+                              SIBLING {index + 1}
+                            </div>
+                            <div className="mt-4 pt-1">
+                              {sibling.age && (
+                                <div className="text-xs md:text-sm font-bold text-gray-800 mb-1">Age: {sibling.age}</div>
+                              )}
+                              {sibling.sex && (
+                                <div className="text-xs text-gray-700 mt-1 font-medium">
+                                  ({sibling.sex === 'M' ? 'Male' : sibling.sex === 'F' ? 'Female' : sibling.sex})
+                                </div>
+                              )}
+                              {sibling.education && (
+                                <div className="text-xs text-gray-700 mt-2 truncate" title={sibling.education}>
+                                  <span className="font-semibold">Edu:</span> {sibling.education}
+                                </div>
+                              )}
+                              {sibling.occupation && (
+                                <div className="text-xs text-gray-600 mt-1 truncate" title={sibling.occupation}>
+                                  <span className="font-semibold">Occ:</span> {sibling.occupation}
+                                </div>
+                              )}
+                              {sibling.marital_status && (
+                                <div className="text-xs text-purple-700 mt-2 font-semibold bg-purple-100 px-2 py-1 rounded">
+                                  {sibling.marital_status}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <h4 className="font-semibold text-gray-800 mb-4">Father</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1117,9 +1396,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       onChange={(e) => setFormData(prev => ({ ...prev, family_history_father_death_age: e.target.value }))}
                       placeholder="Age"
                     />
-                    <Input
+                    <DatePicker
+                      icon={<FiCalendar className="w-4 h-4" />}
                       label="Date of death"
-                      type="date"
+                      name="family_history_father_death_date"
                       value={formData.family_history_father_death_date}
                       onChange={(e) => setFormData(prev => ({ ...prev, family_history_father_death_date: e.target.value }))}
                     />
@@ -1182,9 +1462,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       onChange={(e) => setFormData(prev => ({ ...prev, family_history_mother_death_age: e.target.value }))}
                       placeholder="Age"
                     />
-                    <Input
+                    <DatePicker
+                      icon={<FiCalendar className="w-4 h-4" />}
                       label="Date of death"
-                      type="date"
+                      name="family_history_mother_death_date"
                       value={formData.family_history_mother_death_date}
                       onChange={(e) => setFormData(prev => ({ ...prev, family_history_mother_death_date: e.target.value }))}
                     />
@@ -1358,9 +1639,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             <div className="border-t pt-6">
               <h4 className="font-semibold text-gray-800 mb-3">Personal History</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
+                <DatePicker
+                  icon={<FiCalendar className="w-4 h-4" />}
                   label="Birth Date"
-                  type="date"
                   name="personal_birth_date"
                   value={formData.personal_birth_date}
                   onChange={handleChange}
@@ -1766,13 +2047,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     { value: 'Other', label: 'Other' }
                   ]}
                 />
-                <Input
-                  label="Marriage date"
-                  type="date"
-                  name="sexual_marriage_date"
-                  value={formData.sexual_marriage_date}
-                  onChange={handleChange}
-                />
+                    <DatePicker
+                      icon={<FiCalendar className="w-4 h-4" />}
+                      label="Marriage date"
+                      name="sexual_marriage_date"
+                      value={formData.sexual_marriage_date}
+                      onChange={handleChange}
+                    />
                 <Input
                   label="Spouse age"
                   name="sexual_spouse_age"
@@ -2552,14 +2833,14 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       <div className="border border-gray-200 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
         <div className="p-4 border-b border-gray-300 bg-white/50">
           <h4 className="text-lg font-semibold text-gray-900">
-            {adlFile ? `Edit Deatail Work-Up File${adlFile.adl_no ? ` - ${adlFile.adl_no}` : ''}` : 'Create Deatail Work-Up File'}
+            {adlFile ? `Out Patient Intake Record No. ${adlFile.adl_no ? ` - ${adlFile.adl_no}` : ''}` : 'Create Out Patient Intake Record'}
           </h4>
         </div>
         <div className="max-h-[800px] overflow-y-auto p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Render all form sections */}
             {renderFormContent()}
-            
+
             {/* Submit Button for embedded mode */}
             <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-300">
               <Button
@@ -3126,9 +3407,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           onChange={(e) => setFormData(prev => ({ ...prev, family_history_father_death_age: e.target.value }))}
                           placeholder="Age"
                         />
-                        <Input
+                        <DatePicker
+                          icon={<FiCalendar className="w-4 h-4" />}
                           label="Date of death"
-                          type="date"
+                          name="family_history_father_death_date"
                           value={formData.family_history_father_death_date}
                           onChange={(e) => setFormData(prev => ({ ...prev, family_history_father_death_date: e.target.value }))}
                         />
@@ -3191,9 +3473,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                           onChange={(e) => setFormData(prev => ({ ...prev, family_history_mother_death_age: e.target.value }))}
                           placeholder="Age"
                         />
-                        <Input
+                        <DatePicker
+                          icon={<FiCalendar className="w-4 h-4" />}
                           label="Date of death"
-                          type="date"
+                          name="family_history_mother_death_date"
                           value={formData.family_history_mother_death_date}
                           onChange={(e) => setFormData(prev => ({ ...prev, family_history_mother_death_date: e.target.value }))}
                         />
@@ -3367,9 +3650,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 <div className="border-t pt-6">
                   <h4 className="font-semibold text-gray-800 mb-3">Personal History</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input
+                    <DatePicker
+                      icon={<FiCalendar className="w-4 h-4" />}
                       label="Birth Date"
-                      type="date"
                       name="personal_birth_date"
                       value={formData.personal_birth_date}
                       onChange={handleChange}
@@ -3775,9 +4058,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         { value: 'Other', label: 'Other' }
                       ]}
                     />
-                    <Input
+                    <DatePicker
+                      icon={<FiCalendar className="w-4 h-4" />}
                       label="Marriage date"
-                      type="date"
                       name="sexual_marriage_date"
                       value={formData.sexual_marriage_date}
                       onChange={handleChange}

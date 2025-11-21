@@ -19,7 +19,7 @@ import Input from '../../components/Input';
 import Select from '../../components/Select';
 import Textarea from '../../components/Textarea';
 import Button from '../../components/Button';
-import { FiArrowLeft, FiAlertCircle, FiSave, FiHeart, FiActivity, FiUser, FiClipboard, FiList, FiCheckSquare, FiFileText, FiX, FiPlus, FiChevronDown, FiChevronUp, FiLoader } from 'react-icons/fi';
+import { FiArrowLeft, FiAlertCircle, FiSave, FiHeart, FiActivity, FiUser, FiClipboard, FiList, FiCheckSquare, FiFileText, FiX, FiPlus, FiChevronDown, FiChevronUp, FiLoader, FiCalendar } from 'react-icons/fi';
 import icd11Codes from '../../assets/ICD11_Codes.json';
 import { useUpdatePrescriptionMutation,useGetAllPrescriptionQuery, useCreatePrescriptionMutation } from '../../features/prescriptions/prescriptionApiSlice';
 import PrescriptionEdit from '../PrescribeMedication/PrescriptionEdit';
@@ -1077,6 +1077,7 @@ console.log("existingPrescriptionData", existingPrescriptionData);
 
 
                   <DatePicker
+                    icon={<FiCalendar className="w-4 h-4" />}
                     label="Workup Appointment"
                     name="workup_appointment"
                     value={formData.workup_appointment}
