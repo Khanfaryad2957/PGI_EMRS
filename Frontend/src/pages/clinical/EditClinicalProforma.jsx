@@ -54,6 +54,11 @@ const EditClinicalProforma = ({ initialData: propInitialData = null, onUpdate: p
   // console.log(patient_id);
   const isComplexCase = proforma?.doctor_decision === 'complex_case' && proforma?.adl_file_id;
 
+  // Check if the case is already marked as complex (from original data, not form state)
+  // This determines if we should disable the doctor_decision dropdown
+  const isAlreadyComplex = proforma?.doctor_decision === 'complex_case' || 
+                           propInitialData?.doctor_decision === 'complex_case';
+
   // Determine if this is create or update mode
   // Priority:
   // 1. If mode parameter is explicitly set in URL, use it
@@ -438,6 +443,13 @@ console.log("existingPrescriptionData", existingPrescriptionData);
   const handleSubmitClinicalProforma = async (e) => {
     debugger
     e.preventDefault();
+
+    // Prevent changing from complex case to simple case
+    if (isAlreadyComplex && formData.doctor_decision !== 'complex_case') {
+      toast.error('Cannot change from Complex Case to Simple Case. The case must remain complex.');
+      setFormData(prev => ({ ...prev, doctor_decision: 'complex_case' }));
+      return;
+    }
 
     const newErrors = {};
     if (!formData.patient_id) newErrors.patient_id = 'Patient is required';
@@ -1101,14 +1113,24 @@ console.log("existingPrescriptionData", existingPrescriptionData);
                     placeholder="Treatment details..."
                   />
 
-<Select
-                      label="Doctor Decision"
-                      name="doctor_decision"
-                      value={formData.doctor_decision}
-                      onChange={handleChange}
-                      options={DOCTOR_DECISION}
-                      required
-                    />
+<div>
+                      <Select
+                        label="Doctor Decision"
+                        name="doctor_decision"
+                        value={formData.doctor_decision}
+                        onChange={handleChange}
+                        options={DOCTOR_DECISION}
+                        required
+                        disabled={isAlreadyComplex}
+                        title={isAlreadyComplex ? "Cannot change from Complex Case to Simple Case" : ""}
+                      />
+                      {isAlreadyComplex && (
+                        <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                          <FiAlertCircle className="w-3 h-3" />
+                          This case is already marked as Complex and cannot be changed back to Simple.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
