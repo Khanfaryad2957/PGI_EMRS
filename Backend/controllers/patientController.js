@@ -560,66 +560,7 @@ class PatientController {
     }
   }
 
-  // Update patient
-  // static async updatePatient(req, res) {
-  //   try {
-  //     const { id } = req.params;
-  //     const patient = await Patient.findById(id);
 
-  //     if (!patient) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: 'Patient not found'
-  //       });
-  //     }
-
-  //     // Extract all fields from request body
-  //     const updateData = {};
-      
-  //     // List of allowed update fields (matching new form structure)
-  //     const allowedFields = [
-  //       'name', 'sex', 'age', 'date', 'mobile_no', 'category', 'father_name',
-  //       'department', 'unit_consit', 'room_no', 'serial_no', 'file_no', 'unit_days',
-  //       'contact_number', 'seen_in_walk_in_on', 'worked_up_on', 'age_group',
-  //       'marital_status', 'year_of_marriage', 'no_of_children_male', 'no_of_children_female',
-  //       'occupation', 'education', 'locality', 'income', 'religion', 'family_type',
-  //       'head_name', 'head_age', 'head_relationship', 'head_education', 'head_occupation', 'head_income',
-  //       'distance_from_hospital', 'mobility', 'referred_by',
-  //       'address_line', 'country', 'state', 'district', 'city', 'pin_code',
-  //       'assigned_doctor_id', 'assigned_room', 'file_status', 'has_adl_file',
-  //       'special_clinic_no'
-  //     ];
-
-  //     // Build update data object
-  //     for (const field of allowedFields) {
-  //       if (req.body[field] !== undefined) {
-  //         updateData[field] = req.body[field];
-  //       }
-  //     }
-
-  //     console.log('Updating patient with data:', updateData);
-
-  //     await patient.update(updateData);
-
-  //     // Fetch updated patient data with joins
-  //     const updatedPatient = await Patient.findById(id);
-
-  //     res.json({
-  //       success: true,
-  //       message: 'Patient updated successfully',
-  //       data: {
-  //         patient: updatedPatient.toJSON()
-  //       }
-  //     });
-  //   } catch (error) {
-  //     console.error('Update patient error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to update patient',
-  //       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-  //     });
-  //   }
-  // }
 
 
   static async updatePatient(req, res) {

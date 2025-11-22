@@ -124,68 +124,6 @@ class ADLController {
   }
 
   // Create ADL file
-  // static async createADLFile(req, res) {
-  //   try {
-  //     const adlData = req.body;
-  //     const createdBy = req.user.id; // Get user ID from authenticated request
-
-  //     // Validate required fields
-  //     if (!adlData.patient_id) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Patient ID is required'
-  //       });
-  //     }
-
-  //     // ADL number must be provided manually
-  //     if (!adlData.adl_no) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'ADL number is required. Please provide adl_no in the request.'
-  //       });
-  //     }
-  //     const adl_no = adlData.adl_no;
-
-  //     // Prepare ADL data with defaults
-  //     const createData = {
-  //       ...adlData,
-  //       adl_no,
-  //       created_by: createdBy,
-  //       file_status: adlData.file_status || 'created',
-  //       file_created_date: adlData.file_created_date || new Date(),
-  //       total_visits: adlData.total_visits || 1,
-  //       is_active: adlData.is_active !== undefined ? adlData.is_active : true
-  //     };
-
-  //     // Create the ADL file
-  //     const adlFile = await ADLFile.create(createData);
-
-  //     if (!adlFile || !adlFile.id) {
-  //       return res.status(500).json({
-  //         success: false,
-  //         message: 'Failed to create ADL file: No ID returned'
-  //       });
-  //     }
-
-  //     // Fetch the created file with all joins
-  //     const createdFile = await ADLFile.findById(adlFile.id);
-
-  //     res.status(201).json({
-  //       success: true,
-  //       message: 'ADL file created successfully',
-  //       data: {
-  //         adl_file: createdFile.toJSON()
-  //       }
-  //     });
-  //   } catch (error) {
-  //     console.error('Create ADL file error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to create ADL file',
-  //       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-  //     });
-  //   }
-  // }
 
   static async createADLFile(req, res) {
     try {

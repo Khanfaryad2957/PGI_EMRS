@@ -62,13 +62,13 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
       query: () => '/patients/stats',
       providesTags: ['Stats'],
     }),
-    getComplexPatients: builder.query({
-      query: ({ page = 1, limit = 10 }) => ({
-        url: '/patients/complex',
-        params: { page, limit },
-      }),
-      providesTags: ['Patient'],
-    }),
+    // getComplexPatients: builder.query({
+    //   query: ({ page = 1, limit = 10 }) => ({
+    //     url: '/patients/complex',
+    //     params: { page, limit },
+    //   }),
+    //   providesTags: ['Patient'],
+    // }),
     assignPatient: builder.mutation({
       query: (payload) => ({
         url: '/patients/assign',
@@ -86,13 +86,13 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
         return response.status === 404 ? false : true;
       },
     }),
-    getTodayPatients: builder.query({
-      query: ({ page = 1, limit = 10, date } = {}) => ({
-        url: '/patients/today',
-        params: { page, limit, date },
-      }),
-      providesTags: ['Patient'],
-    }),
+    // getTodayPatients: builder.query({
+    //   query: ({ page = 1, limit = 10, date } = {}) => ({
+    //     url: '/patients/today',
+    //     params: { page, limit, date },
+    //   }),
+    //   providesTags: ['Patient'],
+    // }),
     getPatientsStats: builder.query({
       query: () => '/patients/stats',
       providesTags: ['Stats'],
@@ -109,10 +109,11 @@ export const {
   useUpdatePatientMutation,
   useDeletePatientMutation,
   useGetPatientStatsQuery,
-  useGetComplexPatientsQuery,
+  // useGetComplexPatientsQuery,
   useAssignPatientMutation,
   useCheckCRNumberExistsQuery,
-  useGetTodayPatientsQuery,
+  // useGetTodayPatientsQuery,
+  //dashboard stats queries
   useGetPatientsStatsQuery,
 } = patientsApiSlice;
 

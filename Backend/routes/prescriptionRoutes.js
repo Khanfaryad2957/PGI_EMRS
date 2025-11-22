@@ -176,23 +176,7 @@ const { body, param } = require('express-validator');
  *       500:
  *         description: Server error
  */
-router.post(
-  '/',
-  authenticateToken,
-  authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  // [
-  //   body('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer'),
-  //   body('medicine').notEmpty().trim().withMessage('Medicine name is required'),
-  //   body('dosage').optional().trim(),
-  //   body('when').optional().trim(),
-  //   body('frequency').optional().trim(),
-  //   body('duration').optional().trim(),
-  //   body('qty').optional().trim(),
-  //   body('details').optional().trim(),
-  //   body('notes').optional().trim()
-  // ],
-  prescriptionController.createPrescription
-);
+router.post( '/', authenticateToken, authorizeRoles(['Faculty', 'Resident', 'Admin']),prescriptionController.createPrescription);
 
 /**
  * @swagger
@@ -264,10 +248,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get(
-  '/',
-  authenticateToken,
-  prescriptionController.getAllPrescription
+router.get('/',authenticateToken, authorizeRoles(['Faculty', 'Resident', 'Admin']), prescriptionController.getAllPrescription
 );
 
 /**
@@ -299,14 +280,7 @@ router.get(
  *       500:
  *         description: Server error
  */
-router.get(
-  '/:id',
-  authenticateToken,
-  [
-    param('id').isInt().withMessage('Prescription ID must be an integer')
-  ],
-  prescriptionController.getPrescriptionById
-);
+router.get( '/:id', authenticateToken, [param('id').isInt().withMessage('Prescription ID must be an integer')], prescriptionController.getPrescriptionById);
 
 /**
  * @swagger
@@ -397,15 +371,7 @@ router.put(
  *       500:
  *         description: Server error
  */
-router.delete(
-  '/:id',
-  authenticateToken,
-  authorizeRoles(['Faculty', 'Resident', 'Admin']),
-  [
-    param('id').isInt().withMessage('Prescription ID must be an integer')
-  ],
-  prescriptionController.deletePrescription
-);
+router.delete( '/:id',  authenticateToken,  authorizeRoles(['Faculty', 'Resident', 'Admin']),  [  param('id').isInt().withMessage('Prescription ID must be an integer')], prescriptionController.deletePrescription);
 
 
 module.exports = router;

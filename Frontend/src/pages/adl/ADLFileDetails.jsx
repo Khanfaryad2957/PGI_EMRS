@@ -3,9 +3,6 @@ import { toast } from 'react-toastify';
 import { FiArrowLeft, FiDownload, FiUpload, FiArchive, FiUser, FiFileText, FiActivity } from 'react-icons/fi';
 import {
   useGetADLFileByIdQuery,
-  useRetrieveFileMutation,
-  useReturnFileMutation,
-  useArchiveFileMutation,
 } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetClinicalProformaByIdQuery } from '../../features/clinical/clinicalApiSlice';
@@ -19,9 +16,6 @@ const ADLFileDetails = () => {
   const { id } = useParams();
 
   const { data, isLoading, error, isError } = useGetADLFileByIdQuery(id);
-  const [retrieveFile] = useRetrieveFileMutation();
-  const [returnFile] = useReturnFileMutation();
-  const [archiveFile] = useArchiveFileMutation();
   
   // Fetch full patient details for complex case
   const file = data?.data?.adlFile || data?.data?.file; // Support both response formats
@@ -36,34 +30,34 @@ const ADLFileDetails = () => {
     { skip: !file?.clinical_proforma_id }
   );
 
-  const handleRetrieve = async () => {
-    try {
-      await retrieveFile(id).unwrap();
-      toast.success('File retrieved successfully');
-    } catch (err) {
-      toast.error(err?.data?.message || 'Failed to retrieve file');
-    }
-  };
+  // const handleRetrieve = async () => {
+  //   try {
+  //     await retrieveFile(id).unwrap();
+  //     toast.success('File retrieved successfully');
+  //   } catch (err) {
+  //     toast.error(err?.data?.message || 'Failed to retrieve file');
+  //   }
+  // };
 
-  const handleReturn = async () => {
-    try {
-      await returnFile(id).unwrap();
-      toast.success('File returned successfully');
-    } catch (err) {
-      toast.error(err?.data?.message || 'Failed to return file');
-    }
-  };
+  // const handleReturn = async () => {
+  //   try {
+  //     await returnFile(id).unwrap();
+  //     toast.success('File returned successfully');
+  //   } catch (err) {
+  //     toast.error(err?.data?.message || 'Failed to return file');
+  //   }
+  // };
 
-  const handleArchive = async () => {
-    if (window.confirm('Are you sure you want to archive this file?')) {
-      try {
-        await archiveFile(id).unwrap();
-        toast.success('File archived successfully');
-      } catch (err) {
-        toast.error(err?.data?.message || 'Failed to archive file');
-      }
-    }
-  };
+  // const handleArchive = async () => {
+  //   if (window.confirm('Are you sure you want to archive this file?')) {
+  //     try {
+  //       await archiveFile(id).unwrap();
+  //       toast.success('File archived successfully');
+  //     } catch (err) {
+  //       toast.error(err?.data?.message || 'Failed to archive file');
+  //     }
+  //   }
+  // };
 
   if (isLoading) {
     return (
@@ -128,7 +122,7 @@ const ADLFileDetails = () => {
               <p className="text-gray-600 mt-1 text-sm">ADL File Details</p>
         </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          {/* <div className="flex gap-2 flex-wrap">
           {file.file_status === 'stored' && (
               <Button variant="primary" onClick={handleRetrieve} size="sm">
               <FiDownload className="mr-2" /> Retrieve File
@@ -144,7 +138,7 @@ const ADLFileDetails = () => {
               <FiArchive className="mr-2" /> Archive
             </Button>
           )}
-          </div>
+          </div> */}
         </div>
       </div>
 

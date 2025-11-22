@@ -8,7 +8,7 @@ import {
   FiPhone, FiFileText, FiHash, FiStar, FiActivity, FiCalendar,
   FiGlobe, FiUserCheck, FiInfo, FiAlertCircle
 } from 'react-icons/fi';
-import { useSearchPatientsQuery, useAssignPatientMutation, useUpdatePatientMutation, useGetAllPatientsQuery, useGetPatientByIdQuery, useCreatePatientMutation } from '../../features/patients/patientsApiSlice';
+import { useSearchPatientsQuery, useAssignPatientMutation, useUpdatePatientMutation,useCreatePatientCompleteMutation, useGetAllPatientsQuery, useGetPatientByIdQuery, useCreatePatientMutation } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import Card from '../../components/Card';
 import Select from '../../components/Select';
@@ -19,7 +19,7 @@ const SelectExistingPatient = () => {
   const navigate = useNavigate();
 
 
-  const [createRecord, { isLoading }] = useCreatePatientMutation();
+  const [createRecord, { isLoading }] = useCreatePatientCompleteMutation();
 
   
   const [assignPatient, { isLoading: isAssigning }] = useAssignPatientMutation();

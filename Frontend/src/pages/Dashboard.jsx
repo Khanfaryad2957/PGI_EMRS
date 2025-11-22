@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiUsers, FiFileText, FiFolder, FiClipboard, FiTrendingUp, FiEye, FiEdit, FiUserPlus, FiActivity, FiAlertCircle, FiCheckCircle, FiXCircle, FiCalendar, FiMapPin, FiHeart, FiShield } from 'react-icons/fi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useGetAllPatientsQuery, useGetPatientsStatsQuery, useGetPatientStatsQuery } from '../features/patients/patientsApiSlice';
-import { useGetClinicalStatsQuery, useGetCasesBySeverityQuery, useGetCasesByDecisionQuery, useGetMyProformasQuery, useGetComplexCasesQuery } from '../features/clinical/clinicalApiSlice';
+import { useGetClinicalStatsQuery, useGetCasesByDecisionQuery, useGetMyProformasQuery, useGetComplexCasesQuery } from '../features/clinical/clinicalApiSlice';
 import { useGetADLStatsQuery, useGetFilesByStatusQuery, useGetActiveFilesQuery } from '../features/adl/adlApiSlice';
 import Card from '../components/Card';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -84,7 +84,7 @@ const Dashboard = () => {
   const isJrSr = checkJrSr(user?.role);
   const isResident = isJR(user?.role);
   const isFaculty = isSR(user?.role);
-  const { data: severityStats } = useGetCasesBySeverityQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
+  // const { data: severityStats } = useGetCasesBySeverityQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
   const { data: decisionStats } = useGetCasesByDecisionQuery(undefined, { skip: !isJrSr, refetchOnMountOrArgChange: true });
   const { data: myProformas } = useGetMyProformasQuery({ page: 1, limit: 10 }, { skip: !isJrSr, refetchOnMountOrArgChange: true });
   const { data: complexCases } = useGetComplexCasesQuery({ page: 1, limit: 5 }, { skip: !isJrSr, refetchOnMountOrArgChange: true });
@@ -137,29 +137,29 @@ const Dashboard = () => {
   // Chart data for Case Severity Distribution
   // Note: severityStats returns array of { case_severity, count } for JR/SR
   // For admin, use clinicalStats.data.stats which has direct counts
-  const severityStatsArray = severityStats?.data?.severityStats || [];
-  const severityMap = severityStatsArray.reduce((acc, item) => {
-    acc[item.case_severity] = parseInt(item.count, 10) || 0;
-    return acc;
-  }, {});
+  // const severityStatsArray = severityStats?.data?.severityStats || [];
+  // const severityMap = severityStatsArray.reduce((acc, item) => {
+  //   acc[item.case_severity] = parseInt(item.count, 10) || 0;
+  //   return acc;
+  // }, {});
   
-  const severityChartData = {
-    labels: ['Mild', 'Moderate', 'Severe', 'Critical'],
-    datasets: [
-      {
-        label: 'Cases',
-        data: [
-          isAdminUser ? (clinicalStats?.data?.stats?.mild_cases || 0) : (severityMap.mild || 0),
-          isAdminUser ? (clinicalStats?.data?.stats?.moderate_cases || 0) : (severityMap.moderate || 0),
-          isAdminUser ? (clinicalStats?.data?.stats?.severe_cases || 0) : (severityMap.severe || 0),
-          isAdminUser ? (clinicalStats?.data?.stats?.critical_cases || 0) : (severityMap.critical || 0)
-        ],
-        backgroundColor: ['#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B'],
-        borderColor: ['#7C3AED', '#0891B2', '#DC2626', '#D97706'],
-        borderWidth: 2,
-      },
-    ],
-  };
+  // const severityChartData = {
+  //   labels: ['Mild', 'Moderate', 'Severe', 'Critical'],
+  //   datasets: [
+  //     {
+  //       label: 'Cases',
+  //       data: [
+  //         isAdminUser ? (clinicalStats?.data?.stats?.mild_cases || 0) : (severityMap.mild || 0),
+  //         isAdminUser ? (clinicalStats?.data?.stats?.moderate_cases || 0) : (severityMap.moderate || 0),
+  //         isAdminUser ? (clinicalStats?.data?.stats?.severe_cases || 0) : (severityMap.severe || 0),
+  //         isAdminUser ? (clinicalStats?.data?.stats?.critical_cases || 0) : (severityMap.critical || 0)
+  //       ],
+  //       backgroundColor: ['#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B'],
+  //       borderColor: ['#7C3AED', '#0891B2', '#DC2626', '#D97706'],
+  //       borderWidth: 2,
+  //     },
+  //   ],
+  // };
 
   // Chart data for ADL File Status Distribution
   // Note: adlByStatus returns array of { file_status, count } for MWO
@@ -674,7 +674,7 @@ const Dashboard = () => {
           />
           
           <StatCard
-            title="Clinical Records"
+            title="Walk-in Clinical Proforma"
             value={clinicalStats?.data?.stats?.total_proformas || 0}
             icon={FiFileText}
             colorClasses="from-green-500 to-green-600"
@@ -684,7 +684,7 @@ const Dashboard = () => {
           />
           
           <StatCard
-            title="Additional Detail File"
+            title="Outpatient Intake Records"
             value={adlStats?.data?.stats?.total_files || 0}
             icon={FiFolder}
             colorClasses="from-purple-500 to-purple-600"
@@ -761,7 +761,7 @@ const Dashboard = () => {
         </Card>
 
           {/* Case Severity Distribution */}
-          <Card 
+          {/* <Card 
             title={
               <div className="flex items-center gap-2">
                 <FiTrendingUp className="w-5 h-5 text-primary-600" />
@@ -785,7 +785,7 @@ const Dashboard = () => {
               }} 
             />
           </div>
-        </Card>
+        </Card> */}
 
           {/* ADL File Status Distribution */}
           <Card 
@@ -875,7 +875,7 @@ const Dashboard = () => {
               <Badge variant="info">{patientStats?.data?.stats?.other_patients || 0}</Badge>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Patients with Additional Detail File</span>
+              <span className="text-gray-600">Outpatient Intake Records</span>
               <Badge variant="success">{patientStats?.data?.stats?.patients_with_adl || 0}</Badge>
             </div>
             <div className="flex justify-between items-center">

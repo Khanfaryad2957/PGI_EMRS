@@ -8,9 +8,6 @@ import {
 } from 'react-icons/fi';
 import {
   useGetAllADLFilesQuery,
-  // useRetrieveFileMutation,
-  // useReturnFileMutation,
-  // useArchiveFileMutation,
 } from '../../features/adl/adlApiSlice';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -43,54 +40,9 @@ const ADLFilesPage = () => {
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
-  // const [retrieveFile] = useRetrieveFileMutation();
-  // const [returnFile] = useReturnFileMutation();
-  // const [archiveFile] = useArchiveFileMutation();
+  
 
-  // const handleRetrieve = async (id) => {
-  //   try {
-  //     await retrieveFile(id).unwrap();
-  //     toast.success('File retrieved successfully');
-  //   } catch (err) {
-  //     toast.error(err?.data?.message || 'Failed to retrieve file');
-  //   }
-  // };
-
-  // const handleReturn = async (id) => {
-  //   try {
-  //     await returnFile(id).unwrap();
-  //     toast.success('File returned successfully');
-  //   } catch (err) {
-  //     toast.error(err?.data?.message || 'Failed to return file');
-  //   }
-  // };
-
-  // const handleArchive = async (id) => {
-  //   if (window.confirm('Are you sure you want to archive this file?')) {
-  //     try {
-  //       await archiveFile(id).unwrap();
-  //       toast.success('File archived successfully');
-  //     } catch (err) {
-  //       toast.error(err?.data?.message || 'Failed to archive file');
-  //     }
-  //   }
-  // };
-
-
-  const handleEditADL = (row) => {
-    debugger
-    const adlFileId = row.id
-    // getPatientId(row.id);
-    
-    if (!adlFileId) {
-      toast.error('Invalid patient ID. Unable to edit patient.');
-      return;
-    }
-    
-    navigate(`/adl-files/${adlFileId}?edit=true`);
-  };
-
-
+ 
   // Filter files based on search
   const filteredFiles = data?.data?.files?.filter(file => {
     if (!search.trim()) return true;
