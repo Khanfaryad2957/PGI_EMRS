@@ -183,7 +183,7 @@ const Sidebar = ({ isOpen, onClose, isMinimized, onToggleMinimize }) => {
       roles: ['Admin', 'Faculty', 'Resident'] 
     },
     // { name: 'Outpatient Records', to: '/outpatient', icon: FiClipboard, roles: ['Admin', 'Psychiatric Welfare Officer'] },
-    // { name: 'Clinical Proforma', to: '/clinical', icon: FiFileText, roles: ['Admin'] },
+    // { name: 'Walk-in Clinical Proforma', to: '/clinical', icon: FiFileText, roles: ['Admin'] },
     { 
       name: 'Out Patient Intake Record', 
       to: '/adl-files', 

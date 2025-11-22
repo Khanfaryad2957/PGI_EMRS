@@ -122,7 +122,7 @@ http://localhost:5000/api
 - `GET /api/outpatient-records/:id` - Get record by ID
 - `PUT /api/outpatient-records/:id` - Update record
 
-### Clinical Proforma (JR/SR)
+### Walk-in Clinical Proforma (JR/SR)
 - `GET /api/clinical-proformas` - Get all proformas
 - `POST /api/clinical-proformas` - Create new proforma
 - `GET /api/clinical-proformas/:id` - Get proforma by ID

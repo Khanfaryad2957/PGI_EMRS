@@ -18,6 +18,7 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    mobile: '',
     password: '',
     confirmPassword: '',
     role: '',
@@ -31,6 +32,7 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
       setFormData({
         name: existingUser.name || '',
         email: existingUser.email || '',
+        mobile: existingUser.mobile || '',
         password: '',
         confirmPassword: '',
         role: existingUser.role || '',
@@ -51,6 +53,12 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
+    }
+
+    if (!formData.mobile.trim()) {
+      newErrors.mobile = 'Mobile is required';
+    } else if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Mobile number must be 10 digits and start with 6-9';
     }
 
     if (!formData.email.trim()) {
@@ -171,7 +179,7 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
                   error={errors.role}
                   required
                 />
-                {/* <Input
+                <Input
                   label="Mobile Number"
                   type="number"
                   name="mobile"
@@ -180,7 +188,7 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
                   placeholder="Enter mobile number"
                   error={errors.mobile}
                   required
-                /> */}
+                />
 
 
                 {!editMode && (

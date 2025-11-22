@@ -109,21 +109,10 @@ export const clinicalApiSlice = apiSlice.injectEndpoints({
       }),
       providesTags: ['Clinical'],
     }),
-    // getCasesBySeverity: builder.query({
-    //   query: () => '/clinical-proformas/severity-stats',
-    //   providesTags: ['Stats'],
-    // }),
     getCasesByDecision: builder.query({
       query: () => '/clinical-proformas/decision-stats',
       providesTags: ['Stats'],
     }),
-    // getCasesByRoom: builder.query({
-    //   query: ({ room_no, page = 1, limit = 10 }) => ({
-    //     url: `/clinical-proformas/room/${room_no}`,
-    //     params: { page, limit },
-    //   }),
-    //   providesTags: ['Clinical'],
-    // }),
   }),
 });
 
@@ -138,9 +127,7 @@ export const {
   useGetClinicalStatsQuery,
   useGetMyProformasQuery,
   useGetComplexCasesQuery,
-  // useGetCasesBySeverityQuery,
   useGetCasesByDecisionQuery,
-  // useGetCasesByRoomQuery,
   useGetClinicalOptionsQuery,
   useAddClinicalOptionMutation,
   useDeleteClinicalOptionMutation,

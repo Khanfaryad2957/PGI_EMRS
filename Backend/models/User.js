@@ -8,6 +8,7 @@ class User {
     this.name = data.name;
     this.role = data.role;
     this.email = data.email;
+    this.mobile = data.mobile;
     this.password_hash = data.password_hash;
     this.two_factor_secret = data.two_factor_secret;
     this.two_factor_enabled = data.two_factor_enabled;
@@ -21,7 +22,7 @@ class User {
   // Create a new user
   static async create(userData) {
     try {
-      const { name, role, email, password } = userData;
+      const { name, role, email, password ,mobile} = userData;
       
       // Check if user already exists
       const existingUser = await db.query(
@@ -39,10 +40,10 @@ class User {
 
       // Insert user
       const result = await db.query(
-        `INSERT INTO users (name, role, email, password_hash) 
-         VALUES ($1, $2, $3, $4) 
-         RETURNING id, name, role, email, created_at`,
-        [name, role, email, password_hash]
+        `INSERT INTO users (name, role, email, password_hash, mobile) 
+         VALUES ($1, $2, $3, $4, $5) 
+         RETURNING id, name, role, email, mobile, created_at`,
+        [name, role, email, password_hash, mobile]
       );
 
       return new User(result.rows[0]);
@@ -91,7 +92,7 @@ class User {
   static async findAll(page = 1, limit = 10, role = null) {
     try {
       const offset = (page - 1) * limit;
-      let query = 'SELECT id, name, role, email, created_at FROM users';
+      let query = 'SELECT id, name, role, email, mobile, created_at FROM users';
       let countQuery = 'SELECT COUNT(*) FROM users';
       const params = [];
       let paramCount = 0;
@@ -131,7 +132,7 @@ class User {
   // Update user
   async update(updateData) {
     try {
-      const allowedFields = ['name', 'role', 'email'];
+      const allowedFields = ['name', 'role', 'email', 'mobile'];
       const updates = [];
       const values = [];
       let paramCount = 0;
@@ -154,7 +155,7 @@ class User {
       const result = await db.query(
         `UPDATE users SET ${updates.join(', ')} 
          WHERE id = $${paramCount} 
-         RETURNING id, name, role, email, created_at`,
+         RETURNING id, name, role, email, mobile, created_at`,
         values
       );
 
@@ -172,7 +173,7 @@ class User {
   async activate() {
     try {
       const result = await db.query(
-        'UPDATE users SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, name, email, role, is_active, created_at',
+        'UPDATE users SET is_active = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, name, email, role, mobile, is_active, created_at',
         [this.id]
       );
 
@@ -385,6 +386,7 @@ class User {
       id: this.id,
       name: this.name,
       role: this.role,
+      mobile: this.mobile,
       email: this.email,
       two_factor_enabled: this.two_factor_enabled,
       created_at: this.created_at

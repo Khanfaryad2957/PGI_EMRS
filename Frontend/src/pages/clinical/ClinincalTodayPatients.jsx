@@ -194,7 +194,7 @@ const PatientRow = ({ patient, isNewPatient, navigate }) => {
               <span className="whitespace-nowrap">View Details</span>
             </Button>
             
-            {/* Clinical Proforma Button */}
+            {/* Walk-in Clinical Proforma Button */}
             {/* {hasExistingProforma ? (
               <Button
                 variant="outline"
@@ -213,7 +213,7 @@ const PatientRow = ({ patient, isNewPatient, navigate }) => {
                 className="flex items-center justify-center gap-2 w-full lg:w-full px-4 py-2.5 text-sm font-medium transition-all hover:shadow-md"
               >
                 <FiPlusCircle className="w-4 h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap">Clinical Proforma</span>
+                <span className="whitespace-nowrap">Walk-in Clinical Proforma</span>
               </Button>
             )} */}
             <Button

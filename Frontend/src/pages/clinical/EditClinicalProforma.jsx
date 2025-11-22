@@ -728,7 +728,7 @@ console.log("existingPrescriptionData", existingPrescriptionData);
         <Card>
           <div className="text-center py-12">
             <FiAlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Clinical Proforma</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Walk-in Clinical Proforma</h2>
             <p className="text-gray-600 mb-6">
               {proformaError?.data?.message || 'Failed to load clinical proforma data'}
             </p>

@@ -85,7 +85,7 @@ const PrescriptionView = () => {
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-teal-50 flex items-center justify-center">
         <Card className="p-8 max-w-md text-center">
           <FiFileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Clinical Proforma Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Walk-in Clinical Proforma Not Found</h2>
           <p className="text-gray-600 mb-6">Please provide a clinical proforma ID or patient ID to view prescriptions.</p>
           <Button onClick={() => navigate(-1)} variant="primary">
             Go Back
@@ -375,7 +375,7 @@ const PrescriptionView = () => {
             </Card>
           )}
 
-          {/* Clinical Proforma Info */}
+          {/* Walk-in Clinical Proforma Info */}
           {proforma && (
             <Card
               title={
@@ -383,7 +383,7 @@ const PrescriptionView = () => {
                   <div className="p-2 bg-indigo-100 rounded-lg">
                     <FiFileText className="w-6 h-6 text-indigo-600" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">Clinical Proforma Information</span>
+                  <span className="text-xl font-bold text-gray-900">Walk-in Clinical Proforma Information</span>
                 </div>
               }
               className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm no-print"

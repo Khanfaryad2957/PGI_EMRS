@@ -569,8 +569,8 @@ const {
  *       Set `include_all=true` to fetch all ADL files regardless of complex case association.
  *       
  *       **Note:** ADL files for complex cases contain comprehensive patient data stored in the `adl_files` table.
- *       These files are automatically created when a Clinical Proforma is created with `doctor_decision` = 'complex_case'.
- *     tags: [Additional Detail File]
+ *       These files are automatically created when a Walk-in Clinical Proforma is created with `doctor_decision` = 'complex_case'.
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -695,7 +695,7 @@ router.get('/', authenticateToken, validatePagination, ADLController.getAllADLFi
  *       Creates a new ADL file with comprehensive patient data for complex cases.
  *       All fields from ADL_FILE_FORM schema can be included in the request body.
  *       The ADL number will be auto-generated if not provided.
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -777,7 +777,7 @@ router.post('/', authenticateToken, ADLController.createADLFile);
  * /api/adl-files/stats:
  *   get:
  *     summary: Get ADL file statistics
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -795,7 +795,7 @@ router.get('/stats', authenticateToken, requireAdmin, ADLController.getADLStats)
  * /api/adl-files/status-stats:
  *   get:
  *     summary: Get files by status statistics
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -810,28 +810,10 @@ router.get('/status-stats', authenticateToken, ADLController.getFilesByStatus);
 
 /**
  * @swagger
- * /api/adl-files/to-retrieve:
- *   get:
- *     summary: Get files that need to be retrieved
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Files to retrieve retrieved successfully
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Server error
- */
-router.get('/to-retrieve', authenticateToken, ADLController.getFilesToRetrieve);
-
-/**
- * @swagger
  * /api/adl-files/active:
  *   get:
  *     summary: Get active files (currently retrieved)
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -855,7 +837,7 @@ router.post('/bulk-return', authenticateToken, ADLController.bulkReturnFiles);
  * /api/adl-files/{id}:
  *   get:
  *     summary: Get ADL file by ID
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -885,7 +867,7 @@ router.get('/:id', authenticateToken, validateId, ADLController.getADLFileById);
  *     description: |
  *       Updates ADL file fields including all complex case data fields.
  *       This endpoint can be used to update comprehensive patient data stored in the ADL file for complex cases.
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -923,7 +905,7 @@ router.put('/:id', authenticateToken, validateId, ADLController.updateADLFile);
  * /api/adl-files/{id}:
  *   delete:
  *     summary: Delete ADL file (soft delete by archiving)
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -947,125 +929,10 @@ router.delete('/:id', authenticateToken, validateId, ADLController.deleteADLFile
 
 /**
  * @swagger
- * /api/adl-files/{id}/retrieve:
- *   post:
- *     summary: Retrieve ADL file from storage
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ADL file ID
- *     responses:
- *       200:
- *         description: ADL file retrieved successfully
- *       400:
- *         description: File not available for retrieval
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: ADL file not found
- *       500:
- *         description: Server error
- */
-router.post('/:id/retrieve', authenticateToken, validateId, ADLController.retrieveADLFile);
-
-/**
- * @swagger
- * /api/adl-files/{id}/return:
- *   post:
- *     summary: Return ADL file to storage
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ADL file ID
- *     responses:
- *       200:
- *         description: ADL file returned successfully
- *       400:
- *         description: File not currently retrieved
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: ADL file not found
- *       500:
- *         description: Server error
- */
-router.post('/:id/return', authenticateToken, validateId, ADLController.returnADLFile);
-
-/**
- * @swagger
- * /api/adl-files/{id}/archive:
- *   post:
- *     summary: Archive ADL file
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ADL file ID
- *     responses:
- *       200:
- *         description: ADL file archived successfully
- *       400:
- *         description: File already archived
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: ADL file not found
- *       500:
- *         description: Server error
- */
-router.post('/:id/archive', authenticateToken, validateId, ADLController.archiveADLFile);
-
-
-/**
- * @swagger
- * /api/adl-files/adl/{adl_no}:
- *   get:
- *     summary: Get ADL file by ADL number
- *     tags: [Additional Detail File]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: adl_no
- *         required: true
- *         schema:
- *           type: string
- *         description: ADL file number
- *     responses:
- *       200:
- *         description: ADL file retrieved successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: ADL file not found
- *       500:
- *         description: Server error
- */
-router.get('/adl/:adl_no', authenticateToken, ADLController.getADLFileByADLNo);
-
-/**
- * @swagger
  * /api/adl-files/patient/{patient_id}:
  *   get:
  *     summary: Get ADL files by patient ID
- *     tags: [Additional Detail File]
+ *     tags: [Out Patient Intake Record]
  *     security:
  *       - bearerAuth: []
  *     parameters:

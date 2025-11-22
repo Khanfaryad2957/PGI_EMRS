@@ -272,7 +272,7 @@ class ClinicalController {
           [adlFile.id, clinicalRecord.id]
         );
 
-        console.log(`[createClinicalProforma] ✅ Step 3: Updated Clinical Proforma ${clinicalRecord.id} with adl_file_id: ${adlFile.id}`);
+        console.log(`[createClinicalProforma] ✅ Step 3: Updated Walk-in Clinical Proforma ${clinicalRecord.id} with adl_file_id: ${adlFile.id}`);
 
         // ✅ STEP 4: Update patient record to reflect complex case status
         try {
@@ -343,7 +343,7 @@ class ClinicalController {
               'DELETE FROM clinical_proforma WHERE id = $1',
               [clinicalRecord.id]
             );
-            console.log(`[createClinicalProforma] ✅ Rollback: Deleted Clinical Proforma ${clinicalRecord.id}`);
+            console.log(`[createClinicalProforma] ✅ Rollback: Deleted Walk-in Clinical Proforma ${clinicalRecord.id}`);
           } catch (rollbackError) {
             console.error('[createClinicalProforma] ❌ Rollback failed:', rollbackError);
           }
@@ -432,7 +432,7 @@ class ClinicalController {
   
         return res.status(201).json({
           success: true,
-          message: "Simple Clinical Proforma saved successfully",
+          message: "Simple Walk-in Clinical Proforma saved successfully",
           data: {
             proforma: simpleClinical,
             prescriptions: createdPrescriptions.length > 0 ? {
@@ -968,27 +968,6 @@ class ClinicalController {
     }
   }
 
-  // Get cases by severity
-  static async getCasesBySeverity(req, res) {
-    try {
-      const stats = await ClinicalProforma.getCasesBySeverity();
-
-      res.json({
-        success: true,
-        data: {
-          severityStats: stats
-        }
-      });
-    } catch (error) {
-      console.error('Get cases by severity error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get severity statistics',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
   // Get cases by decision
   static async getCasesByDecision(req, res) {
     try {
@@ -1056,32 +1035,6 @@ class ClinicalController {
       res.status(500).json({
         success: false,
         message: 'Failed to get complex cases',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
-  // Get cases by room
-  static async getCasesByRoom(req, res) {
-    try {
-      const { room_no } = req.params;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const filters = {
-        room_no: room_no
-      };
-
-      const result = await ClinicalProforma.findAll(page, limit, filters);
-
-      res.json({
-        success: true,
-        data: result
-      });
-    } catch (error) {
-      console.error('Get cases by room error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get cases by room',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

@@ -580,15 +580,15 @@ RETURNING * `,
   static async getStats() {
     try {
       const result = await db.query(`
-        SELECT
-          COUNT(*) as total_proformas,
-          COUNT(CASE WHEN visit_type = 'first_visit' THEN 1 END) as first_visits,
-          COUNT(CASE WHEN visit_type = 'follow_up' THEN 1 END) as follow_ups,
-          COUNT(CASE WHEN doctor_decision = 'simple_case' THEN 1 END) as simple_cases,
-          COUNT(CASE WHEN doctor_decision = 'complex_case' THEN 1 END) as complex_cases,
-          COUNT(CASE WHEN requires_adl_file = true THEN 1 END) as cases_requiring_adl
-        FROM clinical_proforma
-      `);
+SELECT
+COUNT(*) as total_proformas,
+  COUNT(CASE WHEN visit_type = 'first_visit' THEN 1 END) as first_visits,
+  COUNT(CASE WHEN visit_type = 'follow_up' THEN 1 END) as follow_ups,
+  COUNT(CASE WHEN doctor_decision = 'simple_case' THEN 1 END) as simple_cases,
+  COUNT(CASE WHEN doctor_decision = 'complex_case' THEN 1 END) as complex_cases,
+  COUNT(CASE WHEN requires_adl_file = true THEN 1 END) as cases_requiring_adl
+  FROM clinical_proforma
+    `);
 
       return result.rows[0];
     } catch (error) {

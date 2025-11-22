@@ -20,7 +20,7 @@ import PatientDetails from './pages/patients/PatientDetails';
 import SelectExistingPatient from './pages/patients/SelectExistingPatient';
 
 
-// Clinical Proforma Pages
+// Walk-in Clinical Proforma Pages
 import ClinicalProformaPage from './pages/clinical/ClinicalProformaPage';
 // import CreateClinicalProforma from './pages/clinical/CreateClinicalProforma';
 import EditClinicalProforma from './pages/clinical/EditClinicalProforma';
@@ -87,7 +87,7 @@ function App() {
               <Route path="/patients/:id" element={<PatientDetails />} />
 
 
-              {/* Clinical Proforma - Faculty, Resident and Admin */}
+              {/* Walk-in Clinical Proforma - Faculty, Resident and Admin */}
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/clinical" element={<ClinicalProformaPage />} />
                 {/* <Route path="/clinical/new" element={<CreateClinicalProforma />} /> */}
@@ -103,7 +103,7 @@ function App() {
                 <Route path="/prescriptions/view" element={<PrescriptionView />} />
               </Route>
 
-              {/* Additional Detail File - Faculty, Resident and Admin */}
+              {/* Out Patient Intake Record - Faculty, Resident and Admin */}
               <Route element={<ProtectedRoute allowedRoles={['Admin', 'Faculty', 'Resident']} />}>
                 <Route path="/adl-files" element={<ADLFilesPage />} />
                 {/* <Route path="/adl-files/:id" element={<ADLFileDetails />} /> */}

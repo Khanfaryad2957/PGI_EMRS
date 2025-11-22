@@ -100,7 +100,7 @@ VITE_APP_VERSION=1.0.0
    - Family details
    - (MWO access)
 
-4. **Clinical Proforma**
+4. **Walk-in Clinical Proforma**
    - Comprehensive clinical assessment
    - MSE (Mental Status Examination)
    - Diagnosis and treatment

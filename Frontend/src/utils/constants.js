@@ -346,7 +346,7 @@ export const UNIT_DAYS_OPTIONS = [
 
 
 
-// Clinical Proforma Form Schema (Simple Case - Step 1 & Step 2)
+// Walk-in Clinical Proforma Form Schema (Simple Case - Step 1 & Step 2)
 // This includes basic information and clinical proforma fields (excluding ADL fields)
 export const CLINICAL_PROFORMA_FORM = [
   // Step 1: Basic Information filled by the Medical Welfare officer
@@ -361,8 +361,8 @@ export const CLINICAL_PROFORMA_FORM = [
 
 
 
-  // Step 2: Clinical Proforma filled by the Doctor
-  //  Clinical Proforma - Informant
+  // Step 2: Walk-in Clinical Proforma filled by the Doctor
+  //  Walk-in Clinical Proforma - Informant
   { value: 'informant_present', label: 'Informant Present/Absent' },
   { value: 'nature_of_information', label: 'Nature of Information' },
   { value: 'onset_duration', label: 'Onset Duration' },

@@ -69,35 +69,6 @@ class ADLController {
     }
   }
 
-  // Get ADL file by ADL number
-  static async getADLFileByADLNo(req, res) {
-    try {
-      const { adl_no } = req.params;
-      const adlFile = await ADLFile.findByADLNo(adl_no);
-
-      if (!adlFile) {
-        return res.status(404).json({
-          success: false,
-          message: 'ADL file not found'
-        });
-      }
-
-      res.json({
-        success: true,
-        data: {
-          adlFile: adlFile.toJSON()
-        }
-      });
-    } catch (error) {
-      console.error('Get ADL file by ADL number error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get ADL file',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
   // Get ADL files by patient ID (integer)
   static async getADLFilesByPatientId(req, res) {
     try {
@@ -226,7 +197,7 @@ class ADLController {
   //     if (!adlData.clinical_proforma_id) {
   //       return res.status(400).json({
   //         success: false,
-  //         message: "Clinical Proforma ID is required"
+  //         message: "Walk-in Clinical Proforma ID is required"
   //       });
   //     }
   
@@ -303,125 +274,6 @@ class ADLController {
   //   }
   // }
   
-  
-
-  // Retrieve ADL file
-  static async retrieveADLFile(req, res) {
-    try {
-      const { id } = req.params;
-      const adlFile = await ADLFile.findById(id);
-
-      if (!adlFile) {
-        return res.status(404).json({
-          success: false,
-          message: 'ADL file not found'
-        });
-      }
-
-      if (adlFile.file_status !== 'stored') {
-        return res.status(400).json({
-          success: false,
-          message: 'File is not available for retrieval. Current status: ' + adlFile.file_status
-        });
-      }
-
-      await adlFile.retrieveFile(req.user.id);
-
-      res.json({
-        success: true,
-        message: 'ADL file retrieved successfully',
-        data: {
-          adlFile: adlFile.toJSON()
-        }
-      });
-    } catch (error) {
-      console.error('Retrieve ADL file error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve ADL file',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
-  // Return ADL file to storage
-  static async returnADLFile(req, res) {
-    try {
-      const { id } = req.params;
-      const adlFile = await ADLFile.findById(id);
-
-      if (!adlFile) {
-        return res.status(404).json({
-          success: false,
-          message: 'ADL file not found'
-        });
-      }
-
-      if (adlFile.file_status !== 'retrieved') {
-        return res.status(400).json({
-          success: false,
-          message: 'File is not currently retrieved. Current status: ' + adlFile.file_status
-        });
-      }
-
-      await adlFile.returnFile(req.user.id);
-
-      res.json({
-        success: true,
-        message: 'ADL file returned to storage successfully',
-        data: {
-          adlFile: adlFile.toJSON()
-        }
-      });
-    } catch (error) {
-      console.error('Return ADL file error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to return ADL file',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
-  // Archive ADL file
-  static async archiveADLFile(req, res) {
-    try {
-      const { id } = req.params;
-      const adlFile = await ADLFile.findById(id);
-
-      if (!adlFile) {
-        return res.status(404).json({
-          success: false,
-          message: 'ADL file not found'
-        });
-      }
-
-      if (adlFile.file_status === 'archived') {
-        return res.status(400).json({
-          success: false,
-          message: 'File is already archived'
-        });
-      }
-
-      await adlFile.archiveFile(req.user.id);
-
-      res.json({
-        success: true,
-        message: 'ADL file archived successfully',
-        data: {
-          adlFile: adlFile.toJSON()
-        }
-      });
-    } catch (error) {
-      console.error('Archive ADL file error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to archive ADL file',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
   // Update ADL file
   static async updateADLFile(req, res) {
     try {
@@ -482,28 +334,6 @@ class ADLController {
       res.status(500).json({
         success: false,
         message: 'Failed to update ADL file',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
-    }
-  }
-
-
-  // Get files that need to be retrieved
-  static async getFilesToRetrieve(req, res) {
-    try {
-      const filesToRetrieve = await ADLFile.getFilesToRetrieve();
-
-      res.json({
-        success: true,
-        data: {
-          filesToRetrieve: filesToRetrieve.map(file => file.toJSON())
-        }
-      });
-    } catch (error) {
-      console.error('Get files to retrieve error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get files to retrieve',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

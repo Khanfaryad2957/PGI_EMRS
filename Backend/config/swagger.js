@@ -381,11 +381,11 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         description: 'Patient registration and management',
       },
       {
-        name: 'Clinical Proforma',
+        name: 'Walk-in Clinical Proforma',
         description: 'Clinical assessment and documentation (Faculty Residents)',
       },
       {
-        name: 'Additional Detail File',
+        name: 'Out Patient Intake Record',
         description: 'ADL file management for complex cases',
       },
       {
@@ -401,6 +401,10 @@ Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     './routes/adlRoutes.js',
     './routes/prescriptionRoutes.js',
     // Excluded: './routes/outpatientRoutes.js' - Not used in frontend
+    // Note: Removed endpoints (not in frontend):
+    // - ADL: /adl-files/:id/retrieve, /adl-files/:id/return, /adl-files/:id/archive, /adl-files/to-retrieve, /adl-files/adl/:adl_no
+    // - Patients: /patients/today, /patients/complex
+    // - Clinical: /clinical-proformas/severity-stats, /clinical-proformas/room/:room_no
   ],
 };
 

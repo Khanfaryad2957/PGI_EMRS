@@ -312,9 +312,9 @@ const ADLFileDetails = () => {
             )}
           </Card>
 
-          {/* Complex Case - Clinical Proforma Details */}
+          {/* Complex Case - Walk-in Clinical Proforma Details */}
           {clinicalProforma && (
-            <Card title="Complex Case - Clinical Proforma Details" className="border-2 border-blue-200 bg-blue-50/30">
+            <Card title="Complex Case - Walk-in Clinical Proforma Details" className="border-2 border-blue-200 bg-blue-50/30">
               {clinicalLoading ? (
                 <LoadingSpinner className="h-32" />
               ) : (
@@ -373,7 +373,7 @@ const ADLFileDetails = () => {
                   <div className="pt-4 border-t">
                     <Link to={`/clinical/${clinicalProforma.id}`}>
                       <Button variant="outline" className="w-full">
-                        <FiFileText className="mr-2" /> View Full Clinical Proforma
+                        <FiFileText className="mr-2" /> View Full Walk-in Clinical Proforma
                       </Button>
                     </Link>
                   </div>

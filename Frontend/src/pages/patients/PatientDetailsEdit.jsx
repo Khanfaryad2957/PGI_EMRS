@@ -2898,8 +2898,8 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         )}
       </Card>
 
-      {/* Additional Sections: Clinical Proforma, ADL File, Prescriptions */}
-      {/* Card 1: Clinical Proforma - Show only if current user is Admin, JR, or SR */}
+      {/* Additional Sections: Walk-in Clinical Proforma, ADL File, Prescriptions */}
+      {/* Card 1: Walk-in Clinical Proforma - Show only if current user is Admin, JR, or SR */}
       {canViewClinicalProforma && (
         <EditClinicalProforma
           key={selectedProforma?.id || 'new-proforma'} // Force re-render when selectedProforma changes
@@ -3069,11 +3069,11 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 max-w-2xl mx-auto">
                     <FiPackage className="h-12 w-12 mx-auto mb-4 text-amber-500" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      No Clinical Proforma Found
+                      No Walk-in Clinical Proforma Found
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
                       To add prescriptions, you need to create a clinical proforma first.
-                      Please create a clinical proforma in the "Clinical Proforma" section above,
+                      Please create a clinical proforma in the "Walk-in Clinical Proforma" section above,
                       and then you'll be able to add prescriptions for that visit.
                     </p>
                     <p className="text-xs text-gray-500 italic">

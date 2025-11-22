@@ -14,6 +14,7 @@ class LoginOTP {
     // User data fields
     this.name = data.name;
     this.email = data.email;
+    this.mobile = data.mobile;
     this.role = data.role;
     this.is_active = data.is_active;
   }
@@ -69,6 +70,7 @@ class LoginOTP {
       const combinedData = { ...result.rows[0] };
       const userData = userResult.rows[0];
       combinedData.name = userData.name;
+      combinedData.mobile = userData.mobile;
       combinedData.email = userData.email;
       combinedData.role = userData.role;
       combinedData.is_active = userData.is_active;
@@ -103,6 +105,7 @@ class LoginOTP {
       const combinedData = { ...result.rows[0] };
       const userData = userResult.rows[0];
       combinedData.name = userData.name;
+      combinedData.mobile = userData.mobile;
       combinedData.email = userData.email;
       combinedData.role = userData.role;
       combinedData.is_active = userData.is_active;
@@ -148,6 +151,7 @@ class LoginOTP {
     return {
       id: this.user_id,
       name: this.name,
+      mobile: this.mobile,
       email: this.email,
       role: this.role,
       is_active: this.is_active

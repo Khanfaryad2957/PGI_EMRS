@@ -778,7 +778,7 @@ const {
  *       - This ensures patient status is consistent across the system
      *       
      *       **Note:** All complex case fields can be included in the request body. They will be automatically routed to the appropriate table based on `doctor_decision`.
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -909,7 +909,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare
  * /api/clinical-proformas/my-proformas:
  *   get:
  *     summary: Get proformas created by current doctor
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -943,7 +943,7 @@ router.get('/my-proformas', authenticateToken, requireDoctor, validatePagination
  * /api/clinical-proformas/complex-cases:
  *   get:
  *     summary: Get complex cases requiring ADL files
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -976,7 +976,7 @@ router.get('/complex-cases', authenticateToken, validatePagination, ClinicalCont
  * /api/clinical-proformas:
  *   get:
  *     summary: Get all clinical proformas with pagination and filters
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1053,7 +1053,7 @@ router.get('/', authenticateToken, validatePagination, ClinicalController.getAll
  * /api/clinical-proformas/stats:
  *   get:
  *     summary: Get clinical proforma statistics
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -1068,28 +1068,10 @@ router.get('/stats', authenticateToken, requireAdmin, ClinicalController.getClin
 
 /**
  * @swagger
- * /api/clinical-proformas/severity-stats:
- *   get:
- *     summary: Get cases by severity statistics
- *     tags: [Clinical Proforma]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Severity statistics retrieved successfully
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Server error
- */
-router.get('/severity-stats', authenticateToken, ClinicalController.getCasesBySeverity);
-
-/**
- * @swagger
  * /api/clinical-proformas/decision-stats:
  *   get:
  *     summary: Get cases by decision statistics
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -1107,7 +1089,7 @@ router.get('/decision-stats', authenticateToken, ClinicalController.getCasesByDe
  * /api/clinical-proformas/{id}:
  *   get:
  *     summary: Get clinical proforma by ID
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1154,7 +1136,7 @@ router.get('/:id', authenticateToken, validateId, ClinicalController.getClinical
  *         - `patient.has_adl_file` is set to `true`
  *         - `patient.case_complexity` is set to `'complex'`
  *       - This ensures patient status is consistent across the system
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1345,7 +1327,7 @@ router.put('/:id', authenticateToken, validateId, ClinicalController.updateClini
  * /api/clinical-proformas/{id}:
  *   delete:
  *     summary: Delete clinical proforma
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1374,7 +1356,7 @@ router.delete('/:id', authenticateToken, validateId, ClinicalController.deleteCl
  * /api/clinical-proformas/patient/{patient_id}:
  *   get:
  *     summary: Get clinical proformas by patient ID
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1394,51 +1376,13 @@ router.delete('/:id', authenticateToken, validateId, ClinicalController.deleteCl
  */
 router.get('/patient/:patient_id', authenticateToken, ClinicalController.getClinicalProformaByPatientId);
 
-/**
- * @swagger
- * /api/clinical-proformas/room/{room_no}:
- *   get:
- *     summary: Get cases by room number
- *     tags: [Clinical Proforma]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: room_no
- *         required: true
- *         schema:
- *           type: string
- *         description: Room number
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *         description: Number of proformas per page
- *     responses:
- *       200:
- *         description: Cases retrieved successfully
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Server error
- */
-router.get('/room/:room_no', authenticateToken, validatePagination, ClinicalController.getCasesByRoom);
-
 // Dynamic clinical options
 /**
  * @swagger
  * /api/clinical-proformas/options/{group}:
  *   get:
  *     summary: Get options for a clinical group
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1458,7 +1402,7 @@ router.get('/options/:group', authenticateToken, ClinicalOptionsController.getGr
  * /api/clinical-proformas/options/{group}:
  *   post:
  *     summary: Add an option to a clinical group
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1487,7 +1431,7 @@ router.post('/options/:group', authenticateToken, ClinicalOptionsController.addO
  * /api/clinical-proformas/options/{group}:
  *   delete:
  *     summary: Delete an option from a clinical group
- *     tags: [Clinical Proforma]
+ *     tags: [Walk-in Clinical Proforma]
  *     security:
  *       - bearerAuth: []
  *     parameters:

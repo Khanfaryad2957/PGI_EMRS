@@ -1391,7 +1391,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
         </div>
       </Card>
 
-      {/* Card 2: Clinical Proforma - Show only if filled_by_role is Admin, JR, or SR */}
+      {/* Card 2: Walk-in Clinical Proforma - Show only if filled_by_role is Admin, JR, or SR */}
       {canViewClinicalProforma && (
         <Card className="shadow-lg border-0 bg-white">
           <div
@@ -1403,7 +1403,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                 <FiFileText className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Clinical Proforma</h3>
+                <h3 className="text-xl font-bold text-gray-900">Walk-in Clinical Proforma</h3>
                 <p className="text-sm text-gray-500 mt-1">
                   {patientProformas.length > 0
                     ? `${patientProformas.length} record${patientProformas.length > 1 ? 's' : ''} found`
@@ -1439,7 +1439,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                               navigate(`/clinical-proforma/edit/${proforma.id}?returnTab=${returnTab || ''}&returnPath=${encodeURIComponent(returnPath)}`);
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-                            title="Edit Clinical Proforma"
+                            title="Edit Walk-in Clinical Proforma"
                           >
                             <FiEdit className="w-4 h-4" />
                             Edit
@@ -1527,7 +1527,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                         )}
                       </div>
 
-                      {/* Additional Clinical Proforma Fields */}
+                      {/* Additional Walk-in Clinical Proforma Fields */}
                       {(proforma.nature_of_information || proforma.onset_duration || proforma.course || proforma.precipitating_factor || proforma.illness_duration || proforma.current_episode_since) && (
                         <div className="mt-6 pt-4 border-t border-gray-200">
                           <h5 className="text-md font-semibold text-gray-900 mb-3">Illness Information</h5>
