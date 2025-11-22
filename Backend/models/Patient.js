@@ -1081,6 +1081,13 @@ class Patient {
       );
       console.log(`[Patient.delete] Deleted clinical proformas for patient ${this.id}`);
       
+      await client.query(
+        'DELETE FROM prescriptions WHERE patient_id = $1',
+        [this.id]
+      );
+      console.log(`[Patient.delete] Deleted prescriptions for patient ${this.id}`);
+      
+
       // Step 6: Delete patient visits
       try {
         await client.query(
@@ -1092,18 +1099,7 @@ class Patient {
         console.warn(`[Patient.delete] Error deleting patient visits: ${visitsErr.message}`);
       }
       
-      // Step 7: Delete outpatient records
-      try {
-        await client.query(
-          'DELETE FROM outpatient_record WHERE patient_id = $1',
-          [this.id]
-        );
-        console.log(`[Patient.delete] Deleted outpatient records for patient ${this.id}`);
-      } catch (outpatientErr) {
-        console.warn(`[Patient.delete] Error deleting outpatient records: ${outpatientErr.message}`);
-      }
-
-      // Step 8: Finally, delete the patient record itself
+      // Step 7: Finally, delete the patient record itself
       await client.query(
         'DELETE FROM registered_patient WHERE id = $1',
         [this.id]

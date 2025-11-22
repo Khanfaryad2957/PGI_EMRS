@@ -36,6 +36,7 @@ const createPrescription = async (req, res) => {
     }
 
     // Handle both new structure (prescription array) and legacy structure (prescriptions array)
+    // Allow empty arrays - no validation required
     let prescriptionArray = [];
     
     if (data.prescription && Array.isArray(data.prescription)) {
@@ -64,19 +65,9 @@ const createPrescription = async (req, res) => {
         details: p.details || null,
         notes: p.notes || null
       }));
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "prescription array is required and cannot be empty"
-      });
     }
-
-    if (prescriptionArray.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "At least one medication is required"
-      });
-    }
+    // If no prescription array provided, use empty array (no error thrown)
+    // Allow empty prescriptions - no validation error
 
     // Ensure patient_id is an integer
     const patientIdInt = parseInt(data.patient_id);

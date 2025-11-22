@@ -283,10 +283,7 @@ class User {
       // First, set all foreign key references to NULL or handle them appropriately
       // This prevents foreign key constraint violations
       
-      // 1. Set outpatient_record.filled_by to NULL for records created by this user
-      await db.query('UPDATE outpatient_record SET filled_by = NULL WHERE filled_by = $1', [this.id]);
-      
-      // 2. Set clinical_proforma.filled_by to NULL for records created by this user
+      // 1. Set clinical_proforma.filled_by to NULL for records created by this user
       await db.query('UPDATE clinical_proforma SET filled_by = NULL WHERE filled_by = $1', [this.id]);
       
       // 3. Set adl_files.created_by to NULL for files created by this user
@@ -302,6 +299,7 @@ class User {
       // 7. Set audit_logs.changed_by to NULL for logs by this user
       await db.query('UPDATE audit_logs SET changed_by = NULL WHERE changed_by = $1', [this.id]);
       
+      await db.query('UPDATE prescriptions SET filled_by = NULL WHERE filled_by = $1', [this.id]);
       // Now delete the user (login_otps and password_reset_tokens will cascade automatically)
       await db.query('DELETE FROM users WHERE id = $1', [this.id]);
       

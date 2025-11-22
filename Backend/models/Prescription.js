@@ -56,16 +56,16 @@ class Prescription {
       }
 
       // Handle both 'prescription' and 'prescriptions' field names
+      // Allow empty arrays - no validation required
       let prescriptionArray = [];
       if (prescription && Array.isArray(prescription)) {
         prescriptionArray = prescription;
       } else if (prescriptions && Array.isArray(prescriptions)) {
         prescriptionArray = prescriptions;
-      } else {
-        throw new Error("prescription array is required and cannot be empty");
       }
+      // If no prescription array provided, use empty array (no error thrown)
 
-      // Validate and clean prescription array
+      // Validate and clean prescription array (allow empty)
       const validPrescriptions = prescriptionArray
         .map((item, index) => ({
           id: item.id ? parseInt(item.id) : (index + 1),
@@ -80,9 +80,7 @@ class Prescription {
         }))
         .filter(item => item.medicine !== null); // Remove items without medicine
 
-      if (validPrescriptions.length === 0) {
-        throw new Error("At least one valid prescription item with medicine is required");
-      }
+      // Allow empty prescriptions - no validation error
 
       // Delete existing prescription for this clinical_proforma_id
       await db.query(
@@ -290,9 +288,7 @@ class Prescription {
           }))
           .filter(item => item.medicine !== null);
 
-        if (validPrescriptions.length === 0) {
-          throw new Error("At least one valid prescription item with medicine is required");
-        }
+        // Allow empty prescriptions - no validation error
 
         // Determine which field to use for WHERE clause
         const whereField = this.id ? 'id' : 'clinical_proforma_id';
@@ -346,9 +342,7 @@ class Prescription {
           }))
           .filter(item => item.medicine !== null);
 
-        if (validPrescriptions.length === 0) {
-          throw new Error("At least one valid prescription item with medicine is required");
-        }
+        // Allow empty prescriptions - no validation error
 
         // Determine which field to use for WHERE clause
         const whereField = this.id ? 'id' : 'clinical_proforma_id';

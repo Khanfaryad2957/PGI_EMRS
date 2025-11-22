@@ -1039,16 +1039,7 @@ class PatientController {
           console.log(`[deletePatient] Deleted prescriptions for clinical proformas`);
         }
         
-        // Step 4b: Delete file movements linked to ADL files
-        if (adlFiles.length > 0) {
-          const adlFileIds = adlFiles.map(af => af.id);
-          
-          // Delete file movements by adl_file_id
-          
-          console.log(`[deletePatient] Deleted file movements`);
-        }
-        
-        // Step 4c: Delete ADL files
+        // Step 4b: Delete ADL files
         if (adlFiles.length > 0) {
           await client.query(
             'DELETE FROM adl_files WHERE patient_id = $1',
@@ -1056,8 +1047,10 @@ class PatientController {
           );
           console.log(`[deletePatient] Deleted ${adlFiles.length} ADL file(s)`);
         }
+
         
-        // Step 4d: Delete clinical proformas
+        
+        // Step 4c: Delete clinical proformas
         if (clinicalProformas.length > 0) {
           await client.query(
             'DELETE FROM clinical_proforma WHERE patient_id = $1',
@@ -1066,27 +1059,12 @@ class PatientController {
           console.log(`[deletePatient] Deleted ${clinicalProformas.length} clinical proforma(s)`);
         }
         
-        // Step 4e: Delete patient visits
-        try {
-          await client.query(
-            'DELETE FROM patient_visits WHERE patient_id = $1',
-            [id]
-          );
-          console.log(`[deletePatient] Deleted patient visits`);
-        } catch (visitsErr) {
-          console.warn(`[deletePatient] Error deleting patient visits: ${visitsErr.message}`);
-        }
-        
-        // Step 4f: Delete outpatient records
-        try {
-          await client.query(
-            'DELETE FROM outpatient_record WHERE patient_id = $1',
-            [id]
-          );
-          console.log(`[deletePatient] Deleted outpatient records`);
-        } catch (outpatientErr) {
-          console.warn(`[deletePatient] Error deleting outpatient records: ${outpatientErr.message}`);
-        }
+        // Step 4d: Delete patient visits
+        await client.query(
+          'DELETE FROM patient_visits WHERE patient_id = $1',
+          [id]
+        );
+        console.log(`[deletePatient] Deleted patient visits`);
         
         // Step 5: Finally, delete the patient record itself
         await client.query(
