@@ -3301,7 +3301,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 <FiChevronDown className="h-6 w-6 text-gray-500" />
               )}
               {/* {!readOnly && ( */}
-                <Button
+                {/* <Button
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(-1);
@@ -3310,8 +3310,8 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 hover:border-gray-400 transition-colors ml-2"
                 >
                   <FiChevronDown className="w-4 h-4 rotate-90" />
-                   All Out Patient Intake Records
-                </Button>
+                  Back to All Out Patient Intake Records
+                </Button> */}
               {/* )} */}
             </div>
           </div>
