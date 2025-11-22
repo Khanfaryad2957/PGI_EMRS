@@ -42,18 +42,15 @@ const query = async (text, params = []) => {
   try {
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
+    
+    // Only log slow queries (performance optimization)
     if (duration > 1000) {
       console.warn(`⚠️ Slow query detected: ${duration}ms`, { 
         command: result.command,
         rows: result.rowCount 
       });
-    } else {
-    console.log('Query executed successfully', { 
-      duration: `${duration}ms`, 
-      rows: result.rowCount,
-      command: result.command 
-    });
     }
+    
     return result;
   } catch (error) {
     console.error('Database query error:', error);
