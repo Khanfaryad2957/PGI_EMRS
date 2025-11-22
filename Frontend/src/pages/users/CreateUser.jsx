@@ -312,7 +312,9 @@ const CreateUser = ({ editMode = false, existingUser = null, userId = null }) =>
                       <Button 
                         type="submit" 
                         loading={isLoading}
-                        className="relative backdrop-blur-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                        // className="relative backdrop-blur-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="bg-gradient-to-r h-12 px-5 from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap"
+                      
                       >
                         {editMode ? 'Update User' : 'Create User'}
                       </Button>
