@@ -41,14 +41,14 @@ ChartJS.register(
 
 const StatCard = ({ title, value, icon: Icon, colorClasses, gradientFrom, gradientTo, to }) => (
   <Link to={to} className="block">
-    <div className={`group relative bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-xl p-6 border border-white/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    <div className={`group relative backdrop-blur-xl bg-white/70 border border-white/40 rounded-2xl p-6 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:-translate-y-1 hover:bg-white/80`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">{title}</p>
           <p className="text-4xl font-extrabold text-gray-900 mb-1">{value || 0}</p>
         </div>
-        <div className={`p-3 bg-gradient-to-br ${colorClasses} rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+        <div className={`p-3 backdrop-blur-md bg-gradient-to-br ${colorClasses} rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300 border border-white/30`}>
           <Icon className="h-7 w-7 text-white" />
         </div>
       </div>

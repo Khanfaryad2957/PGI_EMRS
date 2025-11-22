@@ -50,9 +50,9 @@ const Modal = ({
         className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0"
         onClick={handleOverlayClick}
       >
-        {/* Background overlay */}
+        {/* Background overlay with glassmorphism */}
         <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          className="fixed inset-0 backdrop-blur-md bg-black/30 transition-opacity"
           aria-hidden="true"
         />
 
@@ -64,13 +64,13 @@ const Modal = ({
           &#8203;
         </span>
 
-        {/* Modal panel */}
+        {/* Modal panel with glassmorphism */}
         <div
-          className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full ${sizes[size]}`}
+          className={`inline-block align-bottom backdrop-blur-2xl bg-white/80 border border-white/40 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle w-full ${sizes[size]}`}
         >
           {/* Header */}
           {title && (
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="px-6 py-4 border-b border-white/30 backdrop-blur-sm bg-white/30 flex justify-between items-center">
               <h3
                 className="text-lg font-semibold text-gray-900"
                 id="modal-title"
@@ -79,7 +79,7 @@ const Modal = ({
               </h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                className="text-gray-400 hover:text-gray-600 focus:outline-none backdrop-blur-sm bg-white/20 hover:bg-white/40 rounded-lg p-1 transition-all"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -93,7 +93,7 @@ const Modal = ({
 
           {/* Footer */}
           {footer && (
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-white/30 backdrop-blur-sm bg-white/30 flex justify-end gap-3">
               {footer}
             </div>
           )}

@@ -300,69 +300,6 @@ const UsersPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-        {/* Header Section */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-primary-600/10 to-primary-800/5 rounded-2xl"></div>
-          <div className="relative bg-white/90 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-lg border border-white/50">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
-              <div className="flex-1 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl blur-sm opacity-50"></div>
-                    <div className="relative p-4 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg">
-                      <FiUsers className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 bg-clip-text text-transparent">
-                      User Management
-                    </h1>
-                    <p className="text-gray-600 mt-2 text-base sm:text-lg">
-                      Manage system users, roles, and permissions
-                    </p>
-                  </div>
-                </div>
-                
-
-                {/* Role Breakdown */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {Object.entries(roleStats).map(([role, stats]) => (
-                    <div key={role} className={`bg-gradient-to-br ${stats.bg} rounded-lg p-3 border ${stats.border} shadow-sm`}>
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1.5 bg-gradient-to-br ${stats.color} rounded-lg`}>
-                          <FiShield className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-600">{role}</p>
-                          <p className="text-lg font-bold text-gray-900">{stats.count}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 lg:flex-col xl:flex-row">
-                <Button
-                  variant="outline"
-                  className="bg-white/80 border-2 border-primary-200 hover:bg-primary-50 hover:border-primary-300 shadow-sm transition-all duration-200 whitespace-nowrap"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                >
-                  <FiRefreshCw className={`mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-                  {isFetching ? 'Refreshing...' : 'Refresh'}
-                </Button>
-                <Link to="/users/new">
-                  <Button className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap">
-                    <FiPlus className="mr-2" />
-                    Add User
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content Card */}
         <Card className="shadow-lg border border-gray-200/50 bg-white/90 backdrop-blur-sm">
           {error && (
@@ -393,6 +330,21 @@ const UsersPage = () => {
                   className="pl-12 h-12 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"
                 />
               </div>
+              <Button
+                  variant="outline"
+                  className="bg-white/80 border-2 border-primary-200 hover:bg-primary-50 hover:border-primary-300 shadow-sm transition-all duration-200 whitespace-nowrap"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                >
+                  <FiRefreshCw className={`mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+                  {isFetching ? 'Refreshing...' : 'Refresh'}
+                </Button>
+                <Link to="/users/new">
+                  <Button className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap">
+                    <FiPlus className="mr-2" />
+                    Add User
+                  </Button>
+                </Link>
             </div>
           </div>
 

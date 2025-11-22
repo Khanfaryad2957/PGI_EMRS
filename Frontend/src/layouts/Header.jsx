@@ -20,11 +20,11 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
   };
 
   return (
-    <header className={`relative bg-gradient-to-r from-white via-blue-50/30 to-indigo-50/40 shadow-xl border-b-2 border-primary-200/50 z-10 transition-all duration-300 ease-in-out overflow-hidden ${sidebarMinimized ? 'lg:ml-20' : 'lg:ml-64'}`}>
+    <header className={`relative backdrop-blur-2xl bg-white/70 border-b border-white/40 shadow-2xl z-10 transition-all duration-300 ease-in-out overflow-hidden ${sidebarMinimized ? 'lg:ml-20' : 'lg:ml-64'}`}>
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-primary-100/20 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-100/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-tr from-indigo-400/10 to-transparent rounded-full blur-3xl"></div>
       </div>
       
       <div className="relative px-4 sm:px-6 lg:px-8">
@@ -32,7 +32,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
           <div className="flex items-center flex-1 min-w-0">
             <button
               onClick={onMenuClick}
-              className="lg:hidden group relative p-2.5 rounded-xl text-gray-600 hover:text-primary-700 bg-white/60 hover:bg-primary-50/80 backdrop-blur-sm border border-gray-200/50 hover:border-primary-300/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-300 hover:scale-105 hover:shadow-md active:scale-95"
+              className="lg:hidden group relative p-2.5 rounded-xl text-gray-600 hover:text-primary-700 backdrop-blur-md bg-white/50 hover:bg-white/70 border border-white/40 hover:border-primary-300/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
             >
               <FiMenu className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
             </button>
@@ -49,7 +49,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 bg-clip-text text-transparent whitespace-nowrap drop-shadow-sm">
                   PGIMER PSY
                 </h1>
-                <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 font-medium ml-2 px-2 py-0.5 bg-white/60 backdrop-blur-sm rounded-md border border-gray-200/50">
+                <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 font-medium ml-2 px-2 py-0.5 backdrop-blur-md bg-white/50 rounded-md border border-white/40">
                   Psychiatry Department
                 </span>
               </div>
@@ -58,7 +58,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
 
           <div className={`flex items-center gap-3 sm:gap-4 lg:gap-6 flex-shrink-0 transition-all duration-300 ${sidebarOpen ? 'hidden lg:flex' : 'flex'}`}>
             <div className="text-right hidden md:block">
-              <div className="px-3 py-1.5 bg-white/70 backdrop-blur-md rounded-xl border border-gray-200/50 shadow-sm">
+              <div className="px-3 py-1.5 backdrop-blur-md bg-white/60 rounded-xl border border-white/40 shadow-lg">
                 <p className="text-sm font-bold text-gray-900 truncate max-w-[150px] lg:max-w-[220px]">{user?.name}</p>
                 <p className="text-xs font-medium text-primary-600 truncate max-w-[150px] lg:max-w-[220px] mt-0.5">{user?.role}</p>
               </div>
@@ -68,7 +68,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
               <Link
                 to="/profile"
                 title="Profile Settings"
-                className="group relative p-2.5 sm:p-3 rounded-xl text-gray-600 hover:text-primary-700 bg-white/60 hover:bg-gradient-to-br hover:from-primary-50 hover:to-primary-100/50 backdrop-blur-sm border border-gray-200/50 hover:border-primary-300/50 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-primary-500/20 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                className="group relative p-2.5 sm:p-3 rounded-xl text-gray-600 hover:text-primary-700 backdrop-blur-md bg-white/50 hover:bg-white/70 border border-white/40 hover:border-primary-300/50 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-primary-500/20 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
               >
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-400/0 via-primary-500/0 to-primary-400/0 group-hover:from-primary-400/20 group-hover:via-primary-500/30 group-hover:to-primary-400/20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
                 <FiUser className="h-5 w-5 sm:h-6 sm:w-6 relative z-10 transition-transform duration-300 group-hover:scale-110" />
@@ -76,7 +76,7 @@ const Header = ({ onMenuClick, sidebarMinimized = false, sidebarOpen = false }) 
               <button
                 onClick={handleLogout}
                 title="Sign Out"
-                className="group relative p-2.5 sm:p-3 rounded-xl text-gray-600 hover:text-red-700 bg-white/60 hover:bg-gradient-to-br hover:from-red-50 hover:to-red-100/50 backdrop-blur-sm border border-gray-200/50 hover:border-red-300/50 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-red-500/20 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="group relative p-2.5 sm:p-3 rounded-xl text-gray-600 hover:text-red-700 backdrop-blur-md bg-white/50 hover:bg-white/70 border border-white/40 hover:border-red-300/50 transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-red-500/20 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-400/0 via-red-500/0 to-red-400/0 group-hover:from-red-400/20 group-hover:via-red-500/30 group-hover:to-red-400/20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
                 <FiLogOut className="h-5 w-5 sm:h-6 sm:w-6 relative z-10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-15deg]" />

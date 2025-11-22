@@ -102,7 +102,7 @@ const Select = ({
   const Menu = (
     <div
       ref={dropdownRef}
-      className="bg-white border-2 border-primary-200 rounded-xl shadow-2xl overflow-hidden"
+      className="backdrop-blur-2xl bg-white/90 border border-white/40 rounded-xl shadow-2xl overflow-hidden"
       style={{
         maxHeight: '240px',
         zIndex: dropdownZIndex,
@@ -196,16 +196,16 @@ const Select = ({
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
           className={`
-            w-full px-4 py-3 pr-10
-            bg-white border-2 rounded-xl
+            w-full px-3 py-2 pr-10
+            backdrop-blur-md bg-white/60 border border-white/40 rounded-lg shadow-sm
             text-left font-medium
-            transition-all duration-200 ease-in-out
-            focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500
-            hover:border-primary-400
-            disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:border-gray-300
-            ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'}
+            transition-all duration-300 ease-in-out
+            focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80
+            hover:bg-white/70 hover:border-primary-400/70
+            disabled:bg-gray-100/60 disabled:text-gray-400 disabled:cursor-not-allowed disabled:backdrop-blur-sm disabled:hover:border-white/40
+            ${error ? 'border-red-500/60 focus:border-red-500 focus:ring-red-500/50' : 'border-white/40'}
             ${!value ? 'text-gray-500' : 'text-gray-900'}
-            ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/20' : ''}
+            ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/50 bg-white/80' : ''}
             ${className}
           `}
         >
