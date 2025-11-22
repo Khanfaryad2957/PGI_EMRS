@@ -13,6 +13,55 @@ import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText, FiCalendar
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DatePicker from '../../components/CustomDatePicker';
 
+// Display Field Component for read-only mode with glassmorphism
+const DisplayField = ({ label, value, icon, className = '', rows }) => {
+  const displayValue = value || 'N/A';
+  const isTextarea = rows && rows > 1;
+  return (
+    <div className={`relative ${className}`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+      <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+        {label && (
+          <label className={`flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2 ${icon ? '' : 'block'}`}>
+            {icon && <span className="text-primary-600">{icon}</span>}
+            {label}
+          </label>
+        )}
+        {isTextarea ? (
+          <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">{displayValue}</p>
+        ) : (
+          <p className="text-base font-medium text-gray-900">{displayValue}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper function to render Input or DisplayField based on readOnly
+const ConditionalInput = ({ readOnly, label, value, icon, ...inputProps }) => {
+  if (readOnly) {
+    return <DisplayField label={label} value={value} icon={icon} />;
+  }
+  return <Input label={label} value={value} {...inputProps} />;
+};
+
+// Helper function to render Select or DisplayField based on readOnly
+const ConditionalSelect = ({ readOnly, label, value, options, icon, ...selectProps }) => {
+  if (readOnly) {
+    const selectedOption = options?.find(opt => opt.value === value);
+    return <DisplayField label={label} value={selectedOption?.label || value || ''} icon={icon} />;
+  }
+  return <Select label={label} value={value} options={options} {...selectProps} />;
+};
+
+// Helper function to render Textarea or DisplayField based on readOnly
+const ConditionalTextarea = ({ readOnly, label, value, icon, rows, ...textareaProps }) => {
+  if (readOnly) {
+    return <DisplayField label={label} value={value} icon={icon} rows={rows} />;
+  }
+  return <Textarea label={label} value={value} rows={rows} {...textareaProps} />;
+};
+
 const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = null, clinicalProformaId: propClinicalProformaId = null, readOnly = false }) => {
   const navigate = useNavigate();
   const { id: urlId } = useParams();
@@ -591,89 +640,162 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
     <>
 
      {/* Informant Section */}
-      <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="relative mb-8 shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden">
             <div className="p-6">
               {/* Patient Information */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Patient Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <Input
-                          label="Date"
-                          name="date"
-                    value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Patient Name"
-                    value={patient?.name || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Age"
-                    value={patient?.age || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Sex"
-                    value={patient?.sex || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                  <Input
-                    label="Psy. No."
-                    value={patient?.psy_no || ''}
-                                onChange={handleChange}
-                    disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
+                        {readOnly ? (
+                          <DisplayField
+                            label="Date"
+                            value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
+                            icon={<FiCalendar className="w-4 h-4" />}
+                          />
+                        ) : (
+                          <Input
+                            label="Date"
+                            name="date"
+                            value={patient?.date ? (patient.date.includes('T') ? patient.date.split('T')[0] : patient.date) : ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Patient Name"
+                            value={patient?.name || ''}
+                            icon={<FiFileText className="w-4 h-4" />}
+                          />
+                        ) : (
+                          <Input
+                            label="Patient Name"
+                            value={patient?.name || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Age"
+                            value={patient?.age || ''}
+                          />
+                        ) : (
+                          <Input
+                            label="Age"
+                            value={patient?.age || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Sex"
+                            value={patient?.sex || ''}
+                          />
+                        ) : (
+                          <Input
+                            label="Sex"
+                            value={patient?.sex || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Psy. No."
+                            value={patient?.psy_no || ''}
+                            icon={<FiFileText className="w-4 h-4" />}
+                          />
+                        ) : (
+                          <Input
+                            label="Psy. No."
+                            value={patient?.psy_no || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <Input
-                          label="Marital Status"
-                          name="marital_status"
-                    value={patient?.marital_status || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Education"
-                          name="education"
-                    value={patient?.education || patient?.education_level || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Occupation"
-                          name="occupation"
-                    value={patient?.occupation || ''}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
-                        <Input
-                          label="Name of the City/District"
-                          name="city_district"
-                    value={(() => {
-                      const city = patient?.city || patient?.present_city_town_village || '';
-                      const district = patient?.district || patient?.present_district || '';
-                      if (city && district) {
-                        return `${city}, ${district}`;
-                      }
-                      return city || district || '';
-                    })()}
-                          onChange={handleChange}
-                          disabled={readOnly || true}
-                    className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        />
+                        {readOnly ? (
+                          <DisplayField
+                            label="Marital Status"
+                            value={patient?.marital_status || ''}
+                          />
+                        ) : (
+                          <Input
+                            label="Marital Status"
+                            name="marital_status"
+                            value={patient?.marital_status || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Education"
+                            value={patient?.education || patient?.education_level || ''}
+                          />
+                        ) : (
+                          <Input
+                            label="Education"
+                            name="education"
+                            value={patient?.education || patient?.education_level || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Occupation"
+                            value={patient?.occupation || ''}
+                          />
+                        ) : (
+                          <Input
+                            label="Occupation"
+                            name="occupation"
+                            value={patient?.occupation || ''}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
+                        {readOnly ? (
+                          <DisplayField
+                            label="Name of the City/District"
+                            value={(() => {
+                              const city = patient?.city || patient?.present_city_town_village || '';
+                              const district = patient?.district || patient?.present_district || '';
+                              if (city && district) {
+                                return `${city}, ${district}`;
+                              }
+                              return city || district || '';
+                            })()}
+                          />
+                        ) : (
+                          <Input
+                            label="Name of the City/District"
+                            name="city_district"
+                            value={(() => {
+                              const city = patient?.city || patient?.present_city_town_village || '';
+                              const district = patient?.district || patient?.present_district || '';
+                              if (city && district) {
+                                return `${city}, ${district}`;
+                              }
+                              return city || district || '';
+                            })()}
+                            onChange={handleChange}
+                            disabled={true}
+                            className="disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        )}
                         </div>
                       </div>
 
@@ -681,13 +803,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
          {/* Informants */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('informants')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-green-600" />
             </div>
             <div>
@@ -724,39 +846,60 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input
-                    label="Relationship"
-                    value={informant.relationship}
-                    onChange={(e) => {
-                      const newInformants = [...(formData.informants || [])];
-                      newInformants[index].relationship = e.target.value;
-                      setFormData(prev => ({ ...prev, informants: newInformants }));
-                    }}
-                    placeholder="e.g., Father, Mother, Spouse"
-                    disabled={readOnly}
-                  />
-                  <Input
-                    label="Name"
-                    value={informant.name}
-                    onChange={(e) => {
-                      const newInformants = [...(formData.informants || [])];
-                      newInformants[index].name = e.target.value;
-                      setFormData(prev => ({ ...prev, informants: newInformants }));
-                    }}
-                    placeholder="Full name"
-                    disabled={readOnly}
-                  />
-                  <Input
-                    label="Reliability / Ability to report"
-                    value={informant.reliability}
-                    onChange={(e) => {
-                      const newInformants = [...(formData.informants || [])];
-                      newInformants[index].reliability = e.target.value;
-                      setFormData(prev => ({ ...prev, informants: newInformants }));
-                    }}
-                    placeholder="Assessment of reliability"
-                    disabled={readOnly}
-                  />
+                  {readOnly ? (
+                    <DisplayField
+                      label="Relationship"
+                      value={informant.relationship}
+                    />
+                  ) : (
+                    <Input
+                      label="Relationship"
+                      value={informant.relationship}
+                      onChange={(e) => {
+                        const newInformants = [...(formData.informants || [])];
+                        newInformants[index].relationship = e.target.value;
+                        setFormData(prev => ({ ...prev, informants: newInformants }));
+                      }}
+                      placeholder="e.g., Father, Mother, Spouse"
+                      disabled={readOnly}
+                    />
+                  )}
+                  {readOnly ? (
+                    <DisplayField
+                      label="Name"
+                      value={informant.name}
+                    />
+                  ) : (
+                    <Input
+                      label="Name"
+                      value={informant.name}
+                      onChange={(e) => {
+                        const newInformants = [...(formData.informants || [])];
+                        newInformants[index].name = e.target.value;
+                        setFormData(prev => ({ ...prev, informants: newInformants }));
+                      }}
+                      placeholder="Full name"
+                      disabled={readOnly}
+                    />
+                  )}
+                  {readOnly ? (
+                    <DisplayField
+                      label="Reliability / Ability to report"
+                      value={informant.reliability}
+                    />
+                  ) : (
+                    <Input
+                      label="Reliability / Ability to report"
+                      value={informant.reliability}
+                      onChange={(e) => {
+                        const newInformants = [...(formData.informants || [])];
+                        newInformants[index].reliability = e.target.value;
+                        setFormData(prev => ({ ...prev, informants: newInformants }));
+                      }}
+                      placeholder="Assessment of reliability"
+                      disabled={readOnly}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -782,13 +925,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Complaints and Duration */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('complaints')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-purple-600" />
             </div>
             <div>
@@ -813,32 +956,46 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               {(formData.complaints_patient || [{ complaint: '', duration: '' }])?.map((complaint, index) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-3">
                   <div className="md:col-span-2">
-                    <Input
-                      label={`Complaint ${index + 1}`}
-                      value={complaint.complaint}
-                      onChange={(e) => {
-                        if (readOnly) return;
-                        const newComplaints = [...(formData.complaints_patient || [])];
-                        newComplaints[index].complaint = e.target.value;
-                        setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
-                      }}
-                      placeholder="Enter complaint"
-                      disabled={readOnly}
-                    />
+                    {readOnly ? (
+                      <DisplayField
+                        label={`Complaint ${index + 1}`}
+                        value={complaint.complaint}
+                      />
+                    ) : (
+                      <Input
+                        label={`Complaint ${index + 1}`}
+                        value={complaint.complaint}
+                        onChange={(e) => {
+                          if (readOnly) return;
+                          const newComplaints = [...(formData.complaints_patient || [])];
+                          newComplaints[index].complaint = e.target.value;
+                          setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
+                        }}
+                        placeholder="Enter complaint"
+                        disabled={readOnly}
+                      />
+                    )}
                   </div>
                   <div className="md:col-span-2">
-                    <Input
-                      label="Duration"
-                      value={complaint.duration}
-                      onChange={(e) => {
-                        if (readOnly) return;
-                        const newComplaints = [...(formData.complaints_patient || [])];
-                        newComplaints[index].duration = e.target.value;
-                        setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
-                      }}
-                      disabled={readOnly}
-                      placeholder="e.g., 6 months"
-                    />
+                    {readOnly ? (
+                      <DisplayField
+                        label="Duration"
+                        value={complaint.duration}
+                      />
+                    ) : (
+                      <Input
+                        label="Duration"
+                        value={complaint.duration}
+                        onChange={(e) => {
+                          if (readOnly) return;
+                          const newComplaints = [...(formData.complaints_patient || [])];
+                          newComplaints[index].duration = e.target.value;
+                          setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
+                        }}
+                        disabled={readOnly}
+                        placeholder="e.g., 6 months"
+                      />
+                    )}
                   </div>
                   <div className="flex items-end">
                     {!readOnly && (formData.complaints_patient || []).length > 1 && (
@@ -882,32 +1039,46 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               {(formData.complaints_informant || [{ complaint: '', duration: '' }])?.map((complaint, index) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-3">
                   <div className="md:col-span-2">
-                    <Input
-                      label={`Complaint ${index + 1}`}
-                      value={complaint.complaint}
-                      onChange={(e) => {
-                        if (readOnly) return;
-                        const newComplaints = [...(formData.complaints_informant || [])];
-                        newComplaints[index].complaint = e.target.value;
-                        setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
-                      }}
-                      placeholder="Enter complaint"
-                      disabled={readOnly}
-                    />
+                    {readOnly ? (
+                      <DisplayField
+                        label={`Complaint ${index + 1}`}
+                        value={complaint.complaint}
+                      />
+                    ) : (
+                      <Input
+                        label={`Complaint ${index + 1}`}
+                        value={complaint.complaint}
+                        onChange={(e) => {
+                          if (readOnly) return;
+                          const newComplaints = [...(formData.complaints_informant || [])];
+                          newComplaints[index].complaint = e.target.value;
+                          setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
+                        }}
+                        placeholder="Enter complaint"
+                        disabled={readOnly}
+                      />
+                    )}
                   </div>
                   <div className="md:col-span-2">
-                    <Input
-                      label="Duration"
-                      value={complaint.duration}
-                      onChange={(e) => {
-                        if (readOnly) return;
-                        const newComplaints = [...(formData.complaints_informant || [])];
-                        newComplaints[index].duration = e.target.value;
-                        setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
-                      }}
-                      disabled={readOnly}
-                      placeholder="e.g., 6 months"
-                    />
+                    {readOnly ? (
+                      <DisplayField
+                        label="Duration"
+                        value={complaint.duration}
+                      />
+                    ) : (
+                      <Input
+                        label="Duration"
+                        value={complaint.duration}
+                        onChange={(e) => {
+                          if (readOnly) return;
+                          const newComplaints = [...(formData.complaints_informant || [])];
+                          newComplaints[index].duration = e.target.value;
+                          setFormData(prev => ({ ...prev, complaints_informant: newComplaints }));
+                        }}
+                        disabled={readOnly}
+                        placeholder="e.g., 6 months"
+                      />
+                    )}
                   </div>
                   <div className="flex items-end">
                     {!readOnly && (formData.complaints_informant || []).length > 1 && (
@@ -949,34 +1120,55 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               <h4 className="font-semibold text-gray-800 mb-4">Onset, Precipitating Factor, Course</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Input
-                    label="Onset"
-                    name="onset_duration"
-                    value={formData?.onset_duration || ''}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                    placeholder="e.g., Gradual over 6 months"
-                  />
+                  {readOnly ? (
+                    <DisplayField
+                      label="Onset"
+                      value={formData?.onset_duration || ''}
+                    />
+                  ) : (
+                    <Input
+                      label="Onset"
+                      name="onset_duration"
+                      value={formData?.onset_duration || ''}
+                      onChange={handleChange}
+                      disabled={readOnly}
+                      placeholder="e.g., Gradual over 6 months"
+                    />
+                  )}
                 </div>
                 <div>
-                  <Input
-                    label="Precipitating Factor"
-                    name="precipitating_factor"
-                    value={formData?.precipitating_factor || ''}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                    placeholder="e.g., Job loss, family conflict"
-                  />
+                  {readOnly ? (
+                    <DisplayField
+                      label="Precipitating Factor"
+                      value={formData?.precipitating_factor || ''}
+                    />
+                  ) : (
+                    <Input
+                      label="Precipitating Factor"
+                      name="precipitating_factor"
+                      value={formData?.precipitating_factor || ''}
+                      onChange={handleChange}
+                      disabled={readOnly}
+                      placeholder="e.g., Job loss, family conflict"
+                    />
+                  )}
                 </div>
                 <div>
-                  <Input
-                    label="Course"
-                    name="course"
-                    value={formData?.course || ''}
-                    onChange={handleChange}
-                    disabled={readOnly}
-                    placeholder="e.g., Progressive, episodic, continuous"
-                  />
+                  {readOnly ? (
+                    <DisplayField
+                      label="Course"
+                      value={formData?.course || ''}
+                    />
+                  ) : (
+                    <Input
+                      label="Course"
+                      name="course"
+                      value={formData?.course || ''}
+                      onChange={handleChange}
+                      disabled={readOnly}
+                      placeholder="e.g., Progressive, episodic, continuous"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -987,13 +1179,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
       
       {/* History of Present Illness */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('history')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-blue-600" />
             </div>
             <div>
@@ -1010,68 +1202,123 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
         {expandedCards.history && (
           <div className="p-6 space-y-6">
-            <Textarea
-              label="A. Spontaneous narrative account"
-              name="history_narrative"
-              value={formData.history_narrative}
-              onChange={handleChange}
-              placeholder="Patient's spontaneous account of the illness..."
-              rows={4}
-            />
+            {readOnly ? (
+              <DisplayField
+                label="A. Spontaneous narrative account"
+                value={formData.history_narrative}
+                rows={4}
+              />
+            ) : (
+              <Textarea
+                label="A. Spontaneous narrative account"
+                name="history_narrative"
+                value={formData.history_narrative}
+                onChange={handleChange}
+                placeholder="Patient's spontaneous account of the illness..."
+                rows={4}
+              />
+            )}
             
-            <Textarea
-              label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
-              name="history_specific_enquiry"
-              value={formData.history_specific_enquiry}
-              onChange={handleChange}
-              placeholder="Detailed specific enquiries..."
-              rows={5}
-            />
+            {readOnly ? (
+              <DisplayField
+                label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
+                value={formData.history_specific_enquiry}
+                rows={5}
+              />
+            ) : (
+              <Textarea
+                label="B. Specific enquiry about mood, sleep, appetite, anxiety symptoms, suicidal risk, social interaction, job efficiency, personal hygiene, memory, etc."
+                name="history_specific_enquiry"
+                value={formData.history_specific_enquiry}
+                onChange={handleChange}
+                placeholder="Detailed specific enquiries..."
+                rows={5}
+              />
+            )}
             
-            <Textarea
-              label="C. Intake of dependence producing and prescription drugs"
-              name="history_drug_intake"
-              value={formData.history_drug_intake}
-              onChange={handleChange}
-              placeholder="List all dependence producing substances and prescription drugs..."
-              rows={3}
-            />
+            {readOnly ? (
+              <DisplayField
+                label="C. Intake of dependence producing and prescription drugs"
+                value={formData.history_drug_intake}
+                rows={3}
+              />
+            ) : (
+              <Textarea
+                label="C. Intake of dependence producing and prescription drugs"
+                name="history_drug_intake"
+                value={formData.history_drug_intake}
+                onChange={handleChange}
+                placeholder="List all dependence producing substances and prescription drugs..."
+                rows={3}
+              />
+            )}
             
             <div className="border-t pt-4">
               <h4 className="font-semibold text-gray-800 mb-3">D. Treatment received so far in this illness</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Place"
-                  name="history_treatment_place"
-                  value={formData.history_treatment_place}
-                  onChange={handleChange}
-                  placeholder="Location of treatment"
-                />
-                <Input
-                  label="Dates"
-                  name="history_treatment_dates"
-                  value={formData.history_treatment_dates}
-                  onChange={handleChange}
-                  placeholder="Treatment dates"
-                />
-                <Textarea
-                  label="Drugs"
-                  name="history_treatment_drugs"
-                  value={formData.history_treatment_drugs}
-                  onChange={handleChange}
-                  placeholder="Medications administered"
-                  rows={2}
-                  className="md:col-span-2"
-                />
-                <Textarea
-                  label="Response"
-                  name="history_treatment_response"
-                  value={formData.history_treatment_response}
-                  onChange={handleChange}
-                  placeholder="Patient's response to treatment"
-                  rows={2}
-                  className="md:col-span-2"
-                />
+                {readOnly ? (
+                  <DisplayField
+                    label="Place"
+                    value={formData.history_treatment_place}
+                  />
+                ) : (
+                  <Input
+                    label="Place"
+                    name="history_treatment_place"
+                    value={formData.history_treatment_place}
+                    onChange={handleChange}
+                    placeholder="Location of treatment"
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Dates"
+                    value={formData.history_treatment_dates}
+                  />
+                ) : (
+                  <Input
+                    label="Dates"
+                    name="history_treatment_dates"
+                    value={formData.history_treatment_dates}
+                    onChange={handleChange}
+                    placeholder="Treatment dates"
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Drugs"
+                    value={formData.history_treatment_drugs}
+                    rows={3}
+                  />
+                ) : (
+                  <Textarea
+                    label="Drugs"
+                    name="history_treatment_drugs"
+                    value={formData.history_treatment_drugs}
+                    onChange={handleChange}
+                    placeholder="Medications administered"
+                    rows={2}
+                    className="md:col-span-2"
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Response"
+                    value={formData.history_treatment_response}
+                    rows={2}
+                    className="md:col-span-2"
+                  />
+                ) : (
+                  <Textarea
+                    label="Response"
+                    name="history_treatment_response"
+                    value={formData.history_treatment_response}
+                    onChange={handleChange}
+                    placeholder="Patient's response to treatment"
+                    rows={2}
+                    className="md:col-span-2"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1083,13 +1330,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       
 
       {/* Past History - Detailed */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('pastHistory')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-orange-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-orange-600" />
             </div>
             <div>
@@ -1108,57 +1355,104 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           <div className="p-6 space-y-6">
             <div>
               <h4 className="font-semibold text-gray-800 mb-3">A. Medical</h4>
-              <Textarea
-                label="Including injuries and operations"
-                name="past_history_medical"
-                value={formData.past_history_medical}
-                onChange={handleChange}
-                placeholder="Past medical history, injuries, operations..."
-                rows={3}
-              />
+              {readOnly ? (
+                <DisplayField
+                  label="Including injuries and operations"
+                  value={formData.past_history_medical}
+                  rows={3}
+                />
+              ) : (
+                <Textarea
+                  label="Including injuries and operations"
+                  name="past_history_medical"
+                  value={formData.past_history_medical}
+                  onChange={handleChange}
+                  placeholder="Past medical history, injuries, operations..."
+                  rows={3}
+                />
+              )}
             </div>
             <div className="border-t pt-4">
               <h4 className="font-semibold text-gray-800 mb-3">B. Psychiatric</h4>
               <div className="space-y-4">
-                <Input
-                  label="Dates"
-                  name="past_history_psychiatric_dates"
-                  value={formData.past_history_psychiatric_dates}
-                  onChange={handleChange}
-                  placeholder="Dates of previous psychiatric illness/treatment"
-                />
-                <Textarea
-                  label="Diagnosis or salient features"
-                  name="past_history_psychiatric_diagnosis"
-                  value={formData.past_history_psychiatric_diagnosis}
-                  onChange={handleChange}
-                  placeholder="Previous psychiatric diagnoses or key features"
-                  rows={2}
-                />
-                <Textarea
-                  label="Treatment"
-                  name="past_history_psychiatric_treatment"
-                  value={formData.past_history_psychiatric_treatment}
-                  onChange={handleChange}
-                  placeholder="Treatment received"
-                  rows={2}
-                />
-                <Textarea
-                  label="Interim history of previous psychiatric illness"
-                  name="past_history_psychiatric_interim"
-                  value={formData.past_history_psychiatric_interim}
-                  onChange={handleChange}
-                  placeholder="History between episodes"
-                  rows={2}
-                />
-                <Textarea
-                  label="Specific enquiry into completeness of recovery and socialization/personal care in the interim period"
-                  name="past_history_psychiatric_recovery"
-                  value={formData.past_history_psychiatric_recovery}
-                  onChange={handleChange}
-                  placeholder="Recovery assessment, socialization, personal care during interim"
-                  rows={3}
-                />
+                {readOnly ? (
+                  <DisplayField
+                    label="Dates"
+                    value={formData.past_history_psychiatric_dates}
+                  />
+                ) : (
+                  <Input
+                    label="Dates"
+                    name="past_history_psychiatric_dates"
+                    value={formData.past_history_psychiatric_dates}
+                    onChange={handleChange}
+                    placeholder="Dates of previous psychiatric illness/treatment"
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Diagnosis or salient features"
+                    value={formData.past_history_psychiatric_diagnosis}
+                    rows={2}
+                  />
+                ) : (
+                  <Textarea
+                    label="Diagnosis or salient features"
+                    name="past_history_psychiatric_diagnosis"
+                    value={formData.past_history_psychiatric_diagnosis}
+                    onChange={handleChange}
+                    placeholder="Previous psychiatric diagnoses or key features"
+                    rows={2}
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Treatment"
+                    value={formData.past_history_psychiatric_treatment}
+                    rows={2}
+                  />
+                ) : (
+                  <Textarea
+                    label="Treatment"
+                    name="past_history_psychiatric_treatment"
+                    value={formData.past_history_psychiatric_treatment}
+                    onChange={handleChange}
+                    placeholder="Treatment received"
+                    rows={2}
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Interim history of previous psychiatric illness"
+                    value={formData.past_history_psychiatric_interim}
+                    rows={2}
+                  />
+                ) : (
+                  <Textarea
+                    label="Interim history of previous psychiatric illness"
+                    name="past_history_psychiatric_interim"
+                    value={formData.past_history_psychiatric_interim}
+                    onChange={handleChange}
+                    placeholder="History between episodes"
+                    rows={2}
+                  />
+                )}
+                {readOnly ? (
+                  <DisplayField
+                    label="Specific enquiry into completeness of recovery and socialization/personal care in the interim period"
+                    value={formData.past_history_psychiatric_recovery}
+                    rows={3}
+                  />
+                ) : (
+                  <Textarea
+                    label="Specific enquiry into completeness of recovery and socialization/personal care in the interim period"
+                    name="past_history_psychiatric_recovery"
+                    value={formData.past_history_psychiatric_recovery}
+                    onChange={handleChange}
+                    placeholder="Recovery assessment, socialization, personal care during interim"
+                    rows={3}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1166,13 +1460,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Family History - Detailed */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('familyHistory')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-red-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-red-600" />
             </div>
             <div>
@@ -1619,13 +1913,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Home Situation and Early Development */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('homeSituation')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-yellow-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-yellow-600" />
             </div>
             <div>
@@ -1797,13 +2091,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Education */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('education')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
@@ -1881,13 +2175,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Occupation */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('occupation')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-teal-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-teal-600" />
             </div>
             <div>
@@ -2018,13 +2312,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Sexual History */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('sexual')}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-pink-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiFileText className="h-6 w-6 text-pink-600" />
             </div>
             <div>
@@ -2219,7 +2513,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Religion */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('religion')}
@@ -2267,7 +2561,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Living Situation */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('living')}
@@ -2479,7 +2773,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Premorbid Personality */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('premorbid')}
@@ -2556,7 +2850,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Physical Examination */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('physical')}
@@ -2694,7 +2988,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Mental Status Examination */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('mse')}
@@ -2790,7 +3084,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Diagnostic Formulation */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('diagnostic')}
@@ -2842,7 +3136,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
       </Card>
 
       {/* Final Assessment */}
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+      <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
         <div
           className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
           onClick={() => toggleCard('final')}
@@ -2928,7 +3222,7 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                 className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30 gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
+                {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
               </Button>
             </div>
           </form>
@@ -2958,19 +3252,19 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/30 to-indigo-100/40 relative overflow-hidden">
-      {/* Animated background elements */}
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         {/* Main Wrapper Card - Collapsible */}
-        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm mb-6">
+        <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
           <div
-            className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors select-none"
+            className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300 select-none"
             onClick={(e) => {
               e.stopPropagation();
               toggleCard('mainWrapper');
@@ -2985,11 +3279,11 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             }}
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-primary-500 to-indigo-600 rounded-lg">
-                <FiFileText className="h-6 w-6 text-white" />
+              <div className="p-3 backdrop-blur-md bg-gradient-to-br from-primary-500/20 to-indigo-600/20 rounded-xl border border-white/30 shadow-lg">
+                <FiFileText className="h-6 w-6 text-primary-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   {readOnly ? 'View Out Patient Intake Record' : 'Edit Out Patient Intake Record'}
                 </h2>
                 {patient && (
@@ -3026,13 +3320,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
           {/* History of Present Illness */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('history')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -3122,13 +3416,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Informants */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('informants')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
@@ -3225,13 +3519,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Complaints and Duration */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('complaints')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
@@ -3382,13 +3676,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Past History - Detailed */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('pastHistory')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
@@ -3471,13 +3765,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Family History - Detailed */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('familyHistory')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-red-600" />
                 </div>
                 <div>
@@ -3724,13 +4018,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Home Situation and Early Development */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('homeSituation')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-yellow-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-yellow-500/20 to-amber-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-yellow-600" />
                 </div>
                 <div>
@@ -3921,13 +4215,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Education */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('education')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-indigo-600" />
                 </div>
                 <div>
@@ -4013,13 +4307,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Occupation */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('occupation')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-teal-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-teal-600" />
                 </div>
                 <div>
@@ -4138,13 +4432,13 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Sexual History */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('sexual')}
             >
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-pink-100 rounded-lg">
+                <div className="p-3 backdrop-blur-md bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl border border-white/30 shadow-lg">
                   <FiFileText className="h-6 w-6 text-pink-600" />
                 </div>
                 <div>
@@ -4351,9 +4645,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Religion & Living Situation - Combined for brevity */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('religion')}
             >
               <div className="flex items-center gap-4">
@@ -4398,9 +4692,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             )}
           </Card>
 
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('living')}
             >
               <div className="flex items-center gap-4">
@@ -4615,9 +4909,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Premorbid Personality */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('premorbid')}
             >
               <div className="flex items-center gap-4">
@@ -4695,9 +4989,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Physical Examination */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('physical')}
             >
               <div className="flex items-center gap-4">
@@ -4835,9 +5129,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Mental Status Examination */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('mse')}
             >
               <div className="flex items-center gap-4">
@@ -4931,9 +5225,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Diagnostic Formulation */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('diagnostic')}
             >
               <div className="flex items-center gap-4">
@@ -4983,9 +5277,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
           </Card>
 
           {/* Final Assessment */}
-          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm mb-6">
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
             <div
-              className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
               onClick={() => toggleCard('final')}
             >
               <div className="flex items-center gap-4">
@@ -5034,11 +5328,15 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             )}
           </Card>
 
-          {/* Submit Button - Hidden in read-only mode */}
-          {!readOnly && (
+      
+        
+              </form>
+            </div>
+          )}
+        </Card>
+      
             <div className="relative mt-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 via-indigo-500/20 to-blue-500/20 rounded-3xl blur-xl"></div>
-              <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl p-6 lg:p-8 shadow-2xl border border-white/30">
+              
                 <div className="flex flex-col sm:flex-row justify-end gap-4">
               <Button
                 type="button"
@@ -5056,16 +5354,10 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                    {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update ADL File' : 'Create ADL File')}
+                    {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
               </Button>
                 </div>
               </div>
-            </div>
-          )}
-              </form>
-            </div>
-          )}
-        </Card>
       </div>
     </div>
   );

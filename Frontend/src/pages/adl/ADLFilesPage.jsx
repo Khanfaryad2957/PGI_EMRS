@@ -70,12 +70,12 @@ const ADLFilesPage = () => {
           </div>
           <div>
             <span className="font-mono font-semibold text-gray-900">{row.adl_no}</span>
-            {row.clinical_proforma_id && (
+            {/* {row.clinical_proforma_id && (
               <Badge className="ml-2 bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-red-200 text-xs">
                 <FiActivity className="w-3 h-3 mr-1" />
                 Complex Case
               </Badge>
-            )}
+            )} */}
           </div>
         </div>
       ),
@@ -88,17 +88,17 @@ const ADLFilesPage = () => {
         </div>
       ),
       accessor: 'patient_name',
-      render: (row) => (
-        <div>
-          <p className="font-medium text-gray-900">{row.patient_name || 'N/A'}</p>
-          {row.clinical_proforma_id && (
-            <p className="text-xs text-primary-600 mt-0.5 flex items-center gap-1">
-              <FiActivity className="w-3 h-3" />
-              Complex Case - Full Details Available
-            </p>
-          )}
-        </div>
-      ),
+      // render: (row) => (
+      //   <div>
+      //     <p className="font-medium text-gray-900">{row.patient_name || 'N/A'}</p>
+      //     {row.clinical_proforma_id && (
+      //       <p className="text-xs text-primary-600 mt-0.5 flex items-center gap-1">
+      //         <FiActivity className="w-3 h-3" />
+      //         Complex Case - Full Details Available
+      //       </p>
+      //     )}
+      //   </div>
+      // ),
     },
     {
       header: (

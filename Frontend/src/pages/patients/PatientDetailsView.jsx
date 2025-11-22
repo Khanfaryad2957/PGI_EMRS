@@ -492,24 +492,30 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
   // Note: canViewPrescriptions is now determined by filled_by_role above
 
   return (
-    <div className="space-y-6">
-      {/* Card 1: Patient Details */}
-      <Card className="shadow-lg border-0 bg-white">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className="relative z-10 space-y-6 p-4 sm:p-6 lg:p-8">
+        {/* Card 1: Patient Details */}
+        <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden">
 
         <div
-          className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
           onClick={() => toggleCard('patient')}
         >
-
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
+            <div className="p-3 backdrop-blur-md bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-xl border border-white/30 shadow-lg">
               <FiUser className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Patient Details</h3>
-              <p className="text-sm text-gray-500 mt-1">{patient.name} - {patient.cr_no || 'N/A'}</p>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Patient Details</h3>
+              <p className="text-sm text-gray-600 mt-1">{patient.name} - {patient.cr_no || 'N/A'}</p>
             </div>
-
           </div>
           {expandedCards.patient ? (
             <FiChevronUp className="h-6 w-6 text-gray-500" />
@@ -550,150 +556,150 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                   <div className="space-y-8">
                     {/* First Row - Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <IconInput
-                        icon={<FiHash className="w-4 h-4" />}
-                        label="CR No."
-                        name="cr_no"
-                        value={displayData.cr_no || ''}
-                        placeholder="Enter CR number"
-                        // loading={isCheckingCR && formData.cr_no && formData.cr_no.length >= 3}
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed disabled:text-gray-900"
-                      />
-                      <IconInput
-                        icon={<FiCalendar className="w-4 h-4" />}
-                        label="Date"
-                        name="date"
-                        value={displayData.date ? formatDate(displayData.date) : ''}
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed disabled:text-gray-900"
-                      />
-
-                      <IconInput
-                        icon={<FiUser className="w-4 h-4" />}
-                        label="Name"
-                        name="name"
-                        value={displayData.name || ''}
-                        placeholder="Enter patient name"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <IconInput
-                        icon={<FiPhone className="w-4 h-4" />}
-                        label="Mobile No."
-                        name="contact_number"
-                        value={displayData.contact_number || ''}
-                        placeholder="Enter mobile number"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiHash className="w-4 h-4 text-primary-600" />
+                            CR No.
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.cr_no || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiCalendar className="w-4 h-4 text-primary-600" />
+                            Date
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.date ? formatDate(displayData.date) : 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiUser className="w-4 h-4 text-primary-600" />
+                            Name
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.name || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiPhone className="w-4 h-4 text-primary-600" />
+                            Mobile No.
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.contact_number || 'N/A'}</p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Second Row - Age, Sex, Category, Father's Name */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <IconInput
-                        icon={<FiClock className="w-4 h-4" />}
-                        label="Age"
-                        name="age"
-                        value={displayData.age || ''}
-                        type="number"
-                        placeholder="Enter age"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <div className="space-y-2">
-                        <IconInput
-                          label="Sex"
-                          name="sex"
-                          value={displayData.sex || ''}
-                          placeholder="Select sex"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiClock className="w-4 h-4 text-primary-600" />
+                            Age
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.age || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                          <FiShield className="w-4 h-4 text-primary-600" />
-                          Category
-                        </label>
-                        <IconInput
-                          name="category"
-                          value={displayData.category || ''}
-                          placeholder="Select category"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="text-sm font-semibold text-gray-700 mb-2 block">Sex</label>
+                          <p className="text-base font-medium text-gray-900">{displayData.sex || 'N/A'}</p>
+                        </div>
                       </div>
-                      <IconInput
-                        icon={<FiUsers className="w-4 h-4" />}
-                        label="Father's Name"
-                        name="father_name"
-                        value={displayData.father_name || ''}
-                        placeholder="Enter father's name"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiShield className="w-4 h-4 text-primary-600" />
+                            Category
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.category || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiUsers className="w-4 h-4 text-primary-600" />
+                            Father's Name
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.father_name || 'N/A'}</p>
+                        </div>
+                      </div>
                     </div>
                     {/* Fourth Row - Department, Unit/Consit, Room No., Serial No. */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <IconInput
-                        icon={<FiLayers className="w-4 h-4" />}
-                        label="Department"
-                        name="department"
-                        value={displayData.department || ''}
-                        placeholder="Enter department"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <IconInput
-                        icon={<FiUsers className="w-4 h-4" />}
-                        label="Unit/Consit"
-                        name="unit_consit"
-                        value={displayData.unit_consit || ''}
-                        placeholder="Enter unit/consit"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <IconInput
-                        icon={<FiHome className="w-4 h-4" />}
-                        label="Room No."
-                        name="room_no"
-                        value={displayData.room_no || ''}
-                        placeholder="Enter room number"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <IconInput
-                        icon={<FiHash className="w-4 h-4" />}
-                        label="Serial No."
-                        name="serial_no"
-                        value={displayData.serial_no || ''}
-                        placeholder="Enter serial number"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiLayers className="w-4 h-4 text-primary-600" />
+                            Department
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.department || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiUsers className="w-4 h-4 text-primary-600" />
+                            Unit/Consit
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.unit_consit || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiHome className="w-4 h-4 text-primary-600" />
+                            Room No.
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.room_no || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiHash className="w-4 h-4 text-primary-600" />
+                            Serial No.
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.serial_no || 'N/A'}</p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Fifth Row - File No., Unit Days */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <IconInput
-                        icon={<FiFileText className="w-4 h-4" />}
-                        label="File No."
-                        name="file_no"
-                        value={displayData.file_no || ''}
-                        placeholder="Enter file number"
-                        disabled={true}
-                        className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      />
-                      <div className="space-y-2">
-                        <IconInput
-                          label="Unit Days"
-                          name="unit_days"
-                          value={displayData.unit_days || ''}
-                          placeholder="Select unit days"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                            <FiFileText className="w-4 h-4 text-primary-600" />
+                            File No.
+                          </label>
+                          <p className="text-base font-medium text-gray-900">{displayData.file_no || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                        <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                          <label className="text-sm font-semibold text-gray-700 mb-2 block">Unit Days</label>
+                          <p className="text-base font-medium text-gray-900">{displayData.unit_days || 'N/A'}</p>
+                        </div>
                       </div>
                     </div>
 
@@ -708,73 +714,73 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
 
                       <div className="space-y-6">
                         {/* Address Line */}
-                        <IconInput
-                          icon={<FiHome className="w-4 h-4" />}
-                          label="Address Line (House No., Street, Locality)"
-                          name="address_line"
-                          value={displayData.address_line || ''}
-
-                          placeholder="Enter house number, street, locality"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiHome className="w-4 h-4 text-primary-600" />
+                              Address Line (House No., Street, Locality)
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.address_line || 'N/A'}</p>
+                          </div>
+                        </div>
 
                         {/* Location Fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <IconInput
-                            icon={<FiGlobe className="w-4 h-4" />}
-                            label="Country"
-                            name="country"
-                            value={displayData.country || ''}
-
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          />
-                          <IconInput
-                            icon={<FiMapPin className="w-4 h-4" />}
-                            label="State"
-                            name="state"
-                            value={displayData.state || ''}
-
-                            placeholder="Enter state"
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          />
-                          <IconInput
-                            icon={<FiLayers className="w-4 h-4" />}
-                            label="District"
-                            name="district"
-                            value={displayData.district || ''}
-
-                            placeholder="Enter district"
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          />
-                          <IconInput
-                            icon={<FiHome className="w-4 h-4" />}
-                            label="City/Town/Village"
-                            name="city"
-                            value={displayData.city || ''}
-
-                            placeholder="Enter city, town or village"
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          />
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                            <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                <FiGlobe className="w-4 h-4 text-primary-600" />
+                                Country
+                              </label>
+                              <p className="text-base font-medium text-gray-900">{displayData.country || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                            <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                <FiMapPin className="w-4 h-4 text-primary-600" />
+                                State
+                              </label>
+                              <p className="text-base font-medium text-gray-900">{displayData.state || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                            <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                <FiLayers className="w-4 h-4 text-primary-600" />
+                                District
+                              </label>
+                              <p className="text-base font-medium text-gray-900">{displayData.district || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                            <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                <FiHome className="w-4 h-4 text-primary-600" />
+                                City/Town/Village
+                              </label>
+                              <p className="text-base font-medium text-gray-900">{displayData.city || 'N/A'}</p>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Pin Code Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <IconInput
-                            icon={<FiHash className="w-4 h-4" />}
-                            label="Pin Code"
-                            name="pin_code"
-                            value={displayData.pin_code || ''}
-
-                            placeholder="Enter pin code"
-                            type="number"
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          />
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                            <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                <FiHash className="w-4 h-4 text-primary-600" />
+                                Pin Code
+                              </label>
+                              <p className="text-base font-medium text-gray-900">{displayData.pin_code || 'N/A'}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -800,366 +806,276 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                     {/* Patient Identification */}
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-
-                        <IconInput
-                          icon={<FiCalendar className="w-4 h-4" />}
-                          label="Seen in Walk-in-on"
-                          name="seen_in_walk_in_on"
-                          value={displayData.seen_in_walk_in_on ? formatDate(displayData.seen_in_walk_in_on) : ''}
-                          placeholder="Date"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiCalendar className="w-4 h-4" />}
-                          label="Worked up on"
-                          name="worked_up_on"
-                          value={displayData.worked_up_on ? formatDate(displayData.worked_up_on) : ''}
-                          placeholder="Date"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-
-                        <IconInput
-                          icon={<FiHash className="w-4 h-4" />}
-                          label="CR No."
-                          name="cr_no"
-                          value={displayData.cr_no || ''}
-                          placeholder="Enter CR number"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiFileText className="w-4 h-4" />}
-                          label="Psy. No."
-                          name="psy_no"
-                          value={displayData.psy_no || ''}
-                          placeholder="Enter PSY number"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-
-                        />
-                        <IconInput
-                          icon={<FiHeart className="w-4 h-4" />}
-                          label="Special Clinic No."
-                          name="special_clinic_no"
-                          value={displayData.special_clinic_no || ''}
-
-                          placeholder="Enter special clinic number"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiUser className="w-4 h-4" />}
-                          label="Name"
-                          name="name"
-                          value={displayData.name || ''}
-
-                          placeholder="Enter patient name"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <div className="space-y-2">
-                          <IconInput
-                            label="Sex"
-                            name="sex"
-                            value={displayData.sex || ''}
-                            placeholder="Select sex"
-                            searchable={true}
-                            disabled={true}
-                            className="disabled:bg-gray-200 disabled:cursor-not-allowed disabled:text-gray-900"
-                          />
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiCalendar className="w-4 h-4 text-primary-600" />
+                              Seen in Walk-in-on
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.seen_in_walk_in_on ? formatDate(displayData.seen_in_walk_in_on) : 'N/A'}</p>
+                          </div>
                         </div>
-
-                        <IconInput
-                          label="Age Group"
-                          name="age_group"
-                          value={displayData.age_group || ''}
-
-                          // options={AGE_GROUP_OPTIONS}
-                          placeholder="Select age group"
-                          searchable={true}
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                        <IconInput
-                          label="Marital Status"
-                          name="marital_status"
-                          value={displayData.marital_status || ''}
-                          placeholder="Select marital status"
-                          searchable={true}
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-
-                        />
-                        <IconInput
-                          icon={<FiCalendar className="w-4 h-4" />}
-                          label="Year of marriage"
-                          name="year_of_marriage"
-                          value={displayData.year_of_marriage || ''}
-
-                          type="number"
-                          placeholder="Enter year of marriage"
-                          min="1900"
-                          max={new Date().getFullYear()}
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-
-                        <IconInput
-                          icon={<FiUsers className="w-4 h-4" />}
-                          label="No. of Children: M"
-                          name="no_of_children_male"
-                          value={displayData.no_of_children_male || ''}
-
-                          type="number"
-                          placeholder="Male"
-                          min="0"
-                          max="20"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                        <IconInput
-                          icon={<FiUsers className="w-4 h-4" />}
-                          label="No. of Children: F"
-                          name="no_of_children_female"
-                          value={displayData.no_of_children_female || ''}
-
-                          type="number"
-                          placeholder="Female"
-                          min="0"
-                          max="20"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiBriefcase className="w-4 h-4" />}
-                          label=" Occupation"
-                          name="occupation"
-                          value={displayData.occupation || ''}
-                          placeholder="Select Occupation"
-                          searchable={true}
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          formData={formData}
-                          customFieldName="occupation_other"
-                          inputLabel="Specify Occupation"
-                        />
-
-                        <IconInput
-                          icon={<FiBookOpen className="w-4 h-4" />}
-                          label="Education"
-                          name="education"
-                          value={displayData.education || displayData.education_level || ''}
-                          placeholder="Select education"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        {/* <IconInput
-                          icon={<FiTrendingUp className="w-4 h-4" />}
-                          label="Income (₹)"
-                          name="income"
-                          value={displayData.income || displayData.patient_income || ''}
-
-                          type="number"
-                          placeholder="Monthly income"
-                          min="0"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        /> */}
-
-                        <IconInput
-                          icon={<FiTrendingUp className="w-4 h-4" />}
-                          label="Family Income (₹)"
-                          name="family_income"
-                          value={displayData.family_income || ''}
-
-                          type="number"
-                          placeholder="Family income"
-                          min="0"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                        <IconInput
-                          icon={<FiTrendingUp className="w-4 h-4" />}
-                          label="Patient Income (₹)"
-                          name="patient_income"
-                          value={displayData.income || displayData.patient_income || ''}
-                          type="number"
-                          placeholder="Patient income"
-                          min="0"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          label="Religion"
-                          name="religion"
-                          value={displayData.religion || ''}
-                          placeholder="Select religion"
-
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          customFieldName="religion_other"
-                          inputLabel="Specify Religion"
-                        />
-                        <IconInput
-                          label="Family Type"
-                          name="family_type"
-                          value={displayData.family_type || ''}
-                          placeholder="Select family type"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          customFieldName="family_type_other"
-                          inputLabel="Specify Family Type"
-                        />
-                        <IconInput
-                          label="Locality"
-                          name="locality"
-                          value={displayData.locality || ''}
-                          placeholder="Select locality"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          customFieldName="locality_other"
-                          inputLabel="Specify Locality"
-                        />
-
-                        <IconInput
-                          name="assigned_doctor_id"
-                          label="Assigned Doctor"
-                          value={displayData.assigned_doctor_name ? `${displayData.assigned_doctor_name}${displayData.assigned_doctor_role ? ` (${displayData.assigned_doctor_role})` : ''}` : 'Not assigned'}
-                          placeholder="Select doctor"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-
-                        />
-                        <IconInput
-                          icon={<FiHome className="w-4 h-4" />}
-                          label="Assigned Room"
-                          name="assigned_room"
-                          value={displayData.assigned_room || ''}
-
-                          placeholder="Enter assigned room"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiUser className="w-4 h-4" />}
-                          label="Family Head Name"
-                          name="head_name"
-                          value={displayData.head_name || ''}
-                          placeholder="Enter head of family name"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                        <IconInput
-                          icon={<FiClock className="w-4 h-4" />}
-                          label=" Family Head  Age"
-                          name="head_age"
-                          value={displayData.head_age || ''}
-
-                          type="number"
-                          placeholder="Enter age"
-                          min="0"
-                          max="150"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          label="Relationship With Family Head"
-                          name="head_relationship"
-                          value={displayData.head_relationship || ''}
-
-
-                          placeholder="Select relationship"
-
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-
-                          customFieldName="head_relationship_other"
-                          inputLabel="Specify Relationship"
-                        />
-
-
-                        <IconInput
-                          icon={<FiBookOpen className="w-4 h-4" />}
-                          label="Family Head Education"
-                          name="head_education"
-                          value={displayData.head_education || ''}
-                          disabled={true}
-                          placeholder="Select education"
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiBriefcase className="w-4 h-4" />}
-                          label=" Family Head Occupation"
-                          name="head_occupation"
-                          value={displayData.head_occupation || ''}
-
-
-                          placeholder="Select education"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-                        <IconInput
-                          icon={<FiTrendingUp className="w-4 h-4" />}
-                          label="Family Head Income (₹)"
-                          name="head_income"
-                          value={displayData.head_income || ''}
-
-                          type="number"
-                          placeholder="Monthly income"
-                          min="0"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          icon={<FiNavigation className="w-4 h-4" />}
-                          label="Exact distance from hospital"
-                          name="distance_from_hospital"
-                          value={displayData.distance_from_hospital || ''}
-
-                          placeholder="Enter distance from hospital"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                        />
-
-                        <IconInput
-                          label="Mobility of the patient"
-                          name="mobility"
-                          value={displayData.mobility || ''}
-                          placeholder="Select mobility"
-
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                          customFieldName="mobility_other"
-                          inputLabel="Specify Mobility"
-                        />
-
-                        <IconInput
-                          label="Referred by"
-                          name="referred_by"
-                          value={displayData.referred_by || ''}
-                          placeholder="Select referred by"
-                          disabled={true}
-                          className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-
-                          customFieldName="referred_by_other"
-                          inputLabel="Specify Referred By"
-                        />
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiCalendar className="w-4 h-4 text-primary-600" />
+                              Worked up on
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.worked_up_on ? formatDate(displayData.worked_up_on) : 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiHash className="w-4 h-4 text-primary-600" />
+                              CR No.
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.cr_no || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiFileText className="w-4 h-4 text-primary-600" />
+                              Psy. No.
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.psy_no || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiHeart className="w-4 h-4 text-primary-600" />
+                              Special Clinic No.
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.special_clinic_no || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiUser className="w-4 h-4 text-primary-600" />
+                              Name
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.name || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Sex</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.sex || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Age Group</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.age_group || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Marital Status</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.marital_status || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiCalendar className="w-4 h-4 text-primary-600" />
+                              Year of marriage
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.year_of_marriage || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiUsers className="w-4 h-4 text-primary-600" />
+                              No. of Children: M
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.no_of_children_male || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiUsers className="w-4 h-4 text-primary-600" />
+                              No. of Children: F
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.no_of_children_female || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiBriefcase className="w-4 h-4 text-primary-600" />
+                              Occupation
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.occupation || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiBookOpen className="w-4 h-4 text-primary-600" />
+                              Education
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.education || displayData.education_level || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiTrendingUp className="w-4 h-4 text-primary-600" />
+                              Family Income (₹)
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.family_income || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiTrendingUp className="w-4 h-4 text-primary-600" />
+                              Patient Income (₹)
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.income || displayData.patient_income || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Religion</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.religion || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Family Type</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.family_type || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Locality</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.locality || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Assigned Doctor</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.assigned_doctor_name ? `${displayData.assigned_doctor_name}${displayData.assigned_doctor_role ? ` (${displayData.assigned_doctor_role})` : ''}` : 'Not assigned'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiHome className="w-4 h-4 text-primary-600" />
+                              Assigned Room
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.assigned_room || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiUser className="w-4 h-4 text-primary-600" />
+                              Family Head Name
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_name || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiClock className="w-4 h-4 text-primary-600" />
+                              Family Head Age
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_age || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Relationship With Family Head</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_relationship || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiBookOpen className="w-4 h-4 text-primary-600" />
+                              Family Head Education
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_education || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiBriefcase className="w-4 h-4 text-primary-600" />
+                              Family Head Occupation
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_occupation || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiTrendingUp className="w-4 h-4 text-primary-600" />
+                              Family Head Income (₹)
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.head_income || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                              <FiNavigation className="w-4 h-4 text-primary-600" />
+                              Exact distance from hospital
+                            </label>
+                            <p className="text-base font-medium text-gray-900">{displayData.distance_from_hospital || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Mobility of the patient</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.mobility || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                          <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Referred by</label>
+                            <p className="text-base font-medium text-gray-900">{displayData.referred_by || 'N/A'}</p>
+                          </div>
+                        </div>
                       </div>
 
                          {/* Permanent Address Section */}
@@ -1172,62 +1088,67 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                            </h4>
 
                            <div className="space-y-6">
-                             <IconInput
-                               icon={<FiHome className="w-4 h-4" />}
-                               label="Address Line"
-                               name="permanent_address_line_1"
-                               value={formData.permanent_address_line_1 || ''}
-                               placeholder="Enter house number, street, locality"
-                               disabled={true}
-                               className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                             />
+                             <div className="relative">
+                               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                               <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                   <FiHome className="w-4 h-4 text-primary-600" />
+                                   Address Line
+                                 </label>
+                                 <p className="text-base font-medium text-gray-900">{formData.permanent_address_line_1 || 'N/A'}</p>
+                               </div>
+                             </div>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               <IconInput
-                                 icon={<FiHome className="w-4 h-4" />}
-                                 label="City/Town/Village"
-                                 name="permanent_city_town_village"
-                                 value={formData.permanent_city_town_village || ''}
-                                 placeholder="Enter city, town or village"
-                                 disabled={true}
-                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                               />
-                               <IconInput
-                                 icon={<FiLayers className="w-4 h-4" />}
-                                 label="District"
-                                 name="permanent_district"
-                                 value={formData.permanent_district || ''}
-                                 placeholder="Enter district"
-                                 disabled={true}
-                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                               />
-                               <IconInput
-                                 icon={<FiMapPin className="w-4 h-4" />}
-                                 label="State"
-                                 name="permanent_state"
-                                 value={formData.permanent_state || ''}
-                                 placeholder="Enter state"
-                                 disabled={true}
-                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                               />
-                               <IconInput
-                                 icon={<FiHash className="w-4 h-4" />}
-                                 label="Pin Code"
-                                 name="permanent_pin_code"
-                                 value={formData.permanent_pin_code || ''}
-                                 placeholder="Enter pin code"
-                                 type="number"
-                                 disabled={true}
-                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                               />
-                               <IconInput
-                                 icon={<FiGlobe className="w-4 h-4" />}
-                                 label="Country"
-                                 name="permanent_country"
-                                 value={formData.permanent_country || ''}
-                                 placeholder="Enter country"
-                                 disabled={true}
-                                 className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                               />
+                               <div className="relative">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                                 <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                     <FiHome className="w-4 h-4 text-primary-600" />
+                                     City/Town/Village
+                                   </label>
+                                   <p className="text-base font-medium text-gray-900">{formData.permanent_city_town_village || 'N/A'}</p>
+                                 </div>
+                               </div>
+                               <div className="relative">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                                 <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                     <FiLayers className="w-4 h-4 text-primary-600" />
+                                     District
+                                   </label>
+                                   <p className="text-base font-medium text-gray-900">{formData.permanent_district || 'N/A'}</p>
+                                 </div>
+                               </div>
+                               <div className="relative">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                                 <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                     <FiMapPin className="w-4 h-4 text-primary-600" />
+                                     State
+                                   </label>
+                                   <p className="text-base font-medium text-gray-900">{formData.permanent_state || 'N/A'}</p>
+                                 </div>
+                               </div>
+                               <div className="relative">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl"></div>
+                                 <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                     <FiHash className="w-4 h-4 text-primary-600" />
+                                     Pin Code
+                                   </label>
+                                   <p className="text-base font-medium text-gray-900">{formData.permanent_pin_code || 'N/A'}</p>
+                                 </div>
+                               </div>
+                               <div className="relative">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                                 <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                     <FiGlobe className="w-4 h-4 text-primary-600" />
+                                     Country
+                                   </label>
+                                   <p className="text-base font-medium text-gray-900">{formData.permanent_country || 'N/A'}</p>
+                                 </div>
+                               </div>
                              </div>
                            </div>
                          </div>
@@ -1242,67 +1163,67 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                            </h4>
 
                           <div className="space-y-6">
-                            <IconInput
-                              icon={<FiHome className="w-4 h-4" />}
-                              label="Address Line"
-                              name="present_address_line_1"
-                              value={formData.present_address_line_1 || ''}
-                              placeholder="Enter house number, street, locality"
-                              disabled={true}
-                              className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                            />
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 rounded-xl"></div>
+                              <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                  <FiHome className="w-4 h-4 text-primary-600" />
+                                  Address Line
+                                </label>
+                                <p className="text-base font-medium text-gray-900">{formData.present_address_line_1 || 'N/A'}</p>
+                              </div>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <IconInput
-                                icon={<FiHome className="w-4 h-4" />}
-                                label="City/Town/Village"
-                                name="present_city_town_village"
-                                value={formData.present_city_town_village || ''}
-                                // onChange={handleChange}
-                                placeholder="Enter city, town or village"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
-                              <IconInput
-                                icon={<FiLayers className="w-4 h-4" />}
-                                label="District"
-                                name="present_district"
-                                value={formData.present_district || ''}
-                                // onChange={handleChange}
-                                placeholder="Enter district"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
-                              <IconInput
-                                icon={<FiMapPin className="w-4 h-4" />}
-                                label="State"
-                                name="present_state"
-                                value={formData.present_state || ''}
-                                // onChange={handleChange}
-                                placeholder="Enter state"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
-                              <IconInput
-                                icon={<FiHash className="w-4 h-4" />}
-                                label="Pin Code"
-                                name="present_pin_code"
-                                value={formData.present_pin_code || ''}
-                                // onChange={handleChange}
-                                placeholder="Enter pin code"
-                                type="number"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
-                              <IconInput
-                                icon={<FiGlobe className="w-4 h-4" />}
-                                label="Country"
-                                name="present_country"
-                                value={formData.present_country || ''}
-                                // onChange={handleChange}
-                                placeholder="Enter country"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 rounded-xl"></div>
+                                <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <FiHome className="w-4 h-4 text-primary-600" />
+                                    City/Town/Village
+                                  </label>
+                                  <p className="text-base font-medium text-gray-900">{formData.present_city_town_village || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 rounded-xl"></div>
+                                <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <FiLayers className="w-4 h-4 text-primary-600" />
+                                    District
+                                  </label>
+                                  <p className="text-base font-medium text-gray-900">{formData.present_district || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-orange-500/5 rounded-xl"></div>
+                                <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <FiMapPin className="w-4 h-4 text-primary-600" />
+                                    State
+                                  </label>
+                                  <p className="text-base font-medium text-gray-900">{formData.present_state || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-amber-500/5 rounded-xl"></div>
+                                <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <FiHash className="w-4 h-4 text-primary-600" />
+                                    Pin Code
+                                  </label>
+                                  <p className="text-base font-medium text-gray-900">{formData.present_pin_code || 'N/A'}</p>
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 rounded-xl"></div>
+                                <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                    <FiGlobe className="w-4 h-4 text-primary-600" />
+                                    Country
+                                  </label>
+                                  <p className="text-base font-medium text-gray-900">{formData.present_country || 'N/A'}</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1317,37 +1238,37 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                           </h4>
 
                           <div className="space-y-6">
-                            <IconInput
-                              icon={<FiHome className="w-4 h-4" />}
-                              label="Local Address"
-                              name="local_address"
-                              value={formData.local_address || ''}
-                              placeholder="Enter local address"
-                              disabled={true}
-                              className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                            />
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"></div>
+                              <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                  <FiHome className="w-4 h-4 text-primary-600" />
+                                  Local Address
+                                </label>
+                                <p className="text-base font-medium text-gray-900">{formData.local_address || 'N/A'}</p>
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 rounded-xl"></div>
+                              <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                  <FiUser className="w-4 h-4 text-primary-600" />
+                                  Assigned Doctor
+                                </label>
+                                <p className="text-base font-medium text-gray-900">{formData.assigned_doctor_name || displayData.assigned_doctor_name || 'N/A'}</p>
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 rounded-xl"></div>
+                              <div className="relative backdrop-blur-sm bg-white/40 border border-white/40 rounded-xl p-4 shadow-sm">
+                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                                  <FiHome className="w-4 h-4 text-primary-600" />
+                                  Assigned Room
+                                </label>
+                                <p className="text-base font-medium text-gray-900">{formData.assigned_room || 'N/A'}</p>
+                              </div>
+                            </div>
                           </div>
-
-                          <IconInput
-                                icon={<FiUser className="w-4 h-4" />}
-                                label="Assigned Doctor"
-                                name="assigned_doctor_name"
-                                value={formData.assigned_doctor_name || displayData.assigned_doctor_name || ''}
-                                placeholder="Assigned doctor name"
-                                disabled={true}
-                                className="disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              />
-
-
-                              <IconInput
-                                icon={<FiHome className="w-4 h-4" />}
-                                label="Assigned Room"
-                                name="assigned_room"
-                                value={formData.assigned_room || ''}
-                                placeholder="Enter assigned room"
-                                disabled={true}
-                                className="disabled:bg-gray-200 disabled:cursor-not-allowed"
-                              />
                         </div>
                     </div>
 
@@ -1358,53 +1279,29 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                   </div>
                 </Card>
               </div>
+              
             </form>
 
 
           </div>
         )}
-        <div className="flex mt-4 flex-col sm:flex-row justify-end gap-4">
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={(() => navigate('/patients'))}
-            className="px-6 lg:px-8 py-3 bg-white/60 backdrop-blur-md border border-white/30 hover:bg-white/80 hover:border-gray-300/50 text-gray-800 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <FiX className="mr-2" />
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            onClick={() => {
-              if (returnTab) {
-                navigate(`/clinical-today-patients${returnTab === 'existing' ? '?tab=existing' : ''}`);
-              } else {
-                navigate("/patients");
-              }
-            }}
-            className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-          >
-            <FiSave className="mr-2" />
-            View All Patient
-          </Button>
-        </div>
+       
       </Card>
 
       {/* Card 2: Walk-in Clinical Proforma - Show only if filled_by_role is Admin, JR, or SR */}
       {canViewClinicalProforma && (
-        <Card className="shadow-lg border-0 bg-white">
+        <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden">
           <div
-            className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
             onClick={() => toggleCard('clinical')}
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
+              <div className="p-3 backdrop-blur-md bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/30 shadow-lg">
                 <FiFileText className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Walk-in Clinical Proforma</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Walk-in Clinical Proforma</h3>
+                <p className="text-sm text-gray-600 mt-1">
                   {patientProformas.length > 0
                     ? `${patientProformas.length} record${patientProformas.length > 1 ? 's' : ''} found`
                     : 'No clinical records'}
@@ -1423,8 +1320,9 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
               {patientProformas.length > 0 ? (
                 <div className="space-y-6">
                   {patientProformas.map((proforma, index) => (
-                    <div key={proforma.id || index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                    <div key={proforma.id || index} className="relative backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl p-6 shadow-lg mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 via-emerald-500/5 to-teal-500/5 rounded-2xl"></div>
+                      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-white/30">
                         <div className="flex items-center gap-4">
                           <h4 className="text-lg font-semibold text-gray-900">Visit #{index + 1}</h4>
                           <span className="text-sm text-gray-500">{proforma.visit_date ? formatDate(proforma.visit_date) : 'N/A'}</span>
@@ -1798,18 +1696,18 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
       )}
       {/* Card 3: Additional Details (ADL File) - Show card even if empty, as long as user has permission */}
       {canViewADLFile && (
-        <Card className="shadow-lg border-0 bg-white">
+        <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden">
           <div
-            className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
             onClick={() => toggleCard('adl')}
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
+              <div className="p-3 backdrop-blur-md bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-white/30 shadow-lg">
                 <FiFolder className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Additional Details (ADL File)</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Additional Details (ADL File)</h3>
+                <p className="text-sm text-gray-600 mt-1">
                   {patientAdlFiles.length > 0
                     ? `${patientAdlFiles.length} file${patientAdlFiles.length > 1 ? 's' : ''} found`
                     : 'No ADL files'}
@@ -2504,18 +2402,18 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
 
       {/* Card 4: Prescription History - Show only if current user is Admin, JR, or SR */}
       {canViewPrescriptions && (
-        <Card className="shadow-lg border-0 bg-white">
+        <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden">
           <div
-            className="flex items-center justify-between cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-between cursor-pointer p-6 border-b border-white/30 backdrop-blur-sm bg-white/30 hover:bg-white/40 transition-all duration-300"
             onClick={() => toggleCard('prescriptions')}
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-amber-100 rounded-lg">
+              <div className="p-3 backdrop-blur-md bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-xl border border-white/30 shadow-lg">
                 <FiPackage className="h-6 w-6 text-amber-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Prescription History</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Prescription History</h3>
+                <p className="text-sm text-gray-600 mt-1">
                   {allPrescriptions.length > 0
                     ? `${allPrescriptions.length} prescription${allPrescriptions.length > 1 ? 's' : ''} across ${Object.keys(prescriptionsByVisit).length} visit${Object.keys(prescriptionsByVisit).length > 1 ? 's' : ''}`
                     : 'No prescriptions found'}
@@ -2534,8 +2432,9 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
               {allPrescriptions.length > 0 ? (
                 <div className="space-y-6">
                   {Object.entries(prescriptionsByVisit).map(([visitDate, visitData]) => (
-                    <div key={visitDate} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                    <div key={visitDate} className="relative backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl p-6 shadow-lg mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-yellow-500/5 rounded-2xl"></div>
+                      <div className="relative flex items-center justify-between mb-4 pb-3 border-b border-white/30">
                         <div>
                           <h4 className="text-lg font-semibold text-gray-900">Visit on {visitDate}</h4>
                           {visitData.visitType && (
@@ -2551,64 +2450,67 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
 
                       <div className="space-y-4">
                         {visitData.prescriptions.map((prescription, idx) => (
-                          <div key={prescription.id || idx} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <div>
-                                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Medicine</label>
-                                <p className="text-base font-bold text-gray-900 mt-1">{prescription.medicine || 'N/A'}</p>
+                          <div key={prescription.id || idx} className="relative backdrop-blur-md bg-white/50 border border-white/40 rounded-xl p-4 shadow-md">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-indigo-500/3 rounded-xl"></div>
+                            <div className="relative">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Medicine</label>
+                                  <p className="text-base font-bold text-gray-900 mt-1">{prescription.medicine || 'N/A'}</p>
+                                </div>
+                                {prescription.dosage && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dosage</label>
+                                    <p className="text-base font-semibold text-gray-900 mt-1">{prescription.dosage}</p>
+                                  </div>
+                                )}
+                                {prescription.when_to_take && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">When to Take</label>
+                                    <p className="text-base font-semibold text-gray-900 mt-1">{prescription.when_to_take}</p>
+                                  </div>
+                                )}
+                                {prescription.frequency && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Frequency</label>
+                                    <p className="text-base font-semibold text-gray-900 mt-1">{prescription.frequency}</p>
+                                  </div>
+                                )}
+                                {prescription.duration && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</label>
+                                    <p className="text-base font-semibold text-gray-900 mt-1">{prescription.duration}</p>
+                                  </div>
+                                )}
+                                {prescription.quantity && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quantity</label>
+                                    <p className="text-base font-semibold text-gray-900 mt-1">{prescription.quantity}</p>
+                                  </div>
+                                )}
                               </div>
-                              {prescription.dosage && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dosage</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.dosage}</p>
+                              {(prescription.details || prescription.notes) && (
+                                <div className="mt-4 pt-4 border-t border-white/30 space-y-2">
+                                  {prescription.details && (
+                                    <div>
+                                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Details</label>
+                                      <p className="text-sm text-gray-900 mt-1">{prescription.details}</p>
+                                    </div>
+                                  )}
+                                  {prescription.notes && (
+                                    <div>
+                                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Notes</label>
+                                      <p className="text-sm text-gray-900 mt-1">{prescription.notes}</p>
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                              {prescription.when_to_take && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">When to Take</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.when_to_take}</p>
-                                </div>
-                              )}
-                              {prescription.frequency && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Frequency</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.frequency}</p>
-                                </div>
-                              )}
-                              {prescription.duration && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.duration}</p>
-                                </div>
-                              )}
-                              {prescription.quantity && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quantity</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.quantity}</p>
+                              {prescription.created_at && (
+                                <div className="mt-3 pt-3 border-t border-white/30">
+                                  <p className="text-xs text-gray-500">Prescribed on: {formatDateTime(prescription.created_at)}</p>
                                 </div>
                               )}
                             </div>
-                            {(prescription.details || prescription.notes) && (
-                              <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
-                                {prescription.details && (
-                                  <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Details</label>
-                                    <p className="text-sm text-gray-900 mt-1">{prescription.details}</p>
-                                  </div>
-                                )}
-                                {prescription.notes && (
-                                  <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Notes</label>
-                                    <p className="text-sm text-gray-900 mt-1">{prescription.notes}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {prescription.created_at && (
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-500">Prescribed on: {formatDateTime(prescription.created_at)}</p>
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -2626,6 +2528,34 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
           )}
         </Card>
       )}
+
+<div className="flex mt-4 flex-col sm:flex-row justify-end gap-4">
+
+<Button
+  type="button"
+  variant="outline"
+  onClick={(() => navigate('/patients'))}
+  className="px-6 lg:px-8 py-3 bg-white/60 backdrop-blur-md border border-white/30 hover:bg-white/80 hover:border-gray-300/50 text-gray-800 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+>
+  <FiX className="mr-2" />
+  Cancel
+</Button>
+<Button
+  type="submit"
+  onClick={() => {
+    if (returnTab) {
+      navigate(`/clinical-today-patients${returnTab === 'existing' ? '?tab=existing' : ''}`);
+    } else {
+      navigate("/patients");
+    }
+  }}
+  className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+>
+  <FiSave className="mr-2" />
+  View All Patient
+</Button>
+</div>
+      </div>
     </div>
   );
 };

@@ -460,35 +460,6 @@ const Profile = () => {
                 </div>
               </div>
 
-              {!profile.two_factor_enabled && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <FiAlertCircle className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-900">How to enable 2FA:</h4>
-                  </div>
-                  <ol className="space-y-3 text-gray-700 ml-4">
-                    <li className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">1</span>
-                      <span>Install an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.) on your mobile device</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">2</span>
-                      <span>Click the "Enable 2FA" button above</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">3</span>
-                      <span>Scan the QR code displayed with your authenticator app</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">4</span>
-                      <span>Enter the verification code from your app to complete the setup</span>
-                    </li>
-                  </ol>
-                </div>
-              )}
-
               {profile.two_factor_enabled && (
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200/50">
                   <div className="flex items-center gap-3">
