@@ -268,7 +268,7 @@ const Dashboard = () => {
                 gradientTo="to-emerald-100/50" 
                 to="/clinical" 
               />
-              <StatCard 
+              {/* <StatCard 
                 title="Total Cases" 
                 value={severityStatsArray.reduce((sum, item) => sum + (parseInt(item.count, 10) || 0), 0) || 0} 
                 icon={FiTrendingUp} 
@@ -276,7 +276,7 @@ const Dashboard = () => {
                 gradientFrom="from-orange-50" 
                 gradientTo="to-amber-100/50" 
                 to="/clinical" 
-              />
+              /> */}
               <StatCard 
                 title="Complex Cases" 
                 value={complexCases?.data?.pagination?.total || 0} 
@@ -343,7 +343,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {isJrSr && (
               <>
-                <Card 
+                {/* <Card 
                   title={
                     <div className="flex items-center gap-2">
                       <FiTrendingUp className="w-5 h-5 text-primary-600" />
@@ -375,7 +375,7 @@ const Dashboard = () => {
                       }}
                     />
                   </div>
-                </Card>
+                </Card> */}
 
                 <Card 
                   title={
