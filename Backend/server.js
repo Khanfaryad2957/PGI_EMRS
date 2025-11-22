@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 // Import configurations
@@ -16,6 +17,7 @@ const patientRoutes = require('./routes/patientRoutes');
 const clinicalRoutes = require('./routes/clinicalRoutes');
 const adlRoutes = require('./routes/adlRoutes');
 const prescriptionRoutes = require('./routes/prescriptionRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 2025;
@@ -83,6 +85,7 @@ app.use(morgan('combined', {
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser()); // Parse cookies for refresh tokens
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -145,6 +148,7 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/clinical-proformas', clinicalRoutes);
 app.use('/api/adl-files', adlRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/session', sessionRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

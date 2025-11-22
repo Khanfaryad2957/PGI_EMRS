@@ -1,7 +1,9 @@
 const User = require('../models/User');
 const PasswordResetToken = require('../models/PasswordResetToken');
 const LoginOTP = require('../models/LoginOTP');
+const RefreshToken = require('../models/RefreshToken');
 const { sendEmail } = require('../config/email');
+const { generateAccessToken, getDeviceInfo, getIpAddress } = require('../utils/tokenUtils');
 
 class UserController {
   // Register a new user
@@ -95,19 +97,7 @@ class UserController {
         });
       } else {
         // 2FA is disabled - direct login
-        const token = user.generateToken();
-
-        // Update last login
-        await user.updateLastLogin();
-
-        res.json({
-          success: true,
-          message: 'Login successful',
-          data: {
-            user: user.toJSON(),
-            token
-          }
-        });
+        await UserController.completeLogin(user, req, res);
       }
     } catch (error) {
       console.error('User login error:', error);
@@ -150,20 +140,8 @@ class UserController {
       // Create user instance for token generation
       const user = new User(userData);
       
-      // Generate token
-      const token = user.generateToken();
-
-      // Update last login
-      await user.updateLastLogin();
-
-      res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          user: user.toJSON(),
-          token
-        }
-      });
+      // Complete login with new token system
+      await UserController.completeLogin(user, req, res);
     } catch (error) {
       console.error('Verify login OTP error:', error);
       res.status(500).json({
@@ -773,6 +751,47 @@ class UserController {
         message: 'Failed to disable 2FA',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
+    }
+  }
+
+  // Helper method to complete login with access and refresh tokens
+  static async completeLogin(user, req, res) {
+    try {
+      // Generate access token (5 minutes)
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      });
+
+      // Create refresh token in database
+      const deviceInfo = getDeviceInfo(req);
+      const ipAddress = getIpAddress(req);
+      const refreshTokenRecord = await RefreshToken.create(user.id, deviceInfo, ipAddress);
+
+      // Set refresh token in HttpOnly cookie
+      res.cookie('refreshToken', refreshTokenRecord.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      // Update last login
+      await user.updateLastLogin();
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: user.toJSON(),
+          accessToken,
+          expiresIn: 300 // 5 minutes in seconds
+        }
+      });
+    } catch (error) {
+      console.error('Complete login error:', error);
+      throw error;
     }
   }
 }

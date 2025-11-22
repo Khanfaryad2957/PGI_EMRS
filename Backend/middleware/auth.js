@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
+const { verifyAccessToken } = require('../utils/tokenUtils');
 
-// Verify JWT token
+// Verify JWT token (access token)
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -14,7 +15,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyAccessToken(token);
     
     // Verify user still exists and get current role
     const userResult = await db.query(
@@ -113,14 +114,18 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userResult = await db.query(
-        'SELECT id, name, role, email FROM users WHERE id = $1 AND email = $2',
-        [decoded.userId, decoded.email]
-      );
+      try {
+        const decoded = verifyAccessToken(token);
+        const userResult = await db.query(
+          'SELECT id, name, role, email FROM users WHERE id = $1 AND email = $2',
+          [decoded.userId, decoded.email]
+        );
 
-      if (userResult.rows.length > 0) {
-        req.user = userResult.rows[0];
+        if (userResult.rows.length > 0) {
+          req.user = userResult.rows[0];
+        }
+      } catch (error) {
+        // If token is invalid, continue without user context
       }
     }
     

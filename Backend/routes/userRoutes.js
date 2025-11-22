@@ -257,7 +257,9 @@ router.post('/register', validateUserRegistration, UserController.register);
  *                       role: "SR"
  *                       two_factor_enabled: false
  *                       created_at: "2025-01-01T00:00:00.000Z"
- *                     token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                     expiresIn: 300
+ *                     note: "Refresh token is automatically set in HttpOnly cookie"
  *               otpRequired:
  *                 summary: OTP sent (2FA enabled)
  *                 value:
@@ -296,7 +298,8 @@ router.post('/login', validateUserLogin, UserController.login);
  *       - OTP can only be used once
  *       
  *       **Response:**
- *       - Returns JWT token for accessing protected endpoints
+ *       - Returns access token (JWT) for accessing protected endpoints
+ *       - Refresh token is automatically set in HttpOnly cookie
  *       - OTP is automatically marked as used
  *     tags: [Authentication]
  *     requestBody:

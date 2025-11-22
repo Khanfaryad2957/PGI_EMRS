@@ -4,6 +4,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { selectIsAuthenticated } from './features/auth/authSlice';
+import { SessionProvider } from './contexts/SessionContext';
+import SessionExpiredModal from './components/SessionExpiredModal';
 import ProtectedRoute from './utils/ProtectedRoute';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
@@ -53,8 +55,8 @@ function App() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   return (
-    <>
-      <BrowserRouter>
+    <BrowserRouter>
+      <SessionProvider>
         <Routes>
           {/* Public routes */}
           <Route
@@ -129,8 +131,8 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-
+        <SessionExpiredModal />
+      </SessionProvider>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -143,7 +145,7 @@ function App() {
         pauseOnHover
         theme="light"
       />
-    </>
+    </BrowserRouter>
   );
 }
 

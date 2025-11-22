@@ -58,6 +58,34 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+    // Session management endpoints
+    refreshToken: builder.mutation({
+      query: () => ({
+        url: '/session/refresh',
+        method: 'POST',
+        credentials: 'include', // Include cookies
+      }),
+    }),
+    updateActivity: builder.mutation({
+      query: () => ({
+        url: '/session/activity',
+        method: 'POST',
+        credentials: 'include',
+      }),
+    }),
+    logout: builder.mutation({
+      query: () => ({
+        url: '/session/logout',
+        method: 'POST',
+        credentials: 'include',
+      }),
+    }),
+    getSessionInfo: builder.query({
+      query: () => ({
+        url: '/session/info',
+        credentials: 'include',
+      }),
+    }),
   }),
 });
 
@@ -70,5 +98,9 @@ export const {
   useChangePasswordMutation,
   useEnable2FAMutation,
   useDisable2FAMutation,
+  useRefreshTokenMutation,
+  useUpdateActivityMutation,
+  useLogoutMutation,
+  useGetSessionInfoQuery,
 } = authApiSlice;
 

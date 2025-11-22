@@ -52,12 +52,12 @@ const Login = () => {
         password: formData.password,
       }).unwrap();
 
-      // Check if token is returned (direct login without OTP)
-      if (result.data.token) {
-        // Direct login - token received
+      // Check if accessToken is returned (direct login without OTP)
+      if (result.data.accessToken || result.data.token) {
+        // Direct login - accessToken received (new system) or token (legacy)
         dispatch(setCredentials({
           user: result.data.user,
-          token: result.data.token,
+          token: result.data.accessToken || result.data.token,
         }));
         toast.success('Login successful!');
         navigate('/');
@@ -81,7 +81,7 @@ const Login = () => {
 
       dispatch(setCredentials({
         user: result.data.user,
-        token: result.data.token,
+        token: result.data.accessToken || result.data.token,
       }));
       dispatch(setOTPRequired(false));
       toast.success('Login successful!');
