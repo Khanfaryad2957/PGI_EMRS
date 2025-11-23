@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { 
@@ -8,7 +8,7 @@ import {
   FiPhone, FiFileText, FiHash, FiStar, FiActivity, FiCalendar,
   FiGlobe, FiUserCheck, FiInfo, FiAlertCircle
 } from 'react-icons/fi';
-import { useSearchPatientsQuery, useAssignPatientMutation, useUpdatePatientMutation,useCreatePatientCompleteMutation, useGetAllPatientsQuery, useGetPatientByIdQuery, useCreatePatientMutation } from '../../features/patients/patientsApiSlice';
+import { useSearchPatientsQuery, useAssignPatientMutation, useUpdatePatientMutation,useCreatePatientCompleteMutation, useGetAllPatientsQuery, useGetPatientByIdQuery, useCreatePatientMutation, useGetPatientVisitCountQuery } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import Card from '../../components/Card';
 import Select from '../../components/Select';
@@ -29,6 +29,8 @@ const SelectExistingPatient = () => {
 
   const [crNumber, setCrNumber] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const justUpdatedDoctorRef = useRef(false);
 
   // Search for patient by CR number
   const { data: searchData, isLoading: searching, refetch: refetchPatient } = useSearchPatientsQuery(
@@ -38,21 +40,16 @@ const SelectExistingPatient = () => {
 
 
 
-  const { data: demographicData, isLoading: loadingDemographics } = useGetPatientByIdQuery(
+  const { data: demographicData, isLoading: loadingDemographics, refetch: refetchDemographics } = useGetPatientByIdQuery(
     selectedPatientId,
     { skip: !selectedPatientId }
   );
   
-
-  
-
-  // Note: Visit count will be calculated after visit creation
-  // We don't need to fetch all visits just to count them - it's inefficient
-
-
-
-  
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  // Fetch visit count for selected patient
+  const { data: visitData, isLoading: isLoadingVisits, refetch: refetchVisitCount } = useGetPatientVisitCountQuery(
+    selectedPatient?.id,
+    { skip: !selectedPatient?.id }
+  );
   const [isEditingRoom, setIsEditingRoom] = useState(false);
   const [isEditingDoctor, setIsEditingDoctor] = useState(false);
   const [newRoom, setNewRoom] = useState('');
@@ -60,22 +57,72 @@ const SelectExistingPatient = () => {
 
   // Auto-select patient when CR number matches
   useEffect(() => {
+    // Skip update if we just updated the doctor (to prevent overwriting)
+    if (justUpdatedDoctorRef.current) {
+      justUpdatedDoctorRef.current = false;
+      return;
+    }
+    
     if (searchData?.data?.patients && crNumber && crNumber.length >= 2) {
       const exactMatch = searchData.data.patients.find(
         (p) => p.cr_no?.toLowerCase() === crNumber.toLowerCase()
       );
 
       if (exactMatch) {
-        setSelectedPatient(exactMatch);
+        // If we already have a selected patient with the same ID, merge the data
+        // This preserves any local updates (like doctor assignment) that haven't been reflected in search results yet
+        if (selectedPatient && selectedPatient.id === exactMatch.id) {
+          setSelectedPatient(prev => {
+            // If current state has doctor info, preserve it (it's more recent than search results)
+            const hasCurrentDoctorInfo = prev.assigned_doctor_id !== undefined && prev.assigned_doctor_id !== null;
+            return {
+              ...exactMatch,
+              // Preserve updated doctor info - prioritize current state over search results
+              assigned_doctor_id: hasCurrentDoctorInfo ? prev.assigned_doctor_id : exactMatch.assigned_doctor_id,
+              assigned_doctor_name: prev.assigned_doctor_name || exactMatch.assigned_doctor_name,
+              assigned_doctor_role: prev.assigned_doctor_role || exactMatch.assigned_doctor_role,
+              // Preserve updated room if it exists
+              assigned_room: prev.assigned_room || exactMatch.assigned_room,
+            };
+          });
+        } else {
+          setSelectedPatient(exactMatch);
+        }
         setSelectedPatientId(exactMatch.id);
-        setNewRoom(exactMatch.assigned_room || '');
-        setNewDoctorId(exactMatch.assigned_doctor_id ? String(exactMatch.assigned_doctor_id) : '');
+        // Only update form fields if they're empty or different
+        if (!newRoom || newRoom !== exactMatch.assigned_room) {
+          setNewRoom(exactMatch.assigned_room || '');
+        }
+        if (!newDoctorId || newDoctorId !== String(exactMatch.assigned_doctor_id || '')) {
+          setNewDoctorId(exactMatch.assigned_doctor_id ? String(exactMatch.assigned_doctor_id) : '');
+        }
       } else if (searchData.data.patients.length === 1) {
         // Auto-select if only one result
-        setSelectedPatient(searchData.data.patients[0]);
-        setSelectedPatientId(searchData.data.patients[0].id);
-        setNewRoom(searchData.data.patients[0].assigned_room || '');
-        setNewDoctorId(searchData.data.patients[0].assigned_doctor_id ? String(searchData.data.patients[0].assigned_doctor_id) : '');
+        const patient = searchData.data.patients[0];
+        if (selectedPatient && selectedPatient.id === patient.id) {
+          setSelectedPatient(prev => {
+            // If current state has doctor info, preserve it (it's more recent than search results)
+            const hasCurrentDoctorInfo = prev.assigned_doctor_id !== undefined && prev.assigned_doctor_id !== null;
+            return {
+              ...patient,
+              // Preserve updated doctor info - prioritize current state over search results
+              assigned_doctor_id: hasCurrentDoctorInfo ? prev.assigned_doctor_id : patient.assigned_doctor_id,
+              assigned_doctor_name: prev.assigned_doctor_name || patient.assigned_doctor_name,
+              assigned_doctor_role: prev.assigned_doctor_role || patient.assigned_doctor_role,
+              // Preserve updated room if it exists
+              assigned_room: prev.assigned_room || patient.assigned_room,
+            };
+          });
+        } else {
+          setSelectedPatient(patient);
+        }
+        setSelectedPatientId(patient.id);
+        if (!newRoom || newRoom !== patient.assigned_room) {
+          setNewRoom(patient.assigned_room || '');
+        }
+        if (!newDoctorId || newDoctorId !== String(patient.assigned_doctor_id || '')) {
+          setNewDoctorId(patient.assigned_doctor_id ? String(patient.assigned_doctor_id) : '');
+        }
       } else {
         setSelectedPatient(null);
         setSelectedPatientId(null);
@@ -92,12 +139,17 @@ const SelectExistingPatient = () => {
         id: selectedPatient.id,
         assigned_room: newRoom,
       }).unwrap();
+      // Update local state immediately
+      setSelectedPatient(prev => ({ ...prev, assigned_room: newRoom }));
+      
       toast.success('Room updated successfully!');
       setIsEditingRoom(false);
-      // Update local state
-      setSelectedPatient(prev => ({ ...prev, assigned_room: newRoom }));
-      // Refetch to update
-      await refetchPatient();
+      
+      // Refetch to ensure consistency
+      await Promise.all([
+        refetchPatient(),
+        refetchDemographics()
+      ]);
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to update room');
     }
@@ -105,15 +157,45 @@ const SelectExistingPatient = () => {
 
   const handleUpdateDoctor = async () => {
     try {
-      await assignPatient({
-        patient_id: selectedPatient.id,
-        assigned_doctor_id: Number(newDoctorId),
-        room_no: selectedPatient.assigned_room || '',
+      // Validate that a doctor is selected
+      if (!newDoctorId || newDoctorId === '') {
+        toast.error('Please select a doctor');
+        return;
+      }
+
+      const doctorId = Number(newDoctorId);
+      if (isNaN(doctorId) || doctorId <= 0) {
+        toast.error('Invalid doctor selection');
+        return;
+      }
+
+      // Find the selected doctor from usersData to get name and role
+      const selectedDoctor = usersData?.data?.users?.find(u => u.id === doctorId);
+
+      // Use updatePatient instead of assignPatient to avoid creating a visit record
+      // assignPatient creates a visit record, which we don't want when just updating doctor
+      await updatePatient({
+        id: selectedPatient.id,
+        assigned_doctor_id: doctorId,
       }).unwrap();
+      
+      // Set flag to prevent useEffect from overwriting our update
+      justUpdatedDoctorRef.current = true;
+      
+      // Update local state immediately with new doctor info
+      setSelectedPatient(prev => ({
+        ...prev,
+        assigned_doctor_id: doctorId,
+        assigned_doctor_name: selectedDoctor?.name || null,
+        assigned_doctor_role: selectedDoctor?.role || null,
+      }));
+      
       toast.success('Doctor assigned successfully!');
       setIsEditingDoctor(false);
-      // Refetch to update doctor info
-      await refetchPatient();
+      
+      // Only refetch patient details - don't refetch search query as it may have stale data
+      // The local state update above ensures UI shows the new doctor immediately
+      await refetchDemographics();
     } catch (err) {
       toast.error(err?.data?.message || 'Failed to assign doctor');
     }
@@ -135,6 +217,10 @@ const SelectExistingPatient = () => {
         patient_id: parseInt(selectedPatient.id, 10) // patient_id is now integer
       }).unwrap();
       toast.success('Visit record created successfully!');
+      // Refetch visit count to update the display
+      if (selectedPatient?.id) {
+        await refetchVisitCount();
+      }
       // Navigate to today's patients page to see the newly created visit
       navigate('/clinical-today-patients?tab=existing');
     } catch (err) {
@@ -143,11 +229,11 @@ const SelectExistingPatient = () => {
   };
 
   const existingDemo = demographicData?.data?.patient;
-  // getPatientById returns { data: { patient: {...} } }, not records
-  // For visit count, we'll use a simple count or fetch visits separately if needed
-  // For now, we'll assume 0 visits if patient exists (will be updated after visit creation)
-  const currentVisitCount = 0; // TODO: Fetch visit count from patient visits endpoint if needed
-  const nextVisitNumber = currentVisitCount + 1; // This will be the visit number after creation
+  
+  // Get visit count from API
+  const currentVisitCount = visitData?.data?.visit_count || 0;
+  const nextVisitNumber = currentVisitCount + 1;
+  const visitType = currentVisitCount === 0 ? 'First Visit' : `Follow-up Visit #${nextVisitNumber}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -338,7 +424,7 @@ const SelectExistingPatient = () => {
                             type="button"
                             size="sm"
                             onClick={handleUpdateDoctor}
-                            loading={isAssigning}
+                            loading={isUpdating}
                             className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
                           >
                             <FiCheck className="h-4 w-4" />
@@ -415,15 +501,22 @@ const SelectExistingPatient = () => {
                         <FiCalendar className="w-4 h-4 text-green-600" />
                         <span className="text-sm font-semibold text-gray-700">Visit Statistics</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-2xl font-bold text-blue-700">{nextVisitNumber}</span>
                         <span className="text-sm text-gray-600">Total Visits</span>
-                        {currentVisitCount === 0 && (
+                        {currentVisitCount === 0 ? (
                           <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                             First Visit
                           </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                            {visitType}
+                          </span>
                         )}
                       </div>
+                      {isLoadingVisits && (
+                        <p className="text-xs text-gray-500 mt-1">Loading visit history...</p>
+                      )}
                     </div>
                   </div>
                 </div>

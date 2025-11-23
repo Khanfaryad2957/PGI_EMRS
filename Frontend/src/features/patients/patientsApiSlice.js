@@ -26,7 +26,14 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: patientData,
       }),
-      invalidatesTags: ['Patient', 'Stats'],
+      invalidatesTags: (result, error, patientData) => {
+        const tags = ['Patient', 'Stats'];
+        // If creating a visit for existing patient, also invalidate visit count
+        if (patientData?.patient_id) {
+          tags.push({ type: 'PatientVisit', id: patientData.patient_id });
+        }
+        return tags;
+      },
     }),
     createPatientComplete: builder.mutation({
       query: (patientData) => ({
@@ -83,6 +90,13 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
       query: () => '/patients/stats',
       providesTags: ['Stats'],
     }),
+    getPatientVisitCount: builder.query({
+      query: (patientId) => `/patients/${patientId}/visits/count`,
+      providesTags: (result, error, patientId) => [
+        { type: 'Patient', id: patientId },
+        { type: 'PatientVisit', id: patientId }
+      ],
+    }),
   }),
 });
 
@@ -99,5 +113,6 @@ export const {
   useCheckCRNumberExistsQuery,
   //dashboard stats queries
   useGetPatientsStatsQuery,
+  useGetPatientVisitCountQuery,
 } = patientsApiSlice;
 

@@ -563,6 +563,9 @@ router.get('/stats', authenticateToken, authorizeRoles('Admin', 'Psychiatric Wel
  */
 router.get('/:id', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.getPatientById);
 
+// Get visit count for a patient
+router.get('/:id/visits/count', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.getPatientVisitCount);
+
 /**
  * @swagger
  * /api/patients/{id}:

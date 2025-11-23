@@ -54,13 +54,17 @@ class PatientController {
           ? parseInt(existingPatient.assigned_doctor_id, 10)
           : null;
         
+        // Get visit count to determine visit type
+        const visitCount = await PatientVisit.getVisitCount(patientIdInt);
+        const visitType = visitCount === 0 ? 'first_visit' : 'follow_up';
+        
         const visit = await PatientVisit.assignPatient({
           patient_id: patientIdInt, // patient_id is now integer
           assigned_doctor_id: assignedDoctorId,
           room_no: existingPatient.assigned_room || assigned_room || null,
           visit_date: new Date().toISOString().slice(0, 10),
-          visit_type: 'follow_up',
-          notes: `Visit created via Existing Patient flow`
+          visit_type: visitType, // Determined by visit count
+          notes: `Visit created via Existing Patient flow - Visit #${visitCount + 1}`
         });
 
         return res.status(201).json({
@@ -68,7 +72,9 @@ class PatientController {
           message: 'Visit record created successfully',
           data: {
             patient: existingPatient.toJSON(),
-            visit: visit
+            visit: visit,
+            visit_count: visitCount + 1, // Include in response
+            visit_type: visitType
           }
         });
       }
@@ -95,6 +101,40 @@ class PatientController {
       res.status(500).json({
         success: false,
         message: 'Failed to register patient',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  // Get visit count for a patient
+  static async getPatientVisitCount(req, res) {
+    try {
+      const { id } = req.params;
+      const patientIdInt = parseInt(id, 10);
+      
+      if (isNaN(patientIdInt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid patient ID format'
+        });
+      }
+
+      const visitCount = await PatientVisit.getVisitCount(patientIdInt);
+      const visits = await PatientVisit.getPatientVisits(patientIdInt);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          visit_count: visitCount,
+          visits: visits,
+          next_visit_number: visitCount + 1
+        }
+      });
+    } catch (error) {
+      console.error('[getPatientVisitCount] Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get visit count',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
@@ -638,37 +678,68 @@ class PatientController {
         'file_status'
       ];
   
-      // Build update data object only with defined fields
+      // Build update data object only with defined fields that have actual values
+      // IMPORTANT: Only include fields that are explicitly provided AND have meaningful values
+      // This prevents null/empty values from overwriting existing data
       const updateData = {};
       for (const field of allowedFields) {
+        // Only process fields that are explicitly provided (not undefined)
         if (req.body[field] !== undefined) {
+          const value = req.body[field];
+          
+          // Skip null values and empty strings - these would overwrite existing data
+          // Only include if the value is explicitly meant to clear a field (we'll handle this case-by-case)
+          if (value === null || value === '') {
+            // For certain fields, allow null to clear them (e.g., assigned_doctor_id can be null)
+            // For most fields, skip null/empty to preserve existing values
+            if (field === 'assigned_doctor_id' || field === 'assigned_doctor_name' || field === 'assigned_room') {
+              // These fields can be explicitly cleared
+              updateData[field] = null;
+            }
+            // For all other fields, skip null/empty values to preserve existing data
+            continue;
+          }
+          
           // Handle assigned_doctor_id - it's integer
-          if (field === 'assigned_doctor_id' && req.body[field] !== null && req.body[field] !== '') {
+          if (field === 'assigned_doctor_id') {
             // Convert to integer
-            updateData[field] = parseInt(req.body[field], 10);
-            
-            // If assigned_doctor_id is provided but assigned_doctor_name is not, fetch it
-            if (!req.body.assigned_doctor_name && updateData[field]) {
-              try {
-                const db = require('../config/database');
-                const doctorResult = await db.query(
-                  'SELECT name FROM users WHERE id = $1',
-                  [updateData[field]]
-                );
-                if (doctorResult.rows.length > 0) {
-                  updateData.assigned_doctor_name = doctorResult.rows[0].name;
+            const doctorIdInt = parseInt(value, 10);
+            if (!isNaN(doctorIdInt) && doctorIdInt > 0) {
+              updateData[field] = doctorIdInt;
+              
+              // If assigned_doctor_id is provided but assigned_doctor_name is not, fetch it
+              if (!req.body.assigned_doctor_name) {
+                try {
+                  const db = require('../config/database');
+                  const doctorResult = await db.query(
+                    'SELECT name FROM users WHERE id = $1',
+                    [doctorIdInt]
+                  );
+                  if (doctorResult.rows.length > 0) {
+                    updateData.assigned_doctor_name = doctorResult.rows[0].name;
+                  }
+                } catch (err) {
+                  console.warn('[updatePatient] Could not fetch doctor name:', err.message);
                 }
-              } catch (err) {
-                console.warn('[updatePatient] Could not fetch doctor name:', err.message);
               }
             }
           } else {
-            updateData[field] = req.body[field];
+            // For all other fields, include the value as-is (it's not null/empty)
+            updateData[field] = value;
           }
         }
       }
   
-      console.log('Updating patient with data:', updateData);
+      console.log('[updatePatient] Updating patient with data:', JSON.stringify(updateData, null, 2));
+      console.log('[updatePatient] Fields to update:', Object.keys(updateData));
+      
+      // Verify we have fields to update
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No valid fields to update. All provided values were null or empty.',
+        });
+      }
   
       // Perform the update
       await patient.update(updateData);
@@ -1113,7 +1184,7 @@ class PatientController {
       if (!patient_id || !assigned_doctor_id) {
         return res.status(400).json({ 
           success: false, 
-          message: 'patient_id and assigned_doctor are required' 
+          message: 'patient_id and assigned_doctor_id are required' 
         });
       }
 

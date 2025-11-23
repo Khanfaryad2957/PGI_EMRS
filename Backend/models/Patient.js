@@ -926,6 +926,9 @@ class Patient {
       let idx = 1;
 
       for (const [k, v] of Object.entries(updateData)) {
+        // Only include fields that are in allowedFields
+        // Allow null values (they can be used to explicitly clear fields)
+        // Skip undefined values (they won't be updated)
         if (allowedFields.includes(k) && v !== undefined) {
           updates.push(`${k} = $${idx++}`);
           values.push(v);

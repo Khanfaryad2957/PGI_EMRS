@@ -194,6 +194,26 @@ class ClinicalController {
 
         clinicalRecord = await ClinicalController.createRecord("clinical_proforma", clinicalData);
        
+        // Sync visit_type between patient_visits and clinical_proforma
+        if (clinicalRecord && data.visit_type) {
+          try {
+            const visitDate = clinicalData.visit_date || new Date().toISOString().split('T')[0];
+            const updateResult = await db.query(
+              `UPDATE patient_visits 
+               SET visit_type = $1, clinical_proforma_id = $2
+               WHERE patient_id = $3 AND visit_date = $4`,
+              [data.visit_type, clinicalRecord.id, data.patient_id, visitDate]
+            );
+            if (updateResult.rowCount > 0) {
+              console.log(`[createClinicalProforma] ✅ Synced visit_type '${data.visit_type}' to patient_visits for patient ${data.patient_id}`);
+            } else {
+              console.warn(`[createClinicalProforma] ⚠️ No visit record found to sync for patient ${data.patient_id} on ${visitDate}. Visit record should be created first.`);
+            }
+          } catch (updateError) {
+            console.error('[createClinicalProforma] ⚠️ Error syncing visit_type to patient_visits:', updateError);
+            // Don't fail the whole operation if this update fails
+          }
+        }
 
         // STEP 2: Create or reuse ADL file
         // Check if ADL file already exists for this clinical_proforma (shouldn't happen on create, but handle gracefully)
@@ -408,6 +428,27 @@ class ClinicalController {
         };
   
         const simpleClinical = await ClinicalController.createRecord("clinical_proforma", clinicalData);
+
+        // Sync visit_type between patient_visits and clinical_proforma
+        if (simpleClinical && data.visit_type) {
+          try {
+            const visitDate = clinicalData.visit_date || new Date().toISOString().split('T')[0];
+            const updateResult = await db.query(
+              `UPDATE patient_visits 
+               SET visit_type = $1, clinical_proforma_id = $2
+               WHERE patient_id = $3 AND visit_date = $4`,
+              [data.visit_type, simpleClinical.id, data.patient_id, visitDate]
+            );
+            if (updateResult.rowCount > 0) {
+              console.log(`[createClinicalProforma] ✅ Synced visit_type '${data.visit_type}' to patient_visits for patient ${data.patient_id} (simple case)`);
+            } else {
+              console.warn(`[createClinicalProforma] ⚠️ No visit record found to sync for patient ${data.patient_id} on ${visitDate}. Visit record should be created first.`);
+            }
+          } catch (updateError) {
+            console.error('[createClinicalProforma] ⚠️ Error syncing visit_type to patient_visits:', updateError);
+            // Don't fail the whole operation if this update fails
+          }
+        }
 
     // Handle prescriptions
         let createdPrescriptions = [];
