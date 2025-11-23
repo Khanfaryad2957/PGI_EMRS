@@ -19,7 +19,8 @@ const SelectExistingPatient = () => {
   const navigate = useNavigate();
 
 
-  const [createRecord, { isLoading }] = useCreatePatientCompleteMutation();
+  const [createRecord, { isLoading }] = useCreatePatientMutation();
+  // const [createRecordComplete, { isLoading: isLoadingComplete }] = useCreatePatientCompleteMutation();
 
   
   const [assignPatient, { isLoading: isAssigning }] = useAssignPatientMutation();
