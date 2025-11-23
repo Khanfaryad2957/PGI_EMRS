@@ -603,6 +603,44 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfa
 
 /**
  * @swagger
+ * /api/patients/{patient_id}/visits/complete:
+ *   post:
+ *     summary: Mark patient visit as completed
+ *     tags: [Patient Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: patient_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Patient ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               visit_date:
+ *                 type: string
+ *                 format: date
+ *                 description: Visit date (optional, defaults to today)
+ *     responses:
+ *       200:
+ *         description: Visit marked as completed successfully
+ *       400:
+ *         description: Invalid patient ID
+ *       404:
+ *         description: Visit not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/:id/visits/complete', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.markVisitCompleted);
+
+/**
+ * @swagger
  * /api/patients/{id}:
  *   delete:
  *     summary: Delete patient (Admin only)

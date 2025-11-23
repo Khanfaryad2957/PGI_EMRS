@@ -97,6 +97,18 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
         { type: 'PatientVisit', id: patientId }
       ],
     }),
+    markVisitCompleted: builder.mutation({
+      query: ({ patient_id, visit_date }) => ({
+        url: `/patients/${patient_id}/visits/complete`,
+        method: 'POST',
+        body: visit_date ? { visit_date } : {},
+      }),
+      invalidatesTags: (result, error, { patient_id }) => [
+        { type: 'Patient', id: patient_id },
+        { type: 'Patient', id: 'LIST' },
+        { type: 'PatientVisit', id: patient_id },
+      ],
+    }),
   }),
 });
 
@@ -114,5 +126,6 @@ export const {
   //dashboard stats queries
   useGetPatientsStatsQuery,
   useGetPatientVisitCountQuery,
+  useMarkVisitCompletedMutation,
 } = patientsApiSlice;
 

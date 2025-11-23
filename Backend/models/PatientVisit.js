@@ -79,6 +79,54 @@ class PatientVisit {
       throw error;
     }
   }
+
+  // Mark a visit as completed
+  static async markVisitCompleted(visit_id) {
+    try {
+      const result = await db.query(
+        `UPDATE patient_visits 
+         SET visit_status = 'completed', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING *`,
+        [visit_id]
+      );
+
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('Visit not found');
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('[PatientVisit.markVisitCompleted] Error:', error);
+      throw error;
+    }
+  }
+
+  // Mark today's visit for a patient as completed
+  static async markPatientVisitCompletedToday(patient_id, visit_date = null) {
+    try {
+      const dateToUse = visit_date || new Date().toISOString().slice(0, 10);
+      
+      const result = await db.query(
+        `UPDATE patient_visits 
+         SET visit_status = 'completed', updated_at = CURRENT_TIMESTAMP
+         WHERE patient_id = $1 
+           AND visit_date = $2
+           AND visit_status != 'completed'
+         RETURNING *`,
+        [patient_id, dateToUse]
+      );
+
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('No visit found for today or visit already completed');
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      console.error('[PatientVisit.markPatientVisitCompletedToday] Error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = PatientVisit;

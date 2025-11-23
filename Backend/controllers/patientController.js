@@ -315,9 +315,10 @@ class PatientController {
             visits = visitsResult.rows || [];
             
             const visitsTodayResult = await db.query(
-              `SELECT patient_id, visit_date, assigned_doctor_id
+              `SELECT patient_id, visit_date, assigned_doctor_id, visit_status
                FROM patient_visits
-               WHERE patient_id = ANY($1) AND visit_date = $2`,
+               WHERE patient_id = ANY($1) AND visit_date = $2
+               ORDER BY created_at DESC`,
               [patientIds, today]
             );
             
@@ -391,6 +392,7 @@ class PatientController {
                 assigned_doctor_role: doctor?.role || p.assigned_doctor_role || null,
                 last_assigned_date: latest?.visit_date || null,
                 visit_date: visitInfo?.visit_date || null,
+                visit_status: visitInfo?.visit_status || latest?.visit_status || null,
                 has_visit_today: hasVisitToday,
               };
             });
@@ -1252,6 +1254,45 @@ class PatientController {
         success: false, 
         message: 'Failed to assign patient', 
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
+      });
+    }
+  }
+
+  // Mark patient visit as completed
+  static async markVisitCompleted(req, res) {
+    try {
+      const { id } = req.params; // Use 'id' to match validateId middleware
+      const { visit_date } = req.body;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Patient ID is required'
+        });
+      }
+
+      const patientIdInt = parseInt(id, 10);
+      if (isNaN(patientIdInt) || patientIdInt <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid patient ID format'
+        });
+      }
+
+      // Mark today's visit as completed
+      const visit = await PatientVisit.markPatientVisitCompletedToday(patientIdInt, visit_date);
+
+      res.json({
+        success: true,
+        message: 'Visit marked as completed successfully',
+        data: { visit }
+      });
+    } catch (error) {
+      console.error('Mark visit completed error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to mark visit as completed',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   }
