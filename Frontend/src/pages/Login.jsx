@@ -407,7 +407,7 @@ const Login = () => {
             {/* Footer */}
             <div className="mt-4 text-center">
               <p className="text-xs text-gray-500">
-                © 2025 Post Graduate Institute of Medical Education & Research, Chandigarh
+                © {new Date().getFullYear()} Post Graduate Institute of Medical Education & Research, Chandigarh
               </p>
             </div>
           </div>

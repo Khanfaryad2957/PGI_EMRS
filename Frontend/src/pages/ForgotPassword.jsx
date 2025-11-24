@@ -143,7 +143,7 @@ const ForgotPassword = () => {
             {/* Footer */}
             <div className="text-center mt-8">
               <p className="text-xs text-gray-500">
-                © 2025 Post Graduate Institute of Medical Education & Research, Chandigarh
+                © {new Date().getFullYear()} Post Graduate Institute of Medical Education & Research, Chandigarh
               </p>
             </div>
           </div>
@@ -237,7 +237,7 @@ const ForgotPassword = () => {
           {/* Footer */}
           <div className="text-center mt-8">
             <p className="text-xs text-gray-500">
-              © 2025 Post Graduate Institute of Medical Education & Research, Chandigarh
+              © {new Date().getFullYear()} Post Graduate Institute of Medical Education & Research, Chandigarh
             </p>
           </div>
         </div>

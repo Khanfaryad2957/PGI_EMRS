@@ -107,6 +107,28 @@ class PatientVisit {
     try {
       const dateToUse = visit_date || new Date().toISOString().slice(0, 10);
       
+      // First, check if a visit exists for this patient and date
+      const checkResult = await db.query(
+        `SELECT id, visit_status 
+         FROM patient_visits 
+         WHERE patient_id = $1 AND visit_date = $2
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [patient_id, dateToUse]
+      );
+
+      if (!checkResult.rows || checkResult.rows.length === 0) {
+        return null; // No visit found
+      }
+
+      const existingVisit = checkResult.rows[0];
+      
+      // Check if already completed
+      if (existingVisit.visit_status === 'completed') {
+        return null; // Already completed
+      }
+      
+      // Update the visit status
       const result = await db.query(
         `UPDATE patient_visits 
          SET visit_status = 'completed', updated_at = CURRENT_TIMESTAMP
@@ -118,7 +140,7 @@ class PatientVisit {
       );
 
       if (!result.rows || result.rows.length === 0) {
-        throw new Error('No visit found for today or visit already completed');
+        return null; // No visit was updated (might have been completed between check and update)
       }
 
       return result.rows[0];

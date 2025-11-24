@@ -2,6 +2,9 @@ const Patient = require('../models/Patient');
 const PatientVisit = require('../models/PatientVisit');
 const ClinicalProforma = require('../models/ClinicalProforma');
 const ADLFile = require('../models/ADLFile');
+const path = require('path');
+const fs = require('fs');
+const { uploadsDir } = require('../middleware/upload');
 
 class PatientController {
 
@@ -328,7 +331,32 @@ class PatientController {
             visitsTodayError = true;
           }
           
-          console.log(`[getAllPatients] Found ${visits?.length || 0} visits, ${visitsToday?.length || 0} visits today`);
+          // Fetch clinical proformas created today
+          let proformasToday = [];
+          let proformasTodayError = false;
+          try {
+            const proformasTodayResult = await db.query(
+              `SELECT patient_id, created_at
+               FROM clinical_proforma
+               WHERE patient_id = ANY($1) 
+                 AND DATE(created_at) = $2
+               ORDER BY created_at DESC`,
+              [patientIds, today]
+            );
+            
+            proformasToday = proformasTodayResult.rows || [];
+          } catch (queryErr) {
+            console.error('[getAllPatients] Error fetching proformas today:', queryErr);
+            proformasTodayError = true;
+          }
+          
+          console.log(`[getAllPatients] Found ${visits?.length || 0} visits, ${visitsToday?.length || 0} visits today, ${proformasToday?.length || 0} proformas today`);
+
+          // Build set of patients with proformas today
+          const patientsWithProformaToday = new Set();
+          if (!proformasTodayError && Array.isArray(proformasToday)) {
+            proformasToday.forEach(p => patientsWithProformaToday.add(String(p.patient_id)));
+          }
 
           if (Array.isArray(visits) && visits.length > 0) {
             // Get unique assigned_doctor IDs
@@ -375,6 +403,7 @@ class PatientController {
               const patientIdStr = String(p.id);
               const latest = latestByPatient.get(patientIdStr);
               const hasVisitToday = patientsWithVisitToday.has(patientIdStr);
+              const hasProformaToday = patientsWithProformaToday.has(patientIdStr);
               const visitInfo = hasVisitToday && visitsToday?.find(v => String(v.patient_id) === patientIdStr) 
                 ? visitsToday.find(v => String(v.patient_id) === patientIdStr)
                 : latest;
@@ -394,6 +423,7 @@ class PatientController {
                 visit_date: visitInfo?.visit_date || null,
                 visit_status: visitInfo?.visit_status || latest?.visit_status || null,
                 has_visit_today: hasVisitToday,
+                has_proforma_today: hasProformaToday,
               };
             });
           } else {
@@ -404,6 +434,7 @@ class PatientController {
               assigned_doctor_name: (p.assigned_doctor_name && p.assigned_doctor_name !== 'Unknown Doctor') ? p.assigned_doctor_name : null,
               assigned_doctor_role: p.assigned_doctor_role || null,
               has_visit_today: false,
+              has_proforma_today: patientsWithProformaToday.has(String(p.id)),
             }));
           }
         }
@@ -1282,6 +1313,41 @@ class PatientController {
       // Mark today's visit as completed
       const visit = await PatientVisit.markPatientVisitCompletedToday(patientIdInt, visit_date);
 
+      if (!visit) {
+        // Check if patient exists to provide a more helpful error message
+        const patient = await Patient.findById(patientIdInt);
+        if (!patient) {
+          return res.status(404).json({
+            success: false,
+            message: 'Patient not found'
+          });
+        }
+        
+        // Check if there's any visit record for today
+        const db = require('../config/database');
+        const today = visit_date || new Date().toISOString().slice(0, 10);
+        const visitCheck = await db.query(
+          `SELECT visit_status FROM patient_visits 
+           WHERE patient_id = $1 AND visit_date = $2 
+           ORDER BY created_at DESC LIMIT 1`,
+          [patientIdInt, today]
+        );
+        
+        if (visitCheck.rows && visitCheck.rows.length > 0) {
+          // Visit exists but is already completed
+          return res.status(404).json({
+            success: false,
+            message: 'Visit for today is already marked as completed'
+          });
+        } else {
+          // No visit record exists for today
+          return res.status(404).json({
+            success: false,
+            message: 'No visit record found for today. Please create a visit record first before marking as completed.'
+          });
+        }
+      }
+
       res.json({
         success: true,
         message: 'Visit marked as completed successfully',
@@ -1289,9 +1355,211 @@ class PatientController {
       });
     } catch (error) {
       console.error('Mark visit completed error:', error);
+      
+      // Check if it's a "not found" error
+      if (error.message && error.message.includes('No visit found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message || 'No active visit found for today to mark as completed'
+        });
+      }
+      
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to mark visit as completed',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  static async uploadPatientFiles(req, res) {
+    try {
+      const { id } = req.params;
+      const patientIdInt = parseInt(id, 10);
+
+      if (isNaN(patientIdInt) || patientIdInt <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid patient ID format'
+        });
+      }
+
+      // Check if patient exists
+      const patient = await Patient.findById(patientIdInt);
+      if (!patient) {
+        // Clean up uploaded files if patient doesn't exist
+        if (req.files && req.files.length > 0) {
+          req.files.forEach(file => {
+            const filePath = path.join(uploadsDir, file.filename);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          });
+        }
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found'
+        });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No files uploaded'
+        });
+      }
+
+      // Get existing files
+      const existingFiles = patient.patient_files || [];
+      const uploadedFiles = [];
+
+      // Process each uploaded file
+      req.files.forEach(file => {
+        const fileInfo = {
+          filename: file.filename,
+          originalname: file.originalname,
+          path: `/uploads/patients/${file.filename}`,
+          type: file.mimetype,
+          size: file.size,
+          uploaded_at: new Date().toISOString()
+        };
+        uploadedFiles.push(fileInfo);
+      });
+
+      // Merge with existing files
+      const updatedFiles = [...existingFiles, ...uploadedFiles];
+
+      // Update patient record
+      await Patient.updateFiles(patientIdInt, updatedFiles);
+
+      res.status(200).json({
+        success: true,
+        message: `${uploadedFiles.length} file(s) uploaded successfully`,
+        data: {
+          files: uploadedFiles,
+          total_files: updatedFiles.length
+        }
+      });
+    } catch (error) {
+      console.error('Upload patient files error:', error);
+      // Clean up uploaded files on error
+      if (req.files && req.files.length > 0) {
+        req.files.forEach(file => {
+          const filePath = path.join(uploadsDir, file.filename);
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (unlinkError) {
+              console.error('Error deleting file:', unlinkError);
+            }
+          }
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload files',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  static async getPatientFiles(req, res) {
+    try {
+      const { id } = req.params;
+      const patientIdInt = parseInt(id, 10);
+
+      if (isNaN(patientIdInt) || patientIdInt <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid patient ID format'
+        });
+      }
+
+      const patient = await Patient.findById(patientIdInt);
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found'
+        });
+      }
+
+      const files = patient.patient_files || [];
+
+      res.status(200).json({
+        success: true,
+        data: {
+          files: files,
+          count: files.length
+        }
+      });
+    } catch (error) {
+      console.error('Get patient files error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get patient files',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  static async deletePatientFile(req, res) {
+    try {
+      const { id, filename } = req.params;
+      const patientIdInt = parseInt(id, 10);
+
+      if (isNaN(patientIdInt) || patientIdInt <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid patient ID format'
+        });
+      }
+
+      const patient = await Patient.findById(patientIdInt);
+      if (!patient) {
+        return res.status(404).json({
+          success: false,
+          message: 'Patient not found'
+        });
+      }
+
+      const files = patient.patient_files || [];
+      const fileIndex = files.findIndex(f => f.filename === filename);
+
+      if (fileIndex === -1) {
+        return res.status(404).json({
+          success: false,
+          message: 'File not found'
+        });
+      }
+
+      // Delete physical file
+      const filePath = path.join(uploadsDir, filename);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (unlinkError) {
+          console.error('Error deleting physical file:', unlinkError);
+          // Continue even if physical file deletion fails
+        }
+      }
+
+      // Remove from database
+      const updatedFiles = files.filter(f => f.filename !== filename);
+      await Patient.updateFiles(patientIdInt, updatedFiles);
+
+      res.status(200).json({
+        success: true,
+        message: 'File deleted successfully',
+        data: {
+          deleted_file: files[fileIndex],
+          remaining_files: updatedFiles.length
+        }
+      });
+    } catch (error) {
+      console.error('Delete patient file error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete file',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

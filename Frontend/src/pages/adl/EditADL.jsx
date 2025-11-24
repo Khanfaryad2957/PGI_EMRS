@@ -856,8 +856,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Relationship"
                       value={informant.relationship}
                       onChange={(e) => {
-                        const newInformants = [...(formData.informants || [])];
-                        newInformants[index].relationship = e.target.value;
+                        const newInformants = (formData.informants || []).map((item, i) => 
+                          i === index ? { ...item, relationship: e.target.value } : { ...item }
+                        );
                         setFormData(prev => ({ ...prev, informants: newInformants }));
                       }}
                       placeholder="e.g., Father, Mother, Spouse"
@@ -874,8 +875,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Name"
                       value={informant.name}
                       onChange={(e) => {
-                        const newInformants = [...(formData.informants || [])];
-                        newInformants[index].name = e.target.value;
+                        const newInformants = (formData.informants || []).map((item, i) => 
+                          i === index ? { ...item, name: e.target.value } : { ...item }
+                        );
                         setFormData(prev => ({ ...prev, informants: newInformants }));
                       }}
                       placeholder="Full name"
@@ -892,8 +894,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                       label="Reliability / Ability to report"
                       value={informant.reliability}
                       onChange={(e) => {
-                        const newInformants = [...(formData.informants || [])];
-                        newInformants[index].reliability = e.target.value;
+                        const newInformants = (formData.informants || []).map((item, i) => 
+                          i === index ? { ...item, reliability: e.target.value } : { ...item }
+                        );
                         setFormData(prev => ({ ...prev, informants: newInformants }));
                       }}
                       placeholder="Assessment of reliability"
@@ -967,8 +970,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         value={complaint.complaint}
                         onChange={(e) => {
                           if (readOnly) return;
-                          const newComplaints = [...(formData.complaints_patient || [])];
-                          newComplaints[index].complaint = e.target.value;
+                          const newComplaints = (formData.complaints_patient || []).map((item, i) =>
+                            i === index ? { ...item, complaint: e.target.value } : item
+                          );
                           setFormData(prev => ({ ...prev, complaints_patient: newComplaints }));
                         }}
                         placeholder="Enter complaint"
@@ -2593,8 +2597,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={resident.name}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newResidents = [...(formData.living_residents || [])];
-                      newResidents[index].name = e.target.value;
+                      const newResidents = (formData.living_residents || []).map((item, i) =>
+                        i === index ? { ...item, name: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
                     disabled={readOnly}
@@ -2604,8 +2609,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={resident.relationship}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newResidents = [...(formData.living_residents || [])];
-                      newResidents[index].relationship = e.target.value;
+                      const newResidents = (formData.living_residents || []).map((item, i) =>
+                        i === index ? { ...item, relationship: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
                     disabled={readOnly}
@@ -2615,8 +2621,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={resident.age}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newResidents = [...(formData.living_residents || [])];
-                      newResidents[index].age = e.target.value;
+                      const newResidents = (formData.living_residents || []).map((item, i) =>
+                        i === index ? { ...item, age: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_residents: newResidents }));
                     }}
                     disabled={readOnly}
@@ -2704,8 +2711,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={inlaw.name}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newInlaws = [...formData.living_inlaws];
-                      newInlaws[index].name = e.target.value;
+                      const newInlaws = (formData.living_inlaws || []).map((item, i) =>
+                        i === index ? { ...item, name: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
                     disabled={readOnly}
@@ -2715,8 +2723,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={inlaw.relationship}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newInlaws = [...formData.living_inlaws];
-                      newInlaws[index].relationship = e.target.value;
+                      const newInlaws = (formData.living_inlaws || []).map((item, i) =>
+                        i === index ? { ...item, relationship: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
                     disabled={readOnly}
@@ -2726,8 +2735,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                     value={inlaw.age}
                     onChange={(e) => {
                       if (readOnly) return;
-                      const newInlaws = [...formData.living_inlaws];
-                      newInlaws[index].age = e.target.value;
+                      const newInlaws = (formData.living_inlaws || []).map((item, i) =>
+                        i === index ? { ...item, age: e.target.value } : item
+                      );
                       setFormData(prev => ({ ...prev, living_inlaws: newInlaws }));
                     }}
                     disabled={readOnly}
@@ -3464,8 +3474,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         value={informant.relationship}
                         onChange={(e) => {
                           if (readOnly) return;
-                          const newInformants = [...formData.informants];
-                          newInformants[index].relationship = e.target.value;
+                          const newInformants = (formData.informants || []).map((item, i) => 
+                            i === index ? { ...item, relationship: e.target.value } : { ...item }
+                          );
                           setFormData(prev => ({ ...prev, informants: newInformants }));
                         }}
                         placeholder="e.g., Father, Mother, Spouse"
@@ -3476,8 +3487,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         value={informant.name}
                         onChange={(e) => {
                           if (readOnly) return;
-                          const newInformants = [...formData.informants];
-                          newInformants[index].name = e.target.value;
+                          const newInformants = (formData.informants || []).map((item, i) => 
+                            i === index ? { ...item, name: e.target.value } : { ...item }
+                          );
                           setFormData(prev => ({ ...prev, informants: newInformants }));
                         }}
                         placeholder="Full name"
@@ -3487,8 +3499,9 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
                         value={informant.reliability}
                         onChange={(e) => {
                           if (readOnly) return;
-                          const newInformants = [...formData.informants];
-                          newInformants[index].reliability = e.target.value;
+                          const newInformants = (formData.informants || []).map((item, i) => 
+                            i === index ? { ...item, reliability: e.target.value } : { ...item }
+                          );
                           setFormData(prev => ({ ...prev, informants: newInformants }));
                         }}
                         placeholder="Assessment of reliability"

@@ -35,12 +35,21 @@ const PatientRow = ({ patient, isNewPatient, navigate, onMarkCompleted }) => {
       }
     } catch (error) {
       console.error('Failed to mark visit as completed:', error);
-      toast.error(error?.data?.message || 'Failed to mark visit as completed');
+      // Handle 404 (no visit found) differently from other errors
+      if (error?.status === 404 || error?.data?.status === 404) {
+        toast.warning(error?.data?.message || 'No active visit found for today to mark as completed');
+      } else {
+        toast.error(error?.data?.message || 'Failed to mark visit as completed');
+      }
     }
   };
   
   // Check if visit is already completed
   const isCompleted = patient.visit_status === 'completed';
+  
+  // Only show "Mark as Completed" button if patient has a visit record for today
+  // New patients created today may not have a visit record yet
+  const hasVisitRecord = patient.visit_status !== undefined && patient.visit_status !== null;
   
   // Refetch proformas when component becomes visible (e.g., after returning from deletion)
   useEffect(() => {
@@ -222,8 +231,8 @@ const PatientRow = ({ patient, isNewPatient, navigate, onMarkCompleted }) => {
               <span className="whitespace-nowrap">Prescribe</span>
             </Button>
             
-            {/* Mark as Completed Button - Only show if not already completed */}
-            {!isCompleted && (
+            {/* Mark as Completed Button - Only show if patient has a visit record and is not already completed */}
+            {hasVisitRecord && !isCompleted && (
               <Button
                 variant="outline"
                 size="sm"
@@ -408,6 +417,7 @@ const ClinicalTodayPatients = () => {
   const todayPatientsByDate = filterTodayPatients(deduplicatedApiPatients);
   
   // Filter out completed visits - only show patients with pending visits
+  // Patients will only disappear when "Mark as Completed" button is clicked
   const todayPatientsNotCompleted = todayPatientsByDate.filter(patient => {
     // Show patient if visit_status is not 'completed' or if there's no visit_status (new patients)
     return patient.visit_status !== 'completed';
