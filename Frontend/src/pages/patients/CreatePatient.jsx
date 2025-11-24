@@ -10,7 +10,7 @@ import {
   FiNavigation, FiTruck, FiEdit3, FiSave, FiX, FiLayers, FiLoader,
   FiChevronDown, FiChevronUp, FiArrowRight, FiCheck
 } from 'react-icons/fi';
-import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation } from '../../features/patients/patientsApiSlice';
+import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation, useUploadPatientFilesMutation } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { updatePatientRegistrationForm, resetPatientRegistrationForm, selectPatientRegistrationForm } from '../../features/form/formSlice';
 import { useCreateClinicalProformaMutation } from '../../features/clinical/clinicalApiSlice';
@@ -20,6 +20,7 @@ import Card from '../../components/Card';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
 import DatePicker from '../../components/CustomDatePicker';
+import FileUpload from '../../components/FileUpload';
 import {
   MARITAL_STATUS, FAMILY_TYPE_OPTIONS, LOCALITY_OPTIONS, RELIGION_OPTIONS, SEX_OPTIONS,
   AGE_GROUP_OPTIONS, OCCUPATION_OPTIONS, EDUCATION_OPTIONS,
@@ -37,6 +38,7 @@ const CreatePatient = () => {
   const [updatePatient, { isLoading: isUpdating }] = useUpdatePatientMutation();
   const { data: usersData } = useGetDoctorsQuery({ page: 1, limit: 100 });
   const [createProforma, { isLoading: isCreating }] = useCreateClinicalProformaMutation();
+  const [uploadFiles, { isLoading: isUploadingFiles }] = useUploadPatientFilesMutation();
   // State declarations first
   const [errors, setErrors] = useState({});
   const [crValidationTimeout, setCrValidationTimeout] = useState(null);
@@ -59,6 +61,7 @@ const CreatePatient = () => {
   const [showReferredByOther, setShowReferredByOther] = useState(false);
   const [referredByOther, setReferredByOther] = useState('');
   const [sameAsPermanent, setSameAsPermanent] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   // Restore step state from localStorage on mount
   useEffect(() => {
@@ -1001,7 +1004,7 @@ const CreatePatient = () => {
                           type="submit"
                           loading={isLoading}
                           disabled={isLoading}
-                          className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                          className="px-6 lg:px-8 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                         >
                           <FiArrowRight className="mr-2" />
                           {isLoading ? 'Saving...' : 'Save & Continue'}
@@ -1632,6 +1635,24 @@ const CreatePatient = () => {
                               />
                         </div>
 
+                        {/* File Upload Section */}
+                        <div className="space-y-6 pt-6 border-t border-white/30">
+                          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                              <FiFileText className="w-5 h-5 text-purple-600" />
+                            </div>
+                            Patient Documents & Files
+                          </h4>
+                          <FileUpload
+                            files={selectedFiles}
+                            onFilesChange={setSelectedFiles}
+                            maxFiles={20}
+                            maxSizeMB={10}
+                            patientId={patientId}
+                            disabled={!patientId}
+                          />
+                        </div>
+
                             <div className="flex flex-col sm:flex-row justify-end gap-4">
                               <Button
                                 type="button"
@@ -1646,7 +1667,7 @@ const CreatePatient = () => {
                                 type="submit"
                                 loading={isLoading || isAssigning || isUpdating}
                                 disabled={isLoading || isAssigning || isUpdating}
-                                className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                                className="px-6 lg:px-8 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                               >
                                 <FiSave className="mr-2" />
                                 {isLoading || isAssigning || isUpdating ? 'Saving...' : 'Register Patient'}

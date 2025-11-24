@@ -8,6 +8,7 @@ const {
   validateId,
   validatePagination
 } = require('../middleware/validation');
+const { handleUpload } = require('../middleware/upload');
 
 /**
  * @swagger
@@ -894,5 +895,106 @@ router.get('/adl/:adl_no', authenticateToken,  PatientController.getPatientByADL
 // Duplicate /stats endpoint - using the one at line 537 with proper Swagger docs
 router.get('/stats', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), PatientController.getPatientStats);
 
+/**
+ * @swagger
+ * /api/patients/{id}/files:
+ *   post:
+ *     summary: Upload files for a patient
+ *     tags: [Patient Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Patient ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Array of files to upload (max 20 files, 10MB each)
+ *     responses:
+ *       200:
+ *         description: Files uploaded successfully
+ *       400:
+ *         description: Bad request (no files or invalid file type)
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Patient not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/:id/files', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, handleUpload, PatientController.uploadPatientFiles);
+
+/**
+ * @swagger
+ * /api/patients/{id}/files:
+ *   get:
+ *     summary: Get all files for a patient
+ *     tags: [Patient Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Patient ID
+ *     responses:
+ *       200:
+ *         description: Files retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Patient not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/:id/files', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.getPatientFiles);
+
+/**
+ * @swagger
+ * /api/patients/{id}/files/{filename}:
+ *   delete:
+ *     summary: Delete a file for a patient
+ *     tags: [Patient Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Patient ID
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Filename to delete
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Patient or file not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/:id/files/:filename', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.deletePatientFile);
 
 module.exports = router;

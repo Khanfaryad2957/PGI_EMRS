@@ -104,6 +104,9 @@ class Patient {
     this.filled_by_name = data.filled_by_name || null;
     this.filled_by_role = data.filled_by_role || null;
 
+    // 🔹 Patient files (JSONB array)
+    this.patient_files = data.patient_files || (Array.isArray(data.patient_files) ? data.patient_files : []);
+
     // 🔹 Timestamps
     this.created_at = data.created_at || null;
     this.updated_at = data.updated_at || null;
@@ -463,7 +466,7 @@ class Patient {
           p.present_district, p.present_district_2, p.present_state, p.present_state_2,
           p.present_pin_code, p.present_pin_code_2, p.present_country, p.present_country_2,
           p.local_address,
-          p.assigned_room, p.filled_by,
+          p.assigned_room, p.filled_by, p.patient_files,
           p.has_adl_file, p.file_status, p.created_at, p.updated_at,
           -- ✅ Get filled_by user role
           (
@@ -1246,6 +1249,9 @@ class Patient {
       created_at : this.created_at ,
       updated_at : this.updated_at ,
   
+      // 🔹 Patient files
+      patient_files : this.patient_files || [],
+  
       // 🔹 Joined / derived fields (query results)
       assigned_doctor_name : this.assigned_doctor_name ,
       assigned_doctor_role : this.assigned_doctor_role ,
@@ -1254,7 +1260,23 @@ class Patient {
 
     };
   }
-  
+
+  // Update patient files
+  static async updateFiles(patientId, files) {
+    try {
+      const result = await db.query(
+        'UPDATE registered_patient SET patient_files = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+        [JSON.stringify(files), patientId]
+      );
+      if (result.rows.length === 0) {
+        throw new Error('Patient not found');
+      }
+      return new Patient(result.rows[0]);
+    } catch (error) {
+      console.error('[Patient.updateFiles] Error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Patient;

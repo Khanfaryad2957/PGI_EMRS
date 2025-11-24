@@ -109,6 +109,60 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
         { type: 'PatientVisit', id: patient_id },
       ],
     }),
+    uploadPatientFiles: builder.mutation({
+      queryFn: async ({ patientId, files }, _queryApi, _extraOptions, fetchWithBQ) => {
+        const formData = new FormData();
+        files.forEach((file) => {
+          formData.append('files', file);
+        });
+
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://31.97.60.2:2025/api';
+        const token = JSON.parse(localStorage.getItem('user'))?.token || localStorage.getItem('token');
+
+        try {
+          const response = await fetch(`${baseUrl}/patients/${patientId}/files`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              // Don't set Content-Type, let browser set it with boundary
+            },
+            credentials: 'include',
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            return { error: { status: response.status, data } };
+          }
+
+          return { data };
+        } catch (error) {
+          return { error: { status: 'FETCH_ERROR', error: error.message } };
+        }
+      },
+      invalidatesTags: (result, error, { patientId }) => [
+        { type: 'Patient', id: patientId },
+        'Patient',
+      ],
+    }),
+    getPatientFiles: builder.query({
+      query: (patientId) => `/patients/${patientId}/files`,
+      providesTags: (result, error, patientId) => [
+        { type: 'Patient', id: patientId },
+        'Patient',
+      ],
+    }),
+    deletePatientFile: builder.mutation({
+      query: ({ patientId, filename }) => ({
+        url: `/patients/${patientId}/files/${filename}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, { patientId }) => [
+        { type: 'Patient', id: patientId },
+        'Patient',
+      ],
+    }),
   }),
 });
 
@@ -127,5 +181,8 @@ export const {
   useGetPatientsStatsQuery,
   useGetPatientVisitCountQuery,
   useMarkVisitCompletedMutation,
+  useUploadPatientFilesMutation,
+  useGetPatientFilesQuery,
+  useDeletePatientFileMutation,
 } = patientsApiSlice;
 
