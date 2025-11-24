@@ -71,9 +71,30 @@ const PrescriptionView = () => {
 
   const handlePrint = () => {
     if (prescriptions.length === 0) {
+      alert('No prescriptions available to print.');
       return;
     }
-    window.print();
+    
+    // Ensure print content is visible before printing
+    const printContent = document.querySelector('.print-content');
+    if (printContent) {
+      // Temporarily show print content for better print preview
+      const originalStyle = printContent.style.cssText;
+      printContent.style.position = 'relative';
+      printContent.style.left = '0';
+      printContent.style.opacity = '1';
+      printContent.style.pointerEvents = 'auto';
+      
+      // Trigger print
+      window.print();
+      
+      // Restore original style after a short delay
+      setTimeout(() => {
+        printContent.style.cssText = originalStyle;
+      }, 100);
+    } else {
+      window.print();
+    }
   };
 
   if (loadingProforma || loadingPatient || loadingPrescriptions) {
@@ -167,6 +188,31 @@ const PrescriptionView = () => {
           .print-table th {
             background-color: #f3f4f6 !important;
             font-weight: bold;
+            color: #111827 !important;
+          }
+          .print-table td {
+            color: #374151 !important;
+          }
+          .print-section-title {
+            font-size: 11px !important;
+            font-weight: bold !important;
+            color: #111827 !important;
+            margin-bottom: 6px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .print-patient-info {
+            margin-bottom: 12px !important;
+            padding: 8px 0 !important;
+            border-bottom: 1px solid #d1d5db !important;
+          }
+          .print-footer {
+            margin-top: 20px !important;
+            page-break-inside: avoid;
+          }
+          .print-header img {
+            max-width: 100px !important;
+            height: auto !important;
           }
         }
       `}</style>
@@ -184,20 +230,20 @@ const PrescriptionView = () => {
           <div className="relative no-print">
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl"></div>
             <div className="relative backdrop-blur-2xl bg-white/70 rounded-3xl p-8 shadow-2xl border border-white/40">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="p-3 backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/40">
                     <img src={PGI_Logo} alt="PGIMER Logo" className="h-16 w-16 object-contain" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent">
+                    <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent">
                       Postgraduate Institute of Medical Education & Research
                     </h1>
-                    <p className="text-lg font-semibold text-gray-700 mt-1">Department of Psychiatry</p>
-                    <p className="text-base text-gray-600 mt-1">View Prescription</p>
+                    <p className="text-base lg:text-lg font-semibold text-gray-700 mt-1">Department of Psychiatry</p>
+                    <p className="text-sm lg:text-base text-gray-600 mt-1">View Prescription</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap w-full lg:w-auto justify-end">
                   {(isJrSr(currentUser?.role) || isAdmin(currentUser?.role)) && clinicalProformaId && (
                     <Button
                       onClick={() => navigate(`/prescriptions/create?patient_id=${actualPatientId}&clinical_proforma_id=${clinicalProformaId}&returnTab=${returnTab || ''}`)}
@@ -208,16 +254,16 @@ const PrescriptionView = () => {
                       Add Prescription
                     </Button>
                   )}
-                  {prescriptions.length > 0 && (
-                    <Button
-                      type="button"
-                      onClick={handlePrint}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 flex items-center gap-2"
-                    >
-                      <FiPrinter className="w-4 h-4" />
-                      Print
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    onClick={handlePrint}
+                    disabled={prescriptions.length === 0}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-2"
+                    title={prescriptions.length === 0 ? 'No prescriptions to print' : 'Print prescription'}
+                  >
+                    <FiPrinter className="w-5 h-5" />
+                    <span className="font-semibold">Print Prescription</span>
+                  </Button>
                   <Button
                     onClick={() => {
                       if (returnTab) {
@@ -276,7 +322,7 @@ const PrescriptionView = () => {
               </div>
             )}
 
-            {prescriptions.length > 0 && (
+            {prescriptions.length > 0 ? (
               <div className="my-4">
                 <h3 className="print-section-title">Medications Prescribed:</h3>
                 <table className="print-table">
@@ -299,16 +345,20 @@ const PrescriptionView = () => {
                         <td className="text-center">{idx + 1}</td>
                         <td className="font-medium">{prescription.medicine || '-'}</td>
                         <td>{prescription.dosage || '-'}</td>
-                        <td>{prescription.when_to_take || '-'}</td>
+                        <td>{prescription.when_to_take || prescription.when || '-'}</td>
                         <td>{prescription.frequency || '-'}</td>
                         <td>{prescription.duration || '-'}</td>
-                        <td className="text-center">{prescription.quantity || '-'}</td>
+                        <td className="text-center">{prescription.quantity || prescription.qty || '-'}</td>
                         <td>{prescription.details || '-'}</td>
                         <td>{prescription.notes || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            ) : (
+              <div className="my-4 text-center">
+                <p className="text-xs text-gray-600">No medications prescribed</p>
               </div>
             )}
 
@@ -450,15 +500,27 @@ const PrescriptionView = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl"></div>
             <Card 
               title={
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 backdrop-blur-md bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/30 shadow-lg">
                       <FiPackage className="w-6 h-6 text-green-600" />
                     </div>
                     <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Prescriptions</span>
                   </div>
-                  <div className="text-sm text-gray-700 backdrop-blur-sm bg-white/40 px-3 py-1.5 rounded-lg border border-white/40">
-                    <span className="font-semibold">Total:</span> {prescriptions.length} medication(s)
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-gray-700 backdrop-blur-sm bg-white/40 px-3 py-1.5 rounded-lg border border-white/40">
+                      <span className="font-semibold">Total:</span> {prescriptions.length} medication(s)
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handlePrint}
+                      disabled={prescriptions.length === 0}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 px-4 py-2"
+                      title={prescriptions.length === 0 ? 'No prescriptions to print' : 'Print prescription'}
+                    >
+                      <FiPrinter className="w-5 h-5" />
+                      <span className="font-semibold">Print</span>
+                    </Button>
                   </div>
                 </div>
               }
