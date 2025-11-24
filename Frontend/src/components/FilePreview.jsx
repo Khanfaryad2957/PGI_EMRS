@@ -9,18 +9,42 @@ const FilePreview = ({ files = [], onDelete, canDelete = true, baseUrl = '' }) =
 
   // Get file URL
   const getFileUrl = (filePath) => {
-    if (!filePath) return '';
+    if (!filePath) {
+      console.warn('[FilePreview] Empty file path provided');
+      return '';
+    }
+    
     // If it's already a full URL, return as is
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath;
     }
-    // If it starts with /uploads, use baseUrl or construct from API
+    
+    // If it starts with /uploads, construct URL correctly
+    // Static files are served from /uploads, not /api/uploads
     if (filePath.startsWith('/uploads/')) {
+      // Extract base URL without /api
       const apiUrl = baseUrl || import.meta.env.VITE_API_URL || 'http://localhost:2025/api';
-      return `${apiUrl}${filePath}`;
+      const baseUrlWithoutApi = apiUrl.replace(/\/api$/, ''); // Remove /api if present
+      const fullUrl = `${baseUrlWithoutApi}${filePath}`;
+      console.log('[FilePreview] Constructed URL:', fullUrl, 'from path:', filePath);
+      return fullUrl;
     }
-    // Otherwise assume it's a relative path
-    return filePath;
+    
+    // If it's a relative path starting with uploads (no leading slash)
+    if (filePath.startsWith('uploads/')) {
+      const apiUrl = baseUrl || import.meta.env.VITE_API_URL || 'http://localhost:2025/api';
+      const baseUrlWithoutApi = apiUrl.replace(/\/api$/, '');
+      const fullUrl = `${baseUrlWithoutApi}/${filePath}`;
+      console.log('[FilePreview] Constructed URL (no leading slash):', fullUrl, 'from path:', filePath);
+      return fullUrl;
+    }
+    
+    // Otherwise assume it's a relative path and prepend /uploads
+    const apiUrl = baseUrl || import.meta.env.VITE_API_URL || 'http://localhost:2025/api';
+    const baseUrlWithoutApi = apiUrl.replace(/\/api$/, '');
+    const fullUrl = `${baseUrlWithoutApi}/uploads/${filePath}`;
+    console.log('[FilePreview] Constructed URL (relative):', fullUrl, 'from path:', filePath);
+    return fullUrl;
   };
 
   // Get file type
@@ -74,6 +98,12 @@ const FilePreview = ({ files = [], onDelete, canDelete = true, baseUrl = '' }) =
     }
   };
 
+  // Debug logging
+  console.log('[FilePreview] Rendering files:', files?.length || 0, 'files');
+  if (files && files.length > 0) {
+    console.log('[FilePreview] File paths:', files);
+  }
+
   if (!files || files.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -99,13 +129,27 @@ const FilePreview = ({ files = [], onDelete, canDelete = true, baseUrl = '' }) =
             >
               {/* Image Preview */}
               {fileType === 'image' ? (
-                <div className="aspect-square relative">
+                <div className="aspect-square relative bg-gray-100">
                   <img
                     src={fileUrl}
                     alt={fileName}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = '/placeholder-image.png';
+                      console.error('[FilePreview] Failed to load image:', fileUrl, 'Original path:', filePath);
+                      // Hide broken image and show error indicator
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      if (parent && !parent.querySelector('.error-indicator')) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-indicator w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 p-2';
+                        errorDiv.innerHTML = `
+                          <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                          </svg>
+                          <p class="text-xs text-center">Image not found</p>
+                        `;
+                        parent.appendChild(errorDiv);
+                      }
                     }}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">

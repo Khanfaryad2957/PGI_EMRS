@@ -280,7 +280,20 @@ router.get('/',authenticateToken, authorizeRoles(['Faculty', 'Resident', 'Admin'
  *       500:
  *         description: Server error
  */
-router.get( '/:id', authenticateToken, [param('id').isInt().withMessage('Prescription ID must be an integer')], prescriptionController.getPrescriptionById);
+// Route to get prescription by clinical_proforma_id (path parameter)
+router.get('/by-proforma/:clinical_proforma_id', authenticateToken, [
+  param('clinical_proforma_id').isInt().withMessage('Clinical proforma ID must be an integer')
+], async (req, res) => {
+  // Call the controller with clinical_proforma_id in query
+  req.query.clinical_proforma_id = req.params.clinical_proforma_id;
+  req.params.id = '1'; // Placeholder, will be ignored by controller when clinical_proforma_id is present
+  return prescriptionController.getPrescriptionById(req, res);
+});
+
+// Route to get prescription by ID or clinical_proforma_id (query)
+router.get('/:id', authenticateToken, [
+  param('id').isInt().withMessage('Prescription ID must be an integer')
+], prescriptionController.getPrescriptionById);
 
 /**
  * @swagger

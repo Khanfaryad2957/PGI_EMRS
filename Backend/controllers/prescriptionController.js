@@ -112,13 +112,31 @@ const getPrescriptionById = async (req, res) => {
     const { id } = req.params;
     const { clinical_proforma_id } = req.query;
 
+    console.log('[getPrescriptionById] Request params:', { id, clinical_proforma_id });
+
     let prescription;
 
-    // If clinical_proforma_id is provided in query, use it
+    // If clinical_proforma_id is provided in query, use it (ignore id param)
     if (clinical_proforma_id) {
-      prescription = await Prescription.findByClinicalProformaId(parseInt(clinical_proforma_id));
+      const proformaIdInt = parseInt(clinical_proforma_id, 10);
+      if (isNaN(proformaIdInt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid clinical_proforma_id format'
+        });
+      }
+      console.log('[getPrescriptionById] Searching by clinical_proforma_id:', proformaIdInt);
+      prescription = await Prescription.findByClinicalProformaId(proformaIdInt);
     } else if (id) {
-      prescription = await Prescription.findById(parseInt(id));
+      const idInt = parseInt(id, 10);
+      if (isNaN(idInt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid prescription ID format'
+        });
+      }
+      console.log('[getPrescriptionById] Searching by prescription ID:', idInt);
+      prescription = await Prescription.findById(idInt);
     } else {
       return res.status(400).json({
         success: false,
@@ -127,11 +145,14 @@ const getPrescriptionById = async (req, res) => {
     }
 
     if (!prescription) {
+      console.log('[getPrescriptionById] Prescription not found');
       return res.status(404).json({
         success: false,
         message: 'Prescription not found'
       });
     }
+
+    console.log('[getPrescriptionById] Prescription found:', prescription.id);
 
     res.status(200).json({
       success: true,

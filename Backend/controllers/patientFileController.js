@@ -73,9 +73,16 @@ class PatientFileController {
   // Create/Upload patient files
   static async createPatientFiles(req, res) {
     try {
+      console.log('[createPatientFiles] Request received');
+      console.log('[createPatientFiles] req.body:', req.body);
+      console.log('[createPatientFiles] req.files:', req.files ? (Array.isArray(req.files) ? req.files.length : Object.keys(req.files).length) : 'no files');
+      console.log('[createPatientFiles] req.user:', req.user ? { id: req.user.id, role: req.user.role } : 'no user');
+      
       const { patient_id, user_id } = req.body;
       const patientIdInt = parseInt(patient_id, 10);
       const userId = parseInt(user_id || req.user?.id, 10);
+      
+      console.log('[createPatientFiles] Parsed patient_id:', patientIdInt, 'user_id:', userId);
 
       if (isNaN(patientIdInt) || patientIdInt <= 0) {
         // Clean up uploaded files if patient ID is invalid
@@ -131,6 +138,7 @@ class PatientFileController {
 
       // Get user role for folder structure
       const userRole = req.user?.role?.trim() || 'Admin';
+      const roleFolder = userRole.replace(/\s+/g, '_'); // Replace spaces with underscores for folder name
       
       // Check if record exists to get the ID
       let patientFile = await PatientFile.findByPatientId(patientIdInt);
@@ -149,14 +157,20 @@ class PatientFileController {
       
       // Create role-based directory structure using config
       const patientFilesDir = uploadConfig.getPatientFilesDir(patientIdInt, userRole);
+      console.log('[createPatientFiles] Creating directory:', patientFilesDir);
       if (!fs.existsSync(patientFilesDir)) {
         fs.mkdirSync(patientFilesDir, { recursive: true });
+        console.log('[createPatientFiles] Directory created successfully');
+      } else {
+        console.log('[createPatientFiles] Directory already exists');
       }
 
       // Move files to role-based directory and build file paths
       const filePaths = [];
       let fileIndex = 0;
       for (const file of files) {
+        console.log('[createPatientFiles] Processing file:', file.originalname, 'Temp path:', file.path);
+        
         // Get file extension
         const originalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         const ext = path.extname(originalName);
@@ -166,12 +180,33 @@ class PatientFileController {
         const uniqueFilename = `${fileRecordId}_${roleFolder}${fileIndex > 0 ? `_${fileIndex}` : ''}${ext}`;
         const newPath = path.join(patientFilesDir, uniqueFilename);
         
-          // Move file from temp location to role-based directory
-        if (fs.existsSync(file.path)) {
-          fs.renameSync(file.path, newPath);
+        console.log('[createPatientFiles] Moving file to:', newPath);
+        
+        // Move file from temp location to role-based directory
+        if (file.path && fs.existsSync(file.path)) {
+          try {
+            fs.renameSync(file.path, newPath);
+            console.log('[createPatientFiles] File moved successfully');
+          } catch (moveError) {
+            console.error('[createPatientFiles] Error moving file:', moveError);
+            // Try copying instead if rename fails
+            try {
+              fs.copyFileSync(file.path, newPath);
+              fs.unlinkSync(file.path); // Delete temp file after copy
+              console.log('[createPatientFiles] File copied successfully');
+            } catch (copyError) {
+              console.error('[createPatientFiles] Error copying file:', copyError);
+              throw new Error(`Failed to save file: ${copyError.message}`);
+            }
+          }
+        } else {
+          console.error('[createPatientFiles] File path does not exist:', file.path);
+          throw new Error(`File not found at temporary location: ${file.path}`);
         }
+        
         // Store relative URL path for database using config
         const relativePath = uploadConfig.getPatientFileUrl(newPath, userRole);
+        console.log('[createPatientFiles] File saved with URL path:', relativePath);
         filePaths.push(relativePath);
         fileIndex++;
       }
@@ -221,10 +256,31 @@ class PatientFileController {
   // Update patient files (add/remove)
   static async updatePatientFiles(req, res) {
     try {
+      console.log('[updatePatientFiles] Request received');
+      console.log('[updatePatientFiles] req.params:', req.params);
+      console.log('[updatePatientFiles] req.body:', req.body);
+      console.log('[updatePatientFiles] req.files:', req.files ? (Array.isArray(req.files) ? req.files.length : Object.keys(req.files).length) : 'no files');
+      console.log('[updatePatientFiles] req.user:', req.user ? { id: req.user.id, role: req.user.role } : 'no user');
+      
       const { patient_id } = req.params;
-      const { files_to_remove } = req.body; // Array of file paths to remove
+      // Handle both files_to_remove and files_to_remove[] formats (FormData can send arrays differently)
+      let files_to_remove = req.body.files_to_remove || req.body['files_to_remove[]'] || [];
+      if (!Array.isArray(files_to_remove)) {
+        if (typeof files_to_remove === 'string') {
+          try {
+            files_to_remove = JSON.parse(files_to_remove);
+          } catch (e) {
+            files_to_remove = [files_to_remove];
+          }
+        } else {
+          files_to_remove = [];
+        }
+      }
+      
       const patientIdInt = parseInt(patient_id, 10);
       const userId = parseInt(req.user?.id, 10);
+      
+      console.log('[updatePatientFiles] Parsed patient_id:', patientIdInt, 'user_id:', userId, 'files_to_remove:', files_to_remove);
 
       if (isNaN(patientIdInt) || patientIdInt <= 0) {
         return res.status(400).json({
@@ -254,10 +310,11 @@ class PatientFileController {
       }
 
       const newFiles = [];
-      const filesToRemove = Array.isArray(files_to_remove) ? files_to_remove : [];
+      const filesToRemove = files_to_remove; // Already parsed above
 
       // Get user role for folder structure
       const userRole = req.user?.role?.trim() || 'Admin';
+      const roleFolder = userRole.replace(/\s+/g, '_'); // Replace spaces with underscores for folder name
 
       // Get or create record to use its ID for filename
       let currentRecord = existing;
@@ -277,10 +334,15 @@ class PatientFileController {
       // Handle new file uploads
       const files = Array.isArray(req.files) ? req.files : [];
       if (files.length > 0) {
+        console.log('[updatePatientFiles] Processing', files.length, 'new file(s)');
+        
         // Create role-based directory structure using config
         const patientFilesDir = uploadConfig.getPatientFilesDir(patientIdInt, userRole);
+        console.log('[updatePatientFiles] Target directory:', patientFilesDir);
+        
         if (!fs.existsSync(patientFilesDir)) {
           fs.mkdirSync(patientFilesDir, { recursive: true });
+          console.log('[updatePatientFiles] Directory created');
         }
 
         // Count existing files to append index for uniqueness
@@ -289,6 +351,8 @@ class PatientFileController {
 
         // Move files to role-based directory
         for (const file of files) {
+          console.log('[updatePatientFiles] Processing file:', file.originalname, 'Temp path:', file.path);
+          
           // Get file extension
           const originalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
           const ext = path.extname(originalName);
@@ -297,11 +361,32 @@ class PatientFileController {
           const uniqueFilename = `${recordId}_${roleFolder}${fileIndex > 0 || existingFileCount > 0 ? `_${existingFileCount + fileIndex}` : ''}${ext}`;
           const newPath = path.join(patientFilesDir, uniqueFilename);
           
-          if (fs.existsSync(file.path)) {
-            fs.renameSync(file.path, newPath);
+          console.log('[updatePatientFiles] Moving file to:', newPath);
+          
+          if (file.path && fs.existsSync(file.path)) {
+            try {
+              fs.renameSync(file.path, newPath);
+              console.log('[updatePatientFiles] File moved successfully');
+            } catch (moveError) {
+              console.error('[updatePatientFiles] Error moving file:', moveError);
+              // Try copying instead if rename fails
+              try {
+                fs.copyFileSync(file.path, newPath);
+                fs.unlinkSync(file.path); // Delete temp file after copy
+                console.log('[updatePatientFiles] File copied successfully');
+              } catch (copyError) {
+                console.error('[updatePatientFiles] Error copying file:', copyError);
+                throw new Error(`Failed to save file: ${copyError.message}`);
+              }
+            }
+          } else {
+            console.error('[updatePatientFiles] File path does not exist:', file.path);
+            throw new Error(`File not found at temporary location: ${file.path}`);
           }
+          
           // Store relative URL path for database using config
           const relativePath = uploadConfig.getPatientFileUrl(newPath, userRole);
+          console.log('[updatePatientFiles] File saved with URL path:', relativePath);
           newFiles.push(relativePath);
           fileIndex++;
         }
@@ -315,18 +400,24 @@ class PatientFileController {
 
       // Remove specified files
       if (filesToRemove.length > 0) {
+        console.log('[updatePatientFiles] Removing', filesToRemove.length, 'file(s)');
         const filesToRemoveSet = new Set(filesToRemove);
         updatedFiles = updatedFiles.filter(file => {
           if (filesToRemoveSet.has(file)) {
+            console.log('[updatePatientFiles] Deleting file:', file);
             // Delete physical file - convert URL path to absolute path
             // File path might be like /uploads/patient_files/Admin/123/file.jpg
             const absolutePath = uploadConfig.getAbsolutePath(file.replace(/^\//, ''));
+            console.log('[updatePatientFiles] Absolute path for deletion:', absolutePath);
             if (fs.existsSync(absolutePath)) {
               try {
                 fs.unlinkSync(absolutePath);
+                console.log('[updatePatientFiles] File deleted successfully');
               } catch (unlinkError) {
-                console.error('Error deleting file:', unlinkError);
+                console.error('[updatePatientFiles] Error deleting file:', unlinkError);
               }
+            } else {
+              console.warn('[updatePatientFiles] File not found at path:', absolutePath);
             }
             return false;
           }
@@ -335,25 +426,35 @@ class PatientFileController {
       }
 
       // Update or create record
+      console.log('[updatePatientFiles] Final file count:', updatedFiles.length);
+      console.log('[updatePatientFiles] New files added:', newFiles.length);
+      console.log('[updatePatientFiles] Files removed:', filesToRemove.length);
+      
       let patientFile;
       if (existing) {
+        console.log('[updatePatientFiles] Updating existing record ID:', existing.id);
         patientFile = await PatientFile.update(existing.id, {
           attachment: updatedFiles,
           user_id: userId
         });
-      } else if (newFiles.length > 0) {
+        console.log('[updatePatientFiles] Record updated successfully');
+      } else if (newFiles.length > 0 || updatedFiles.length > 0) {
+        console.log('[updatePatientFiles] Creating new record');
         patientFile = await PatientFile.create({
           patient_id: patientIdInt,
           attachment: updatedFiles,
           user_id: userId
         });
+        console.log('[updatePatientFiles] Record created successfully');
       } else {
+        console.log('[updatePatientFiles] No files to update');
         return res.status(400).json({
           success: false,
           message: 'No files to update'
         });
       }
 
+      console.log('[updatePatientFiles] Operation completed successfully');
       res.status(200).json({
         success: true,
         message: 'Files updated successfully',

@@ -799,14 +799,42 @@ class PatientController {
       await patient.update(updateData);
   
       // Handle file uploads if any files are present
+      console.log('[updatePatient] Checking for files. req.files:', req.files ? (Array.isArray(req.files) ? req.files.length + ' files' : 'object with keys: ' + Object.keys(req.files).join(', ')) : 'no files');
+      console.log('[updatePatient] req.body keys:', Object.keys(req.body || {}));
+      
       if (req.files && req.files.length > 0) {
+        console.log('[updatePatient] Processing', req.files.length, 'file(s) for patient', id);
         try {
           const PatientFileController = require('./patientFileController');
-          const filesToRemove = req.body.files_to_remove 
-            ? (Array.isArray(req.body.files_to_remove) ? req.body.files_to_remove : JSON.parse(req.body.files_to_remove))
-            : [];
           
-          // Create a mock request object for updatePatientFiles
+          // Parse files_to_remove from request body
+          // FormData sends arrays as multiple fields with same name, so check both formats
+          let filesToRemove = [];
+          if (req.body.files_to_remove) {
+            if (Array.isArray(req.body.files_to_remove)) {
+              filesToRemove = req.body.files_to_remove;
+            } else if (typeof req.body.files_to_remove === 'string') {
+              try {
+                filesToRemove = JSON.parse(req.body.files_to_remove);
+              } catch (e) {
+                // If not JSON, treat as single value
+                filesToRemove = [req.body.files_to_remove];
+              }
+            }
+          }
+          // Also check for files_to_remove[] format (FormData array)
+          if (req.body['files_to_remove[]']) {
+            if (Array.isArray(req.body['files_to_remove[]'])) {
+              filesToRemove = [...filesToRemove, ...req.body['files_to_remove[]']];
+            } else {
+              filesToRemove.push(req.body['files_to_remove[]']);
+            }
+          }
+          
+          console.log('[updatePatient] Files to remove:', filesToRemove);
+          console.log('[updatePatient] New files:', req.files.map(f => f.originalname));
+          
+          // Create a proper request object for updatePatientFiles
           const fileUpdateReq = {
             params: { patient_id: id },
             body: { files_to_remove: filesToRemove },
@@ -814,13 +842,19 @@ class PatientController {
             user: req.user
           };
           
+          // Create a proper response object that can handle the response
+          let fileUpdateSuccess = false;
+          let fileUpdateError = null;
+          
           const fileUpdateRes = {
             status: (code) => ({
               json: (data) => {
                 if (code >= 400) {
-                  console.error('[updatePatient] File update error:', data);
+                  console.error('[updatePatient] File update error:', code, data);
+                  fileUpdateError = data;
                 } else {
                   console.log('[updatePatient] Files updated successfully:', data);
+                  fileUpdateSuccess = true;
                 }
               }
             })
@@ -828,8 +862,14 @@ class PatientController {
           
           // Update files using PatientFileController
           await PatientFileController.updatePatientFiles(fileUpdateReq, fileUpdateRes);
+          
+          if (fileUpdateError) {
+            console.error('[updatePatient] File update failed:', fileUpdateError);
+            // Don't fail the entire update, but log the error
+          }
         } catch (fileError) {
           console.error('[updatePatient] Error updating files:', fileError);
+          console.error('[updatePatient] Error stack:', fileError.stack);
           // Don't fail the entire update if file upload fails
           // The patient data update was successful
         }
@@ -1595,13 +1635,28 @@ class PatientController {
         });
       }
 
-      const files = patient.patient_files || [];
+      // Use the new PatientFileController to get files from patient_files table
+      const PatientFileController = require('./patientFileController');
+      const fileReq = {
+        params: { patient_id: patientIdInt },
+        user: req.user
+      };
+      
+      // Call PatientFileController.getPatientFiles
+      const PatientFile = require('../models/PatientFile');
+      const patientFile = await PatientFile.findByPatientId(patientIdInt);
+      
+      const files = patientFile ? patientFile.attachment : [];
+      
+      // Also include legacy files from patient.patient_files for backward compatibility
+      const legacyFiles = patient.patient_files || [];
+      const allFiles = [...files, ...legacyFiles];
 
       res.status(200).json({
         success: true,
         data: {
-          files: files,
-          count: files.length
+          files: allFiles,
+          count: allFiles.length
         }
       });
     } catch (error) {

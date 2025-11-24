@@ -393,7 +393,6 @@ const CreatePatient = () => {
 
   // Handler for Step 1: Save Out Patient Card data
   const handleStep1Submit = async (e) => {
-    debugger
     e.preventDefault();
 
     if (!validate(1)) {

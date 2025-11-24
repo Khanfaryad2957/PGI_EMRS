@@ -460,7 +460,7 @@ console.log("existingPrescriptionData", existingPrescriptionData);
 
 
   const handleSubmitClinicalProforma = async (e) => {
-    debugger
+    
     e.preventDefault();
 
     // Prevent changing from complex case to simple case

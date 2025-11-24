@@ -97,15 +97,36 @@ const handleUpload = (req, res, next) => {
     }
     
     // Normalize files - combine files from both field names into req.files array
+    console.log('[handleUpload] Raw req.files:', req.files ? (typeof req.files === 'object' ? Object.keys(req.files) : 'not an object') : 'undefined');
+    
     if (req.files) {
       const allFiles = [];
-      if (req.files.files && Array.isArray(req.files.files)) {
-        allFiles.push(...req.files.files);
+      if (req.files.files) {
+        if (Array.isArray(req.files.files)) {
+          allFiles.push(...req.files.files);
+        } else {
+          allFiles.push(req.files.files);
+        }
       }
-      if (req.files['attachments[]'] && Array.isArray(req.files['attachments[]'])) {
-        allFiles.push(...req.files['attachments[]']);
+      if (req.files['attachments[]']) {
+        if (Array.isArray(req.files['attachments[]'])) {
+          allFiles.push(...req.files['attachments[]']);
+        } else {
+          allFiles.push(req.files['attachments[]']);
+        }
       }
       req.files = allFiles;
+      console.log('[handleUpload] Normalized files:', allFiles.length, 'file(s)');
+      if (allFiles.length > 0) {
+        allFiles.forEach((file, idx) => {
+          console.log(`[handleUpload] File ${idx + 1}:`, file.originalname, 'Path:', file.path, 'Size:', file.size, 'Exists:', file.path ? fs.existsSync(file.path) : 'no path');
+        });
+      } else {
+        console.log('[handleUpload] WARNING: req.files exists but no files found after normalization');
+        console.log('[handleUpload] req.files structure:', JSON.stringify(Object.keys(req.files || {})));
+      }
+    } else {
+      console.log('[handleUpload] No files in request (req.files is undefined/null)');
     }
     
     next();

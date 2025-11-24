@@ -22,6 +22,11 @@ export const prescriptionApiSlice = apiSlice.injectEndpoints({
     }),
     getPrescriptionById: builder.query({
       query: ({ id, clinical_proforma_id }) => {
+        // If only clinical_proforma_id is provided, use the dedicated route
+        if (clinical_proforma_id && !id) {
+          return `/prescriptions/by-proforma/${clinical_proforma_id}`;
+        }
+        // Otherwise use the standard route with id
         const params = new URLSearchParams();
         if (clinical_proforma_id) {
           params.append('clinical_proforma_id', clinical_proforma_id);
