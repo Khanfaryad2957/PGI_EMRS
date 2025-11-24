@@ -1086,6 +1086,37 @@ router.get('/decision-stats', authenticateToken, ClinicalController.getCasesByDe
 
 /**
  * @swagger
+ * /api/clinical-proformas/visit-trends:
+ *   get:
+ *     summary: Get visit trends by period
+ *     tags: [Walk-in Clinical Proforma]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month]
+ *           default: week
+ *         description: Time period for trends
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by user ID (optional)
+ *     responses:
+ *       200:
+ *         description: Visit trends retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/visit-trends', authenticateToken, ClinicalController.getVisitTrends);
+
+/**
+ * @swagger
  * /api/clinical-proformas/{id}:
  *   get:
  *     summary: Get clinical proforma by ID

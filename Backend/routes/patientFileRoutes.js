@@ -154,5 +154,27 @@ router.delete('/delete/:patient_id/:file_path',
   PatientFileController.deletePatientFile
 );
 
+/**
+ * @swagger
+ * /api/patient-files/stats:
+ *   get:
+ *     summary: Get patient file upload statistics
+ *     tags: [Patient Files]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: File statistics retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/stats', 
+  authenticateToken, 
+  authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), 
+  PatientFileController.getFileStats
+);
+
 module.exports = router;
 

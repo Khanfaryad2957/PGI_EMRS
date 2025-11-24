@@ -10,13 +10,9 @@ import {
   FiNavigation, FiTruck, FiEdit3, FiSave, FiX, FiLayers, FiLoader,
   FiChevronDown, FiChevronUp, FiArrowRight, FiCheck
 } from 'react-icons/fi';
-<<<<<<< HEAD
 import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation } from '../../features/patients/patientsApiSlice';
 import { useCreatePatientFilesMutation } from '../../features/patients/patientFilesApiSlice';
 import { selectCurrentUser } from '../../features/auth/authSlice';
-=======
-import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation, useUploadPatientFilesMutation } from '../../features/patients/patientsApiSlice';
->>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { updatePatientRegistrationForm, resetPatientRegistrationForm, selectPatientRegistrationForm } from '../../features/form/formSlice';
 import { useCreateClinicalProformaMutation } from '../../features/clinical/clinicalApiSlice';
@@ -44,12 +40,8 @@ const CreatePatient = () => {
   const [updatePatient, { isLoading: isUpdating }] = useUpdatePatientMutation();
   const { data: usersData } = useGetDoctorsQuery({ page: 1, limit: 100 });
   const [createProforma, { isLoading: isCreating }] = useCreateClinicalProformaMutation();
-<<<<<<< HEAD
   const [createPatientFiles, { isLoading: isUploadingFiles }] = useCreatePatientFilesMutation();
   const currentUser = useSelector(selectCurrentUser);
-=======
-  const [uploadFiles, { isLoading: isUploadingFiles }] = useUploadPatientFilesMutation();
->>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
   // State declarations first
   const [errors, setErrors] = useState({});
   const [crValidationTimeout, setCrValidationTimeout] = useState(null);

@@ -2,10 +2,7 @@ const PatientFile = require('../models/PatientFile');
 const Patient = require('../models/Patient');
 const path = require('path');
 const fs = require('fs');
-const { uploadsDir } = require('../middleware/upload');
-
-// Get base uploads directory (parent of uploadsDir which is uploads/patients)
-const baseUploadsDir = path.join(uploadsDir, '..');
+const uploadConfig = require('../config/uploadConfig');
 
 // Helper function to check if user can edit/delete files
 const canEditDelete = (user, patientFile) => {
@@ -134,7 +131,6 @@ class PatientFileController {
 
       // Get user role for folder structure
       const userRole = req.user?.role?.trim() || 'Admin';
-      const roleFolder = userRole.replace(/\s+/g, '_'); // Replace spaces with underscores for folder name
       
       // Check if record exists to get the ID
       let patientFile = await PatientFile.findByPatientId(patientIdInt);
@@ -151,9 +147,8 @@ class PatientFileController {
         fileRecordId = patientFile.id;
       }
       
-      // Create role-based directory structure: uploads/{role}/{patient_id}/
-      const roleDir = path.join(baseUploadsDir, roleFolder);
-      const patientFilesDir = path.join(roleDir, String(patientIdInt));
+      // Create role-based directory structure using config
+      const patientFilesDir = uploadConfig.getPatientFilesDir(patientIdInt, userRole);
       if (!fs.existsSync(patientFilesDir)) {
         fs.mkdirSync(patientFilesDir, { recursive: true });
       }
@@ -171,12 +166,12 @@ class PatientFileController {
         const uniqueFilename = `${fileRecordId}_${roleFolder}${fileIndex > 0 ? `_${fileIndex}` : ''}${ext}`;
         const newPath = path.join(patientFilesDir, uniqueFilename);
         
-        // Move file from temp location to role-based directory
+          // Move file from temp location to role-based directory
         if (fs.existsSync(file.path)) {
           fs.renameSync(file.path, newPath);
         }
-        // Store relative path for database
-        const relativePath = `/uploads/${roleFolder}/${patientIdInt}/${uniqueFilename}`;
+        // Store relative URL path for database using config
+        const relativePath = uploadConfig.getPatientFileUrl(newPath, userRole);
         filePaths.push(relativePath);
         fileIndex++;
       }
@@ -263,7 +258,6 @@ class PatientFileController {
 
       // Get user role for folder structure
       const userRole = req.user?.role?.trim() || 'Admin';
-      const roleFolder = userRole.replace(/\s+/g, '_'); // Replace spaces with underscores for folder name
 
       // Get or create record to use its ID for filename
       let currentRecord = existing;
@@ -283,9 +277,8 @@ class PatientFileController {
       // Handle new file uploads
       const files = Array.isArray(req.files) ? req.files : [];
       if (files.length > 0) {
-        // Create role-based directory structure: uploads/{role}/{patient_id}/
-        const roleDir = path.join(baseUploadsDir, roleFolder);
-        const patientFilesDir = path.join(roleDir, String(patientIdInt));
+        // Create role-based directory structure using config
+        const patientFilesDir = uploadConfig.getPatientFilesDir(patientIdInt, userRole);
         if (!fs.existsSync(patientFilesDir)) {
           fs.mkdirSync(patientFilesDir, { recursive: true });
         }
@@ -307,7 +300,8 @@ class PatientFileController {
           if (fs.existsSync(file.path)) {
             fs.renameSync(file.path, newPath);
           }
-          const relativePath = `/uploads/${roleFolder}/${patientIdInt}/${uniqueFilename}`;
+          // Store relative URL path for database using config
+          const relativePath = uploadConfig.getPatientFileUrl(newPath, userRole);
           newFiles.push(relativePath);
           fileIndex++;
         }
@@ -324,11 +318,12 @@ class PatientFileController {
         const filesToRemoveSet = new Set(filesToRemove);
         updatedFiles = updatedFiles.filter(file => {
           if (filesToRemoveSet.has(file)) {
-            // Delete physical file
-            const filePath = file.replace('/uploads/', path.join(baseUploadsDir, ''));
-            if (fs.existsSync(filePath)) {
+            // Delete physical file - convert URL path to absolute path
+            // File path might be like /uploads/patient_files/Admin/123/file.jpg
+            const absolutePath = uploadConfig.getAbsolutePath(file.replace(/^\//, ''));
+            if (fs.existsSync(absolutePath)) {
               try {
-                fs.unlinkSync(filePath);
+                fs.unlinkSync(absolutePath);
               } catch (unlinkError) {
                 console.error('Error deleting file:', unlinkError);
               }
@@ -416,11 +411,11 @@ class PatientFileController {
         });
       }
 
-      // Delete physical file - handle role-based path structure
-      const filePath = file_path.replace('/uploads/', path.join(baseUploadsDir, ''));
-      if (fs.existsSync(filePath)) {
+      // Delete physical file - convert URL path to absolute path using config
+      const absolutePath = uploadConfig.getAbsolutePath(file_path.replace(/^\//, ''));
+      if (fs.existsSync(absolutePath)) {
         try {
-          fs.unlinkSync(filePath);
+          fs.unlinkSync(absolutePath);
         } catch (unlinkError) {
           console.error('Error deleting file:', unlinkError);
         }
@@ -447,6 +442,28 @@ class PatientFileController {
       res.status(500).json({
         success: false,
         message: 'Failed to delete file',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  // Get file upload statistics
+  static async getFileStats(req, res) {
+    try {
+      const stats = await PatientFile.getStats();
+
+      res.json({
+        success: true,
+        data: {
+          stats
+        }
+      });
+    } catch (error) {
+      console.error('Get file stats error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get file statistics',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

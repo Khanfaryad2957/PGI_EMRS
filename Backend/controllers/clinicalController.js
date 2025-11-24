@@ -1012,19 +1012,71 @@ class ClinicalController {
   // Get cases by decision
   static async getCasesByDecision(req, res) {
     try {
-      const stats = await ClinicalProforma.getCasesByDecision();
+      const user_id = req.query.user_id ? parseInt(req.query.user_id, 10) : null;
+      
+      let filteredStats;
+      if (user_id) {
+        // Get proformas by user and group by decision
+        const db = require('../config/database');
+        const result = await db.query(`
+          SELECT 
+            doctor_decision,
+            COUNT(*) as count
+          FROM clinical_proforma 
+          WHERE doctor_decision IS NOT NULL AND filled_by = $1
+          GROUP BY doctor_decision
+          ORDER BY count DESC
+        `, [user_id]);
+        filteredStats = result.rows;
+      } else {
+        // Get all stats
+        filteredStats = await ClinicalProforma.getCasesByDecision();
+      }
 
       res.json({
         success: true,
         data: {
-          decisionStats: stats
+          decisionStats: filteredStats || []
         }
       });
     } catch (error) {
       console.error('Get cases by decision error:', error);
+      console.error('Error stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'Failed to get decision statistics',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
+
+  static async getVisitTrends(req, res) {
+    try {
+      const period = req.query.period || 'week'; // day, week, month
+      const user_id = req.query.user_id ? parseInt(req.query.user_id, 10) : null;
+      
+      // Validate period
+      if (!['day', 'week', 'month'].includes(period)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid period. Must be day, week, or month'
+        });
+      }
+
+      const trends = await ClinicalProforma.getVisitTrends(period, user_id);
+
+      res.json({
+        success: true,
+        data: {
+          trends: trends || []
+        }
+      });
+    } catch (error) {
+      console.error('Get visit trends error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get visit trends',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }

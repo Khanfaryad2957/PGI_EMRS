@@ -1143,6 +1143,44 @@ class Patient {
     }
   }
 
+  // Get age distribution
+  static async getAgeDistribution() {
+    try {
+      const result = await db.query(`
+        SELECT 
+          CASE 
+            WHEN age < 18 THEN 'Under 18'
+            WHEN age BETWEEN 18 AND 25 THEN '18-25'
+            WHEN age BETWEEN 26 AND 35 THEN '26-35'
+            WHEN age BETWEEN 36 AND 45 THEN '36-45'
+            WHEN age BETWEEN 46 AND 55 THEN '46-55'
+            WHEN age BETWEEN 56 AND 65 THEN '56-65'
+            WHEN age > 65 THEN '65+'
+            ELSE 'Unknown'
+          END as age_group,
+          COUNT(*) as count
+        FROM registered_patient
+        WHERE age IS NOT NULL
+        GROUP BY age_group
+        ORDER BY 
+          CASE age_group
+            WHEN 'Under 18' THEN 1
+            WHEN '18-25' THEN 2
+            WHEN '26-35' THEN 3
+            WHEN '36-45' THEN 4
+            WHEN '46-55' THEN 5
+            WHEN '56-65' THEN 6
+            WHEN '65+' THEN 7
+            ELSE 8
+          END
+      `);
+      return result.rows;
+    } catch (error) {
+      console.error('[Patient.getAgeDistribution] Error:', error);
+      throw error;
+    }
+  }
+
   // toJSON: return all fields for comprehensive export
   toJSON() {
     return {

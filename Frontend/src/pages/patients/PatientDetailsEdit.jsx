@@ -1918,14 +1918,41 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
         ...(formData.assigned_doctor_id && { assigned_doctor_id: parseInt(formData.assigned_doctor_id, 10) }),
       };
 
-      // Update patient record (backend handles assigned_doctor_id via patient_visits)
-      await updatePatient({
-        id: patient.id,
-        ...updatePatientData
-      }).unwrap();
+      // Update patient record with files if any are selected or removed
+      const hasFiles = selectedFiles && selectedFiles.length > 0;
+      const hasFilesToRemove = filesToRemove && filesToRemove.length > 0;
+      
+      if (hasFiles || hasFilesToRemove) {
+        // Update patient with files using FormData
+        await updatePatient({
+          id: patient.id,
+          ...updatePatientData,
+          files: selectedFiles,
+          files_to_remove: filesToRemove
+        }).unwrap();
+        
+        // Refetch files after update
+        if (refetchFiles) {
+          refetchFiles();
+        }
+      } else {
+        // Update patient without files using JSON
+        await updatePatient({
+          id: patient.id,
+          ...updatePatientData
+        }).unwrap();
+      }
 
       // If we reach here, the update was successful
-      toast.success('Patient updated successfully!');
+      toast.success('Patient updated successfully!' + (hasFiles ? ` ${selectedFiles.length} file(s) uploaded.` : ''));
+      
+      // Clear file selection after successful update
+      if (hasFiles) {
+        setSelectedFiles([]);
+      }
+      if (hasFilesToRemove) {
+        setFilesToRemove([]);
+      }
       
       // Call onSave callback if provided
       if (onSave) {

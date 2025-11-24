@@ -634,6 +634,97 @@ COUNT(*) as total_proformas,
   }
 }
 
+  // Get visit trends by period (day, week, month)
+  static async getVisitTrends(period = 'week', user_id = null) {
+    try {
+      let query;
+      let params = [];
+
+      if (period === 'day') {
+        // Last 7 days
+        if (user_id) {
+          query = `
+            SELECT 
+              DATE(created_at) as date,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+            AND filled_by = $1
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+          `;
+          params = [user_id];
+        } else {
+          query = `
+            SELECT 
+              DATE(created_at) as date,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+          `;
+        }
+      } else if (period === 'week') {
+        // Last 7 weeks
+        if (user_id) {
+          query = `
+            SELECT 
+              DATE_TRUNC('week', created_at) as week_start,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 weeks'
+            AND filled_by = $1
+            GROUP BY DATE_TRUNC('week', created_at)
+            ORDER BY week_start ASC
+          `;
+          params = [user_id];
+        } else {
+          query = `
+            SELECT 
+              DATE_TRUNC('week', created_at) as week_start,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 weeks'
+            GROUP BY DATE_TRUNC('week', created_at)
+            ORDER BY week_start ASC
+          `;
+        }
+      } else {
+        // Last 12 months
+        if (user_id) {
+          query = `
+            SELECT 
+              DATE_TRUNC('month', created_at) as month_start,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '12 months'
+            AND filled_by = $1
+            GROUP BY DATE_TRUNC('month', created_at)
+            ORDER BY month_start ASC
+          `;
+          params = [user_id];
+        } else {
+          query = `
+            SELECT 
+              DATE_TRUNC('month', created_at) as month_start,
+              COUNT(*) as count
+            FROM clinical_proforma
+            WHERE created_at >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', created_at)
+            ORDER BY month_start ASC
+          `;
+        }
+      }
+
+      const result = await db.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('[ClinicalProforma.getVisitTrends] Error:', error);
+      throw error;
+    }
+  }
+
 // Convert to JSON
 toJSON() {
   return {

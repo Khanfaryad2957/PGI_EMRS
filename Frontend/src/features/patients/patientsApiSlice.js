@@ -44,11 +44,68 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['Patient', 'Stats', 'ClinicalProforma', 'ADLFile'],
     }),
     updatePatient: builder.mutation({
-      query: ({ id, ...data }) => ({
-        url: `/patients/${id}`,
-        method: 'PUT',
-        body: data,
-      }),
+      queryFn: async ({ id, files, files_to_remove, ...data }, _queryApi, _extraOptions, fetchWithBQ) => {
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:2025/api';
+        const state = _queryApi.getState();
+        const token = state.auth.token;
+        
+        // If files are present, use FormData; otherwise use JSON
+        if (files && files.length > 0 || (files_to_remove && files_to_remove.length > 0)) {
+          const formData = new FormData();
+          
+          // Append patient data
+          Object.keys(data).forEach(key => {
+            if (data[key] !== undefined && data[key] !== null) {
+              if (typeof data[key] === 'object' && !(data[key] instanceof File)) {
+                formData.append(key, JSON.stringify(data[key]));
+              } else {
+                formData.append(key, data[key]);
+              }
+            }
+          });
+          
+          // Append new files
+          if (files && files.length > 0) {
+            files.forEach((file) => {
+              formData.append('attachments[]', file);
+            });
+          }
+          
+          // Append files to remove
+          if (files_to_remove && files_to_remove.length > 0) {
+            if (Array.isArray(files_to_remove)) {
+              files_to_remove.forEach((filePath) => {
+                formData.append('files_to_remove[]', filePath);
+              });
+            } else {
+              formData.append('files_to_remove', JSON.stringify(files_to_remove));
+            }
+          }
+          
+          // Use fetch directly for FormData (don't set Content-Type, browser will set it with boundary)
+          const response = await fetch(`${baseUrl}/patients/${id}`, {
+            method: 'PUT',
+            body: formData,
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            credentials: 'include',
+          });
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            return { error: { status: response.status, data: result } };
+          }
+          
+          return { data: result };
+        } else {
+          // No files, use regular JSON request via fetchWithBQ
+          return fetchWithBQ({
+            url: `/patients/${id}`,
+            method: 'PUT',
+            body: data,
+          });
+        }
+      },
       invalidatesTags: (result, error, { id }) => [{ type: 'Patient', id }, 'Patient'],
     }),
     deletePatient: builder.mutation({
@@ -88,6 +145,10 @@ export const patientsApiSlice = apiSlice.injectEndpoints({
     }),
     getPatientsStats: builder.query({
       query: () => '/patients/stats',
+      providesTags: ['Stats'],
+    }),
+    getAgeDistribution: builder.query({
+      query: () => '/patients/age-distribution',
       providesTags: ['Stats'],
     }),
     getPatientVisitCount: builder.query({
@@ -179,6 +240,7 @@ export const {
   useCheckCRNumberExistsQuery,
   //dashboard stats queries
   useGetPatientsStatsQuery,
+  useGetAgeDistributionQuery,
   useGetPatientVisitCountQuery,
   useMarkVisitCompletedMutation,
   useUploadPatientFilesMutation,

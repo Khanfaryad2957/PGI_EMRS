@@ -538,6 +538,8 @@ router.get('/search', authenticateToken, authorizeRoles('Admin', 'Psychiatric We
  */
 router.get('/stats', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), PatientController.getPatientStats);
 
+router.get('/age-distribution', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), PatientController.getAgeDistribution);
+
 /**
  * @swagger
  * /api/patients/{id}:
@@ -601,7 +603,7 @@ router.get('/:id/visits/count', authenticateToken, authorizeRoles('Admin', 'Psyc
  *       500:
  *         description: Server error
  */
-router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.updatePatient);
+router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, handleUpload, PatientController.updatePatient);
 
 /**
  * @swagger

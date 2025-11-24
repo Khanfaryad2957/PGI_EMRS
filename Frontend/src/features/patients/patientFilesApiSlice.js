@@ -119,6 +119,12 @@ export const patientFilesApiSlice = apiSlice.injectEndpoints({
         { type: 'Patient', id: patient_id }
       ],
     }),
+
+    // Get file upload statistics
+    getFileStats: builder.query({
+      query: () => '/patient-files/stats',
+      providesTags: ['Stats'],
+    }),
   }),
 });
 
@@ -127,5 +133,6 @@ export const {
   useCreatePatientFilesMutation,
   useUpdatePatientFilesMutation,
   useDeletePatientFileMutation,
+  useGetFileStatsQuery,
 } = patientFilesApiSlice;
 

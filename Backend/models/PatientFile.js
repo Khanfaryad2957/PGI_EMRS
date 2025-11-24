@@ -221,7 +221,61 @@ class PatientFile {
       throw error;
     }
   }
+
+  // Get file upload statistics
+  static async getStats() {
+    try {
+      // First check if table exists
+      const tableCheck = await db.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'patient_files'
+        );
+      `);
+
+      if (!tableCheck.rows[0]?.exists) {
+        // Table doesn't exist, return empty stats
+        return {
+          total_records: 0,
+          patients_with_files: 0,
+          total_files: 0,
+          files_this_month: 0,
+          files_this_week: 0
+        };
+      }
+
+      const result = await db.query(`
+        SELECT 
+          COUNT(*) as total_records,
+          COUNT(DISTINCT patient_id) as patients_with_files,
+          COALESCE(SUM(CASE WHEN attachment IS NOT NULL AND array_length(attachment, 1) IS NOT NULL THEN array_length(attachment, 1) ELSE 0 END), 0)::INTEGER as total_files,
+          COALESCE(SUM(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' AND attachment IS NOT NULL AND array_length(attachment, 1) IS NOT NULL THEN array_length(attachment, 1) ELSE 0 END), 0)::INTEGER as files_this_month,
+          COALESCE(SUM(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '7 days' AND attachment IS NOT NULL AND array_length(attachment, 1) IS NOT NULL THEN array_length(attachment, 1) ELSE 0 END), 0)::INTEGER as files_this_week
+        FROM patient_files
+      `);
+
+      return result.rows[0] || {
+        total_records: 0,
+        patients_with_files: 0,
+        total_files: 0,
+        files_this_month: 0,
+        files_this_week: 0
+      };
+    } catch (error) {
+      console.error('[PatientFile.getStats] Error:', error);
+      console.error('[PatientFile.getStats] Error details:', error.message);
+      console.error('[PatientFile.getStats] Error stack:', error.stack);
+      // Return empty stats instead of throwing
+      return {
+        total_records: 0,
+        patients_with_files: 0,
+        total_files: 0,
+        files_this_month: 0,
+        files_this_week: 0
+      };
+    }
+  }
 }
 
 module.exports = PatientFile;
-

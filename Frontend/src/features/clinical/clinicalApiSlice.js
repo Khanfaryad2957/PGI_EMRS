@@ -110,7 +110,17 @@ export const clinicalApiSlice = apiSlice.injectEndpoints({
       providesTags: ['Clinical'],
     }),
     getCasesByDecision: builder.query({
-      query: () => '/clinical-proformas/decision-stats',
+      query: ({ user_id } = {}) => ({
+        url: '/clinical-proformas/decision-stats',
+        params: user_id ? { user_id } : {},
+      }),
+      providesTags: ['Stats'],
+    }),
+    getVisitTrends: builder.query({
+      query: ({ period = 'week', user_id } = {}) => ({
+        url: '/clinical-proformas/visit-trends',
+        params: { period, ...(user_id ? { user_id } : {}) },
+      }),
       providesTags: ['Stats'],
     }),
   }),
@@ -128,8 +138,8 @@ export const {
   useGetMyProformasQuery,
   useGetComplexCasesQuery,
   useGetCasesByDecisionQuery,
+  useGetVisitTrendsQuery,
   useGetClinicalOptionsQuery,
   useAddClinicalOptionMutation,
   useDeleteClinicalOptionMutation,
 } = clinicalApiSlice;
-
