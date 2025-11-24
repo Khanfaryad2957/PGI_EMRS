@@ -997,7 +997,6 @@ router.get('/:id/files', authenticateToken, authorizeRoles('Admin', 'Psychiatric
  *         description: Server error
  */
 router.delete('/:id/files/:filename', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientController.deletePatientFile);
-<<<<<<< HEAD
 
 /**
  * @swagger
@@ -1120,7 +1119,5 @@ router.get('/files/:patient_id', authenticateToken, authorizeRoles('Admin', 'Psy
  *         description: File or patient not found
  */
 router.delete('/files/delete/:patient_id/:file_path', authenticateToken, authorizeRoles('Admin', 'Psychiatric Welfare Officer', 'Faculty', 'Resident'), validateId, PatientFileController.deletePatientFile);
-=======
->>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
 
 module.exports = router;
