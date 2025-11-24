@@ -4,10 +4,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import { useGetPrescriptionByIdQuery, useCreatePrescriptionMutation, useUpdatePrescriptionMutation } from "../../features/prescriptions/prescriptionApiSlice";
 import medicinesData from '../../assets/psychiatric_meds_india.json';
-import { FiSave, FiEdit, FiPlus, FiTrash2, FiPackage } from 'react-icons/fi';
+import { FiSave, FiEdit, FiPlus, FiTrash2, FiPackage, FiDroplet, FiActivity, FiClock, FiCalendar, FiFileText } from 'react-icons/fi';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
-import { PRESCRIPTION_OPTIONS } from '../../utils/constants';
+import Card from '../../components/Card';
+import { PRESCRIPTION_OPTIONS, PRESCRIPTION_FORM } from '../../utils/constants';
 
 
 
@@ -464,213 +465,243 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
           <p className="text-sm text-gray-500 mt-2">Loading prescriptions...</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {prescriptionRows.map((row, idx) => (
-            <div key={row.id || idx} className="bg-white rounded-xl border-2 border-amber-200 shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                <h5 className="text-base font-semibold text-gray-800">Medicine #{idx + 1}</h5>
-                {prescriptionRows.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removePrescriptionRow(idx)}
-                    className="text-red-600 hover:text-red-800 hover:underline text-sm flex items-center gap-1 font-medium"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                    Remove
-                  </button>
-                )}
+        <Card className="bg-white border-2 border-amber-200 shadow-xl overflow-hidden" style={{ position: 'relative' }}>
+          <div className="bg-gradient-to-r from-amber-600 to-yellow-600 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <FiPackage className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Prescription Form</h2>
+                  <p className="text-sm text-amber-100">Edit medications for the patient</p>
+                </div>
               </div>
-
-              {/* First Row - Medicine, Dosage, When, Frequency */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                {/* Medicine Field with Autocomplete */}
-                <div className="space-y-2" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    <FiPackage className="w-4 h-4 text-primary-600" />
-                    Medicine
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                      <FiPackage className="w-4 h-4 text-gray-500" />
-                    </div>
-                    <input
-                      ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
-                      type="text"
-                      value={row.medicine || ''}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        updatePrescriptionCell(idx, 'medicine', newValue);
-                      }}
-                      onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
-                      onFocus={() => {
-                        if (row.medicine && row.medicine.trim().length > 0) {
-                          const searchTerm = row.medicine.toLowerCase().trim();
-                          const filtered = allMedicines.filter(med =>
-                            med.name.toLowerCase().includes(searchTerm) ||
-                            med.displayName.toLowerCase().includes(searchTerm) ||
-                            (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
-                          ).slice(0, 20);
-                          setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
-                          setShowSuggestions(prev => ({ ...prev, [idx]: true }));
-
-                          setTimeout(() => {
-                            const input = inputRefs.current[`medicine-${idx}`];
-                            if (input) {
-                              const rect = input.getBoundingClientRect();
-                              // Height for 4 items (approximately 56px per item = 224px)
-                              const dropdownHeight = 224;
-
-                              setSuggestionPositions(prev => ({
-                                ...prev,
-                                [idx]: {
-                                  top: rect.bottom + 4, // Always position directly below the input field (no scroll offset needed for fixed positioning)
-                                  left: rect.left, // Align with left edge of input
-                                  width: rect.width, // Match exact width of input field
-                                  maxHeight: dropdownHeight
-                                }
-                              }));
-                            }
-                          }, 0);
-                        }
-                      }}
-                      onBlur={() => {
-                        setTimeout(() => {
-                          setShowSuggestions(prev => ({ ...prev, [idx]: false }));
-                        }, 200);
-                      }}
-                      className="w-full pl-11 pr-4 py-3 bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium"
-                      placeholder="Type to search medicine..."
-                      autoComplete="off"
-                    />
-                    {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
-                      <div
-                        className="fixed bg-white border-2 border-primary-200 rounded-xl shadow-2xl overflow-hidden z-50"
-                        style={{
-                          top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
-                          left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
-                          width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
-                          minWidth: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
-                          maxWidth: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
-                          maxHeight: suggestionPositions[idx]?.maxHeight ? `${suggestionPositions[idx].maxHeight}px` : '224px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-                        }}
-                      >
-                        <div className="overflow-y-auto max-h-full custom-scrollbar" style={{ maxHeight: suggestionPositions[idx]?.maxHeight ? `${suggestionPositions[idx].maxHeight}px` : '224px' }}>
-                          {medicineSuggestions[idx].map((med, medIdx) => (
-                            <div
-                              key={`${med.name}-${medIdx}`}
-                              onClick={() => selectMedicine(idx, med)}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onMouseEnter={() => setActiveSuggestionIndex(prev => ({ ...prev, [idx]: medIdx }))}
-                              className={`px-4 py-3 cursor-pointer transition-all duration-150 border-b border-gray-100 last:border-b-0 ${
-                                activeSuggestionIndex[idx] === medIdx 
-                                  ? 'bg-gradient-to-r from-primary-50 to-blue-50 border-l-4 border-l-primary-500' 
-                                  : 'hover:bg-primary-50/50'
-                              }`}
-                            >
-                              <div className="font-semibold text-gray-900 text-sm">{med.name}</div>
-                              {med.displayName !== med.name && (
-                                <div className="text-xs text-gray-500 mt-0.5">{med.displayName}</div>
-                              )}
-                              {med.strengths && med.strengths.length > 0 && (
-                                <div className="text-xs text-primary-600 mt-1.5 font-medium">
-                                  Available: {med.strengths.join(', ')}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Select
-                  label="Dosage"
-                  name={`dosage-${idx}`}
-                  value={row.dosage || ''}
-                  onChange={(e) => updatePrescriptionCell(idx, 'dosage', e.target.value)}
-                  options={PRESCRIPTION_OPTIONS.DOSAGE}
-                  placeholder="Select dosage"
-                  searchable={true}
-                  className="bg-white/60 backdrop-blur-md border-2 border-gray-300/60"
-                />
-
-                <Select
-                  label="When"
-                  name={`when-${idx}`}
-                  value={row.when || ''}
-                  onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
-                  options={PRESCRIPTION_OPTIONS.WHEN}
-                  placeholder="Select when"
-                  searchable={true}
-                  className="bg-white/60 backdrop-blur-md border-2 border-gray-300/60"
-                />
-
-                <Select
-                  label="Frequency"
-                  name={`frequency-${idx}`}
-                  value={row.frequency || ''}
-                  onChange={(e) => updatePrescriptionCell(idx, 'frequency', e.target.value)}
-                  options={PRESCRIPTION_OPTIONS.FREQUENCY}
-                  placeholder="Select frequency"
-                  searchable={true}
-                  className="bg-white/60 backdrop-blur-md border-2 border-gray-300/60"
-                />
-              </div>
-
-              {/* Second Row - Duration, Qty, Details, Notes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Select
-                  label="Duration"
-                  name={`duration-${idx}`}
-                  value={row.duration || ''}
-                  onChange={(e) => updatePrescriptionCell(idx, 'duration', e.target.value)}
-                  options={PRESCRIPTION_OPTIONS.DURATION}
-                  placeholder="Select duration"
-                  searchable={true}
-                  className="bg-white/60 backdrop-blur-md border-2 border-gray-300/60"
-                />
-
-                <Select
-                  label="Qty"
-                  name={`qty-${idx}`}
-                  value={row.qty || ''}
-                  onChange={(e) => updatePrescriptionCell(idx, 'qty', e.target.value)}
-                  options={PRESCRIPTION_OPTIONS.QUANTITY}
-                  placeholder="Select quantity"
-                  searchable={true}
-                  className="bg-white/60 backdrop-blur-md border-2 border-gray-300/60"
-                />
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    Details
-                  </label>
-                  <input
-                    type="text"
-                    value={row.details || ''}
-                    onChange={(e) => updatePrescriptionCell(idx, 'details', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium"
-                    placeholder="Details"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={row.notes || ''}
-                    onChange={(e) => updatePrescriptionCell(idx, 'notes', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/60 backdrop-blur-md border-2 border-gray-300/60 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 focus:bg-white/80 transition-all duration-300 hover:bg-white/70 hover:border-primary-400/70 placeholder:text-gray-400 text-gray-900 font-medium"
-                    placeholder="Notes"
-                  />
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
+                  {prescriptionRows.filter(p => p.medicine || p.dosage || p.frequency || p.details).length} medication(s)
+                </span>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="overflow-x-auto" style={{ overflowY: 'visible', maxHeight: '600px' }}>
+            <table className="min-w-full text-sm" style={{ position: 'relative' }}>
+              <thead className="bg-gradient-to-r from-gray-50 to-slate-50 border-b-2 border-gray-200 sticky top-0 z-10">
+                <tr>
+                  <th className="px-4 py-3 text-left w-12 font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
+                    <div className="flex items-center gap-1">
+                      <span>#</span>
+                    </div>
+                  </th>
+                  {PRESCRIPTION_FORM.map((field) => {
+                    const icons = {
+                      medicine: <FiDroplet className="w-4 h-4" />,
+                      dosage: <FiActivity className="w-4 h-4" />,
+                      frequency: <FiClock className="w-4 h-4" />,
+                      duration: <FiCalendar className="w-4 h-4" />,
+                      qty: <FiPackage className="w-4 h-4" />,
+                      details: <FiFileText className="w-4 h-4" />,
+                      notes: <FiFileText className="w-4 h-4" />
+                    };
+                    return (
+                      <th key={field.value} className="px-4 py-3 text-left font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
+                        <div className="flex items-center gap-2">
+                          {icons[field.value] || <FiFileText className="w-4 h-4" />}
+                          <span>{field.label}</span>
+                        </div>
+                      </th>
+                    );
+                  })}
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
+                    <div className="flex items-center gap-2">
+                      <FiClock className="w-4 h-4" />
+                      <span>When</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center w-24 font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prescriptionRows.map((row, idx) => (
+                  <tr key={row.id || idx} className="border-t border-gray-100 hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-yellow-50/50 transition-colors duration-150">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-700 font-semibold text-sm">
+                        {idx + 1}
+                      </div>
+                    </td>
+                    {/* Medicine Field - Special handling with autocomplete */}
+                    <td className="px-4 py-3" style={{ position: 'relative', overflow: 'visible', zIndex: showSuggestions[idx] ? 1000 : 'auto' }}>
+                      <div style={{ position: 'relative', overflow: 'visible' }}>
+                        <div className="relative">
+                          <FiDroplet className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <input
+                            ref={(el) => { inputRefs.current[`medicine-${idx}`] = el; }}
+                            type="text"
+                            value={row.medicine || ''}
+                            onChange={(e) => {
+                              const newValue = e.target.value;
+                              updatePrescriptionCell(idx, 'medicine', newValue);
+                            }}
+                            onKeyDown={(e) => handleMedicineKeyDown(e, idx)}
+                            onFocus={() => {
+                              if (row.medicine && row.medicine.trim().length > 0) {
+                                const searchTerm = row.medicine.toLowerCase().trim();
+                                const filtered = allMedicines.filter(med =>
+                                  med.name.toLowerCase().includes(searchTerm) ||
+                                  med.displayName.toLowerCase().includes(searchTerm) ||
+                                  (med.genericName && med.genericName.toLowerCase().includes(searchTerm))
+                                ).slice(0, 20);
+                                setMedicineSuggestions(prev => ({ ...prev, [idx]: filtered }));
+                                setShowSuggestions(prev => ({ ...prev, [idx]: true }));
+
+                                setTimeout(() => {
+                                  const input = inputRefs.current[`medicine-${idx}`];
+                                  if (input) {
+                                    const rect = input.getBoundingClientRect();
+                                    const dropdownHeight = 224;
+                                    setSuggestionPositions(prev => ({
+                                      ...prev,
+                                      [idx]: {
+                                        top: rect.bottom + 4,
+                                        left: rect.left,
+                                        width: rect.width,
+                                        maxHeight: dropdownHeight
+                                      }
+                                    }));
+                                  }
+                                }, 0);
+                              }
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setShowSuggestions(prev => ({ ...prev, [idx]: false }));
+                              }, 200);
+                            }}
+                            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200 bg-white hover:border-amber-300"
+                            placeholder="Type to search medicine..."
+                            autoComplete="off"
+                          />
+                        </div>
+                        {showSuggestions[idx] && medicineSuggestions[idx] && medicineSuggestions[idx].length > 0 && (
+                          <div
+                            className="fixed bg-white border-2 border-amber-200 rounded-xl shadow-2xl overflow-hidden z-50"
+                            style={{
+                              top: suggestionPositions[idx]?.top ? `${suggestionPositions[idx].top}px` : 'auto',
+                              left: suggestionPositions[idx]?.left ? `${suggestionPositions[idx].left}px` : 'auto',
+                              width: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
+                              minWidth: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
+                              maxWidth: suggestionPositions[idx]?.width ? `${suggestionPositions[idx].width}px` : 'auto',
+                              maxHeight: suggestionPositions[idx]?.maxHeight ? `${suggestionPositions[idx].maxHeight}px` : '224px',
+                              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                            }}
+                          >
+                            <div className="overflow-y-auto max-h-full custom-scrollbar" style={{ maxHeight: suggestionPositions[idx]?.maxHeight ? `${suggestionPositions[idx].maxHeight}px` : '224px' }}>
+                              {medicineSuggestions[idx].map((med, medIdx) => (
+                                <div
+                                  key={`${med.name}-${medIdx}`}
+                                  onClick={() => selectMedicine(idx, med)}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onMouseEnter={() => setActiveSuggestionIndex(prev => ({ ...prev, [idx]: medIdx }))}
+                                  className={`px-4 py-3 cursor-pointer transition-all duration-150 border-b border-gray-100 last:border-b-0 ${
+                                    activeSuggestionIndex[idx] === medIdx 
+                                      ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-l-amber-500' 
+                                      : 'hover:bg-amber-50/50'
+                                  }`}
+                                >
+                                  <div className="font-semibold text-gray-900 text-sm">{med.name}</div>
+                                  {med.displayName !== med.name && (
+                                    <div className="text-xs text-gray-500 mt-0.5">{med.displayName}</div>
+                                  )}
+                                  {med.strengths && med.strengths.length > 0 && (
+                                    <div className="text-xs text-amber-600 mt-1.5 font-medium">
+                                      Available: {med.strengths.join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    {/* Dynamic fields from PRESCRIPTION_FORM (excluding medicine which is handled above) */}
+                    {PRESCRIPTION_FORM.filter(field => field.value !== 'medicine').map((field) => {
+                      const fieldIcons = {
+                        dosage: <FiActivity className="w-4 h-4 text-gray-400" />,
+                        frequency: <FiClock className="w-4 h-4 text-gray-400" />,
+                        duration: <FiCalendar className="w-4 h-4 text-gray-400" />,
+                        qty: <FiPackage className="w-4 h-4 text-gray-400" />,
+                        details: <FiFileText className="w-4 h-4 text-gray-400" />,
+                        notes: <FiFileText className="w-4 h-4 text-gray-400" />
+                      };
+                      const placeholders = {
+                        dosage: 'Select dosage',
+                        frequency: 'Select frequency',
+                        duration: 'Select duration',
+                        qty: 'Select quantity',
+                        details: 'Details',
+                        notes: 'Notes'
+                      };
+                      const isSelectField = ['dosage', 'frequency', 'duration', 'qty'].includes(field.value);
+                      
+                      return (
+                        <td key={field.value} className="px-4 py-3">
+                          {isSelectField ? (
+                            <Select
+                              name={`${field.value}-${idx}`}
+                              value={row[field.value] || ''}
+                              onChange={(e) => updatePrescriptionCell(idx, field.value, e.target.value)}
+                              options={PRESCRIPTION_OPTIONS[field.value.toUpperCase()] || []}
+                              placeholder={placeholders[field.value]}
+                              searchable={true}
+                              className="bg-white border-2 border-gray-200"
+                            />
+                          ) : (
+                            <div className="relative">
+                              {fieldIcons[field.value] && (
+                                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                  {fieldIcons[field.value]}
+                                </div>
+                              )}
+                              <input
+                                value={row[field.value] || ''}
+                                onChange={(e) => updatePrescriptionCell(idx, field.value, e.target.value)}
+                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2 ${fieldIcons[field.value] ? 'pl-10' : 'pl-3'} focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200 bg-white hover:border-amber-300`}
+                                placeholder={placeholders[field.value]}
+                              />
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {/* When field - not in PRESCRIPTION_FORM but needed */}
+                    <td className="px-4 py-3">
+                      <Select
+                        name={`when-${idx}`}
+                        value={row.when || ''}
+                        onChange={(e) => updatePrescriptionCell(idx, 'when', e.target.value)}
+                        options={PRESCRIPTION_OPTIONS.WHEN}
+                        placeholder="Select when"
+                        searchable={true}
+                        className="bg-white border-2 border-gray-200"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button 
+                        type="button" 
+                        onClick={() => removePrescriptionRow(idx)} 
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors duration-200 border border-red-200 hover:border-red-300"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Datalist suggestions for prescription fields */}
           {prescriptionRows.map((_, rowIdx) => (
@@ -703,7 +734,8 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
             </div>
           ))}
 
-          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-4 pb-2 px-6 bg-gradient-to-r from-gray-50 to-slate-50 border-t-2 border-gray-200">
             <div className="flex items-center gap-3">
               <Button
                 type="button"
@@ -739,7 +771,7 @@ const PrescriptionEdit = ({ proforma, index, patientId }) => {
               </Button>
             )}
           </div>
-        </div>
+        </Card>
       )}
       </div>
     </>

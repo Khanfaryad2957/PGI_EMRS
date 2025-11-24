@@ -21,6 +21,8 @@ import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx-js-style';
 
 import { useGetPrescriptionByIdQuery } from '../../features/prescriptions/prescriptionApiSlice';
+import { useGetPatientFilesQuery } from '../../features/patients/patientFilesApiSlice';
+import FilePreview from '../../components/FilePreview';
 
 
 const IconInput = ({ icon, label, loading = false, error, defaultValue, ...props }) => {
@@ -79,6 +81,12 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTab = searchParams.get('returnTab');
+  
+  // Fetch patient files for preview
+  const { data: patientFilesData } = useGetPatientFilesQuery(patient?.id, {
+    skip: !patient?.id
+  });
+  const existingFiles = patientFilesData?.data?.files || [];
 
   // Merge patient and formData to ensure all fields are available with proper fallbacks
   // This ensures data is available immediately even if formData hasn't loaded yet
@@ -2448,71 +2456,38 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                         </Badge>
                       </div>
 
-                      <div className="space-y-4">
-                        {visitData.prescriptions.map((prescription, idx) => (
-                          <div key={prescription.id || idx} className="relative backdrop-blur-md bg-white/50 border border-white/40 rounded-xl p-4 shadow-md">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-indigo-500/3 rounded-xl"></div>
-                            <div className="relative">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              <div>
-                                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Medicine</label>
-                                <p className="text-base font-bold text-gray-900 mt-1">{prescription.medicine || 'N/A'}</p>
-                              </div>
-                              {prescription.dosage && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dosage</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.dosage}</p>
-                                </div>
-                              )}
-                              {prescription.when_to_take && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">When to Take</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.when_to_take}</p>
-                                </div>
-                              )}
-                              {prescription.frequency && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Frequency</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.frequency}</p>
-                                </div>
-                              )}
-                              {prescription.duration && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.duration}</p>
-                                </div>
-                              )}
-                              {prescription.quantity && (
-                                <div>
-                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quantity</label>
-                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.quantity}</p>
-                                </div>
-                              )}
-                            </div>
-                            {(prescription.details || prescription.notes) && (
-                                <div className="mt-4 pt-4 border-t border-white/30 space-y-2">
-                                {prescription.details && (
-                                  <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Details</label>
-                                    <p className="text-sm text-gray-900 mt-1">{prescription.details}</p>
-                                  </div>
-                                )}
-                                {prescription.notes && (
-                                  <div>
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Notes</label>
-                                    <p className="text-sm text-gray-900 mt-1">{prescription.notes}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {prescription.created_at && (
-                                <div className="mt-3 pt-3 border-t border-white/30">
-                                <p className="text-xs text-gray-500">Prescribed on: {formatDateTime(prescription.created_at)}</p>
-                              </div>
-                            )}
-                            </div>
-                          </div>
-                        ))}
+                      {/* Table format for prescriptions */}
+                      <div className="overflow-x-auto rounded-xl border border-white/40 shadow-lg" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                        <table className="min-w-full text-sm" style={{ position: 'relative' }}>
+                          <thead className="backdrop-blur-md bg-white/50 border-b border-white/40 sticky top-0 z-10">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">#</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Medicine</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Dosage</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">When</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Frequency</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Duration</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Quantity</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Details</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody className="backdrop-blur-sm bg-white/40 divide-y divide-white/30">
+                            {visitData.prescriptions.map((prescription, idx) => (
+                              <tr key={prescription.id || idx} className="hover:bg-white/60 transition-colors duration-200">
+                                <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                                <td className="px-4 py-3 font-medium">{prescription.medicine || 'N/A'}</td>
+                                <td className="px-4 py-3">{prescription.dosage || '-'}</td>
+                                <td className="px-4 py-3">{prescription.when_to_take || '-'}</td>
+                                <td className="px-4 py-3">{prescription.frequency || '-'}</td>
+                                <td className="px-4 py-3">{prescription.duration || '-'}</td>
+                                <td className="px-4 py-3">{prescription.quantity || '-'}</td>
+                                <td className="px-4 py-3">{prescription.details || '-'}</td>
+                                <td className="px-4 py-3">{prescription.notes || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   ))}
@@ -2526,6 +2501,25 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
               )}
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Patient Documents & Files Preview Section */}
+      {patient?.id && existingFiles && existingFiles.length > 0 && (
+        <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+          <div className="p-6">
+            <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+              <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                <FiFileText className="w-5 h-5 text-purple-600" />
+              </div>
+              Patient Documents & Files
+            </h4>
+            <FilePreview
+              files={existingFiles}
+              canDelete={false}
+              baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+            />
+          </div>
         </Card>
       )}
 

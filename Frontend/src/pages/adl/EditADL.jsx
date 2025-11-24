@@ -3,6 +3,9 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useGetADLFileByIdQuery, useUpdateADLFileMutation, useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
+import { useGetPatientFilesQuery, useUpdatePatientFilesMutation, useCreatePatientFilesMutation } from '../../features/patients/patientFilesApiSlice';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { ADL_FILE_FORM } from '../../utils/constants';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
@@ -12,6 +15,8 @@ import Button from '../../components/Button';
 import { FiSave, FiPlus, FiX, FiChevronDown, FiChevronUp, FiFileText, FiCalendar } from 'react-icons/fi';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import DatePicker from '../../components/CustomDatePicker';
+import FileUpload from '../../components/FileUpload';
+import FilePreview from '../../components/FilePreview';
 
 // Display Field Component for read-only mode with glassmorphism
 const DisplayField = ({ label, value, icon, className = '', rows }) => {
@@ -80,14 +85,29 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
 
   const [updateADLFile, { isLoading: isUpdating }] = useUpdateADLFileMutation();
   const [createADLFile, { isLoading: isCreating }] = useCreateADLFileMutation();
-  
+  const currentUser = useSelector(selectCurrentUser);
+
   // Determine if this is create or update mode
   // Update mode: id exists AND adlFile exists OR mode === 'update'
   // Create mode: no id OR no adlFile OR mode === 'create'
   const isUpdateMode = mode === 'update' || (mode !== 'create' && id && adlFile);
   
+  // Get patientId and clinicalProformaId - must be declared before useGetPatientFilesQuery
   const patientId = propPatientId || adlFile?.patient_id;
   const clinicalProformaId = propClinicalProformaId || adlFile?.clinical_proforma_id;
+
+  // File upload state
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [filesToRemove, setFilesToRemove] = useState([]);
+  const { data: patientFilesData, refetch: refetchFiles } = useGetPatientFilesQuery(patientId, {
+    skip: !patientId
+  });
+  const [updatePatientFiles, { isLoading: isUploadingFiles }] = useUpdatePatientFilesMutation();
+  const [createPatientFiles] = useCreatePatientFilesMutation();
+  
+  // Get existing files from API
+  const existingFiles = patientFilesData?.data?.files || [];
+  const canEditFiles = patientFilesData?.data?.can_edit !== false;
   
   const { data: patientData, isLoading: isLoadingPatient } = useGetPatientByIdQuery(patientId, { skip: !patientId });
   const patient = patientData?.data?.patient;
@@ -600,6 +620,25 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
         };
         await createADLFile(createData).unwrap();
         toast.success('ADL File created successfully!');
+        
+        // Handle file uploads for new ADL file
+        if (patientId && selectedFiles && selectedFiles.length > 0) {
+          try {
+            await createPatientFiles({
+              patient_id: patientId,
+              user_id: currentUser?.id,
+              files: selectedFiles
+            }).unwrap();
+            
+            toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+            setSelectedFiles([]);
+            refetchFiles();
+          } catch (fileErr) {
+            console.error('File upload error:', fileErr);
+            toast.error(fileErr?.data?.message || 'Failed to upload files. ADL file was created successfully.');
+          }
+        }
+        
         if (isEmbedded) {
           // If embedded, don't navigate - just refresh or show success
           // The parent component will handle refetching
@@ -618,6 +657,51 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
         };
         await updateADLFile(updateData).unwrap();
         toast.success('ADL File updated successfully!');
+        
+        // Handle file uploads/updates for existing ADL file
+        if (patientId && ((selectedFiles && selectedFiles.length > 0) || (filesToRemove && filesToRemove.length > 0))) {
+          try {
+            const hasExistingFiles = existingFiles && existingFiles.length > 0;
+            
+            if (hasExistingFiles && (selectedFiles.length > 0 || filesToRemove.length > 0)) {
+              // Update existing record
+              const fileRecord = patientFilesData?.data;
+              await updatePatientFiles({
+                patient_id: patientId,
+                record_id: fileRecord?.id,
+                files_to_add: selectedFiles,
+                files_to_remove: filesToRemove,
+                user_id: currentUser?.id
+              }).unwrap();
+              
+              if (selectedFiles.length > 0) {
+                toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+              }
+              if (filesToRemove.length > 0) {
+                toast.success(`${filesToRemove.length} file(s) removed successfully!`);
+              }
+              
+              setSelectedFiles([]);
+              setFilesToRemove([]);
+              refetchFiles();
+            } else if (selectedFiles.length > 0) {
+              // Create new record if no existing files
+              await createPatientFiles({
+                patient_id: patientId,
+                user_id: currentUser?.id,
+                files: selectedFiles
+              }).unwrap();
+              
+              toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+              setSelectedFiles([]);
+              refetchFiles();
+            }
+          } catch (fileErr) {
+            console.error('File upload error:', fileErr);
+            toast.error(fileErr?.data?.message || 'Failed to update files. ADL file was saved successfully.');
+          }
+        }
+        
         if (isEmbedded) {
           // If embedded, don't navigate
           return;
@@ -3223,16 +3307,78 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
             {/* Render all form sections */}
             {renderFormContent()}
 
+            {/* Patient Documents & Files Section - Above Submit Button */}
+            {!readOnly && (
+              <div className="mt-8 pt-6 border-t border-gray-300">
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-lg border border-white/30 shadow-md">
+                    <FiFileText className="w-4 h-4 text-purple-600" />
+                  </div>
+                  Patient Documents & Files
+                </h4>
+
+                {/* File Upload Component */}
+                <div className="mb-4">
+                  <FileUpload
+                    files={selectedFiles}
+                    onFilesChange={setSelectedFiles}
+                    maxFiles={20}
+                    maxSizeMB={10}
+                    patientId={patientId}
+                    disabled={!patientId || readOnly}
+                  />
+                </div>
+
+                {/* Existing Files Preview */}
+                {patientId && existingFiles && existingFiles.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="text-md font-semibold text-gray-800 mb-3">Existing Files</h5>
+                    <FilePreview
+                      files={existingFiles.filter(file => !filesToRemove.includes(file))}
+                      onDelete={canEditFiles ? (filePath) => {
+                        setFilesToRemove(prev => {
+                          if (!prev.includes(filePath)) {
+                            return [...prev, filePath];
+                          }
+                          return prev;
+                        });
+                      } : undefined}
+                      canDelete={canEditFiles}
+                      baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+                    />
+                  </div>
+                )}
+
+                {/* Files to be removed indicator */}
+                {filesToRemove.length > 0 && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>{filesToRemove.length}</strong> file(s) will be removed when you save.
+                    </p>
+                  </div>
+                )}
+
+                {/* Info message if patientId is not available */}
+                {!patientId && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      Patient ID is required to upload files. Please save the ADL file first to enable file uploads.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Submit Button for embedded mode */}
             <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-300">
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isUpdating || isCreating}
+                disabled={isUpdating || isCreating || isUploadingFiles}
                 className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30 gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
+                {isUpdating || isCreating || isUploadingFiles ? 'Saving...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
               </Button>
             </div>
           </form>
@@ -5340,14 +5486,76 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               </div>
             )}
           </Card>
-
-      
         
               </form>
             </div>
           )}
         </Card>
       
+          {/* Patient Documents & Files Section - Above Buttons */}
+          {!readOnly && (
+            <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
+              <div className="p-6 space-y-6">
+                <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                    <FiFileText className="w-5 h-5 text-purple-600" />
+                  </div>
+                  Patient Documents & Files
+                </h4>
+
+                {/* File Upload Component */}
+                <div className="mb-6">
+                  <FileUpload
+                    files={selectedFiles}
+                    onFilesChange={setSelectedFiles}
+                    maxFiles={20}
+                    maxSizeMB={10}
+                    patientId={patientId}
+                    disabled={!patientId || readOnly}
+                  />
+                </div>
+
+                {/* Existing Files Preview */}
+                {patientId && existingFiles && existingFiles.length > 0 && (
+                  <div className="mt-6">
+                    <h5 className="text-lg font-semibold text-gray-800 mb-4">Existing Files</h5>
+                    <FilePreview
+                      files={existingFiles.filter(file => !filesToRemove.includes(file))}
+                      onDelete={canEditFiles ? (filePath) => {
+                        setFilesToRemove(prev => {
+                          if (!prev.includes(filePath)) {
+                            return [...prev, filePath];
+                          }
+                          return prev;
+                        });
+                      } : undefined}
+                      canDelete={canEditFiles}
+                      baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+                    />
+                  </div>
+                )}
+
+                {/* Files to be removed indicator */}
+                {filesToRemove.length > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>{filesToRemove.length}</strong> file(s) will be removed when you save.
+                    </p>
+                  </div>
+                )}
+
+                {/* Info message if patientId is not available */}
+                {!patientId && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      Patient ID is required to upload files. Please save the ADL file first to enable file uploads.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
             <div className="relative mt-8">
               
                 <div className="flex flex-col sm:flex-row justify-end gap-4">
@@ -5363,11 +5571,11 @@ const EditADL = ({ adlFileId, isEmbedded = false, patientId: propPatientId = nul
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isUpdating}
+                disabled={isUpdating || isCreating || isUploadingFiles}
                     className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
               >
                 <FiSave className="w-4 h-4" />
-                    {isUpdating ? 'Updating...' : isCreating ? 'Creating...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
+                    {isUpdating || isCreating || isUploadingFiles ? 'Saving...' : (isUpdateMode ? 'Update Out Patient Intake Record' : 'Create Out Patient Intake Record')}
               </Button>
                 </div>
               </div>

@@ -10,7 +10,9 @@ import {
   FiNavigation, FiTruck, FiEdit3, FiSave, FiX, FiLayers, FiLoader,
   FiChevronDown, FiChevronUp, FiArrowRight, FiCheck
 } from 'react-icons/fi';
-import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation, useUploadPatientFilesMutation } from '../../features/patients/patientsApiSlice';
+import { useCreatePatientMutation, useAssignPatientMutation, useCreatePatientCompleteMutation, useCheckCRNumberExistsQuery, useUpdatePatientMutation } from '../../features/patients/patientsApiSlice';
+import { useCreatePatientFilesMutation } from '../../features/patients/patientFilesApiSlice';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
 import { updatePatientRegistrationForm, resetPatientRegistrationForm, selectPatientRegistrationForm } from '../../features/form/formSlice';
 import { useCreateClinicalProformaMutation } from '../../features/clinical/clinicalApiSlice';
@@ -38,7 +40,8 @@ const CreatePatient = () => {
   const [updatePatient, { isLoading: isUpdating }] = useUpdatePatientMutation();
   const { data: usersData } = useGetDoctorsQuery({ page: 1, limit: 100 });
   const [createProforma, { isLoading: isCreating }] = useCreateClinicalProformaMutation();
-  const [uploadFiles, { isLoading: isUploadingFiles }] = useUploadPatientFilesMutation();
+  const [createPatientFiles, { isLoading: isUploadingFiles }] = useCreatePatientFilesMutation();
+  const currentUser = useSelector(selectCurrentUser);
   // State declarations first
   const [errors, setErrors] = useState({});
   const [crValidationTimeout, setCrValidationTimeout] = useState(null);
@@ -529,7 +532,6 @@ const CreatePatient = () => {
 
   // Handler for Step 2: Update patient with remaining data
   const handleSubmit = async (e) => {
-    debugger  
     e.preventDefault();
 
     if (!patientId) {
@@ -658,6 +660,21 @@ const CreatePatient = () => {
         }
       }
 
+      // Upload files if any are selected
+      if (selectedFiles && selectedFiles.length > 0) {
+        try {
+          await createPatientFiles({
+            patient_id: patientId,
+            user_id: currentUser?.id,
+            files: selectedFiles
+          }).unwrap();
+          toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+        } catch (err) {
+          console.error('Error uploading files:', err);
+          toast.error(err?.data?.message || 'Failed to upload files. Patient created but files were not saved.');
+        }
+      }
+
       // Create clinical proforma
       await createProforma({
         patient_id: patientId,
@@ -672,6 +689,7 @@ const CreatePatient = () => {
       dispatch(resetPatientRegistrationForm());
       setCurrentStep(1);
       setPatientId(null);
+      setSelectedFiles([]); // Clear selected files
 
       // Navigate to patients list
       navigate('/patients');

@@ -6,10 +6,12 @@ import {
   useDeleteClinicalProformaMutation,
 } from '../../features/clinical/clinicalApiSlice';
 import { useGetADLFileByIdQuery } from '../../features/adl/adlApiSlice';
+import { useGetPatientFilesQuery } from '../../features/patients/patientFilesApiSlice';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import FilePreview from '../../components/FilePreview';
 import { formatDate } from '../../utils/formatters';
 
 const ClinicalProformaDetails = () => {
@@ -29,6 +31,13 @@ const ClinicalProformaDetails = () => {
     { skip: !isComplexCase }
   );
   const adlFile = adlFileData?.data?.file;
+  
+  // Fetch patient files for preview
+  const patientId = proforma?.patient_id;
+  const { data: patientFilesData } = useGetPatientFilesQuery(patientId, {
+    skip: !patientId
+  });
+  const existingFiles = patientFilesData?.data?.files || [];
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this clinical proforma? This action cannot be undone.')) {
@@ -439,6 +448,19 @@ const ClinicalProformaDetails = () => {
             )}
           </Card>
         </>
+      )}
+
+      {/* Patient Documents & Files Preview Section */}
+      {patientId && existingFiles && existingFiles.length > 0 && (
+        <Card title="Patient Documents & Files" className="mb-6">
+          <div className="p-6">
+            <FilePreview
+              files={existingFiles}
+              canDelete={false}
+              baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+            />
+          </div>
+        </Card>
       )}
     </div>
   );

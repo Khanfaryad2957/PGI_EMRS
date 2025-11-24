@@ -11,11 +11,16 @@ import {
 } from 'react-icons/fi';
 import { useUpdatePatientMutation, useAssignPatientMutation, useCheckCRNumberExistsQuery } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
+import { useGetPatientFilesQuery, useUpdatePatientFilesMutation, useDeletePatientFileMutation } from '../../features/patients/patientFilesApiSlice';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import Card from '../../components/Card';
 import Select from '../../components/Select';
 import Button from '../../components/Button';
 import DatePicker from '../../components/CustomDatePicker';
 import Badge from '../../components/Badge';
+import FileUpload from '../../components/FileUpload';
+import FilePreview from '../../components/FilePreview';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 
 // Helper function to format date for DatePicker (YYYY-MM-DD format)
@@ -1018,9 +1023,23 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
   const [sameAsPermanent, setSameAsPermanent] = useState(false);
   
   const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
   const [updatePatient, { isLoading }] = useUpdatePatientMutation();
   const [assignPatient, { isLoading: isAssigning }] = useAssignPatientMutation();
   const { data: doctorsData } = useGetDoctorsQuery({ page: 1, limit: 100 });
+  
+  // File upload state and API hooks
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [filesToRemove, setFilesToRemove] = useState([]);
+  const { data: patientFilesData, refetch: refetchFiles } = useGetPatientFilesQuery(patient?.id, {
+    skip: !patient?.id
+  });
+  const [updatePatientFiles, { isLoading: isUploadingFiles }] = useUpdatePatientFilesMutation();
+  const [deletePatientFile] = useDeletePatientFileMutation();
+  
+  // Get existing files from API
+  const existingFiles = patientFilesData?.data?.files || [];
+  const canEditFiles = patientFilesData?.data?.can_edit !== false; // Default to true if not specified
 
 
 
@@ -2870,7 +2889,58 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                     {/* Divider */}
                     <div className="border-t border-white/30 my-6"></div>
 
-                    <div className="flex flex-col sm:flex-row justify-end gap-4">
+                    {/* Patient Documents & Files Section */}
+                    <div className="space-y-6 pt-6 border-t border-white/30">
+                      <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                        <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                          <FiFileText className="w-5 h-5 text-purple-600" />
+                        </div>
+                        Patient Documents & Files
+                      </h4>
+
+                      {/* File Upload Component */}
+                      <div className="mb-6">
+                        <FileUpload
+                          files={selectedFiles}
+                          onFilesChange={setSelectedFiles}
+                          maxFiles={20}
+                          maxSizeMB={10}
+                          patientId={patient?.id}
+                          disabled={!patient?.id}
+                        />
+                      </div>
+
+                      {/* Existing Files Preview */}
+                      {existingFiles && existingFiles.length > 0 && (
+                        <div className="mt-6">
+                          <h5 className="text-lg font-semibold text-gray-800 mb-4">Existing Files</h5>
+                          <FilePreview
+                            files={existingFiles.filter(file => !filesToRemove.includes(file))}
+                            onDelete={canEditFiles ? (filePath) => {
+                              setFilesToRemove(prev => {
+                                if (!prev.includes(filePath)) {
+                                  return [...prev, filePath];
+                                }
+                                return prev;
+                              });
+                            } : undefined}
+                            canDelete={canEditFiles}
+                            baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+                          />
+                        </div>
+                      )}
+
+                      {/* Files to be removed indicator */}
+                      {filesToRemove.length > 0 && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800">
+                            <strong>{filesToRemove.length}</strong> file(s) will be removed when you save.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-4 mt-6">
                       <Button
                         type="button"
                         variant="outline"
@@ -2882,12 +2952,12 @@ const PatientDetailsEdit = ({ patient, formData: initialFormData, clinicalData, 
                       </Button>
                       <Button
                         type="submit"
-                        loading={isLoading || isAssigning}
-                        disabled={isLoading || isAssigning}
+                        loading={isLoading || isAssigning || isUploadingFiles}
+                        disabled={isLoading || isAssigning || isUploadingFiles}
                         className="px-6 lg:px-8 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-blue-600 hover:from-primary-700 hover:via-indigo-700 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                       >
                         <FiSave className="mr-2" />
-                        {isLoading || isAssigning ? 'Updating Record...' : 'Update Patient'}
+                        {isLoading || isAssigning || isUploadingFiles ? 'Updating Record...' : 'Update Patient'}
                       </Button>
                     </div>
                   </div>

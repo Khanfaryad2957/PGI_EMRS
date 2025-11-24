@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetADLFileByIdQuery } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
+import { useGetPatientFilesQuery } from '../../features/patients/patientFilesApiSlice';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import FilePreview from '../../components/FilePreview';
 import { FiChevronDown, FiChevronUp, FiFileText, FiCalendar, FiUser, FiHome, FiX, FiArrowLeft } from 'react-icons/fi';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 import Button from '../../components/Button';
@@ -42,6 +44,12 @@ const ViewADL = () => {
   const patientId = adlFile?.patient_id;
   const { data: patientData, isLoading: isLoadingPatient } = useGetPatientByIdQuery(patientId, { skip: !patientId });
   const patient = patientData?.data?.patient;
+  
+  // Fetch patient files for preview
+  const { data: patientFilesData } = useGetPatientFilesQuery(patientId, {
+    skip: !patientId
+  });
+  const existingFiles = patientFilesData?.data?.files || [];
 
   // Parse JSON arrays
   const parseArray = (value) => {
@@ -1098,6 +1106,25 @@ const ViewADL = () => {
             </div>
           )}
         </Card>
+
+        {/* Patient Documents & Files Preview Section */}
+        {patientId && existingFiles && existingFiles.length > 0 && (
+          <Card className="relative shadow-2xl border border-white/40 bg-white/70 backdrop-blur-2xl rounded-3xl overflow-hidden mb-6">
+            <div className="p-6">
+              <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                  <FiFileText className="w-5 h-5 text-purple-600" />
+                </div>
+                Patient Documents & Files
+              </h4>
+              <FilePreview
+                files={existingFiles}
+                canDelete={false}
+                baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+              />
+            </div>
+          </Card>
+        )}
 
         <div className="relative mt-8">
               

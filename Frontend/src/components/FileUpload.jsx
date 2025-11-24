@@ -21,9 +21,20 @@ const FileUpload = ({
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Handle file selection
-  const handleFileSelect = async (e) => {
-    const selectedFiles = Array.from(e.target.files);
+  // Handle file selection - accepts either event object or array of files
+  const handleFileSelect = async (eOrFiles) => {
+    // Support both event object (from file input) and direct file array (from camera capture)
+    let selectedFiles = [];
+    if (Array.isArray(eOrFiles)) {
+      // Direct file array (from camera capture)
+      selectedFiles = eOrFiles;
+    } else if (eOrFiles?.target?.files) {
+      // Event object (from file input)
+      selectedFiles = Array.from(eOrFiles.target.files);
+    } else {
+      console.error('Invalid file selection input');
+      return;
+    }
     
     if (files.length + selectedFiles.length > maxFiles) {
       alert(`Maximum ${maxFiles} files allowed. You can upload ${maxFiles - files.length} more file(s).`);
@@ -55,9 +66,9 @@ const FileUpload = ({
     setPreviews([...previews, ...newPreviews]);
     onFilesChange([...files, ...selectedFiles]);
     
-    // Reset input
-    if (e.target) {
-      e.target.value = '';
+    // Reset input if it's an event object
+    if (eOrFiles?.target) {
+      eOrFiles.target.value = '';
     }
   };
 
@@ -147,8 +158,8 @@ const FileUpload = ({
           { type: 'image/jpeg' }
         );
         
-        // Add to files
-        handleFileSelect({ target: { files: [file] } });
+        // Add to files - pass file array directly
+        handleFileSelect([file]);
       }
       
       // Close camera

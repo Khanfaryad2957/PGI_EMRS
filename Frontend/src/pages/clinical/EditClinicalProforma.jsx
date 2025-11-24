@@ -12,6 +12,9 @@ import {
 import { useGetADLFileByIdQuery, useGetAllADLFilesQuery,useUpdateADLFileMutation, useCreateADLFileMutation } from '../../features/adl/adlApiSlice';
 import { useGetPatientByIdQuery } from '../../features/patients/patientsApiSlice';
 import { useGetDoctorsQuery } from '../../features/users/usersApiSlice';
+import { useGetPatientFilesQuery, useUpdatePatientFilesMutation, useCreatePatientFilesMutation } from '../../features/patients/patientFilesApiSlice';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { CLINICAL_PROFORMA_FORM, VISIT_TYPES, DOCTOR_DECISION, CASE_SEVERITY } from '../../utils/constants';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Card from '../../components/Card';
@@ -28,6 +31,8 @@ import DatePicker from '../../components/CustomDatePicker';
 import { IconInput } from '../../components/IconInput';
 import { CheckboxGroup } from '../../components/CheckboxGroup';
 import { ICD11CodeSelector } from '../../components/ICD11CodeSelector';
+import FileUpload from '../../components/FileUpload';
+import FilePreview from '../../components/FilePreview';
 
 
 
@@ -354,6 +359,20 @@ console.log("existingPrescriptionData", existingPrescriptionData);
 
   const [formData, setFormData] = useState(initialFormData || defaultFormData);
   const [errors, setErrors] = useState({});
+  const currentUser = useSelector(selectCurrentUser);
+
+  // File upload state
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [filesToRemove, setFilesToRemove] = useState([]);
+  const { data: patientFilesData, refetch: refetchFiles } = useGetPatientFilesQuery(patientId, {
+    skip: !patientId
+  });
+  const [updatePatientFiles, { isLoading: isUploadingFiles }] = useUpdatePatientFilesMutation();
+  const [createPatientFiles] = useCreatePatientFilesMutation();
+  
+  // Get existing files from API
+  const existingFiles = patientFilesData?.data?.files || [];
+  const canEditFiles = patientFilesData?.data?.can_edit !== false;
 
   // Card expand/collapse state
   const [expandedCards, setExpandedCards] = useState({
@@ -581,8 +600,55 @@ console.log("existingPrescriptionData", existingPrescriptionData);
         return; // Stop further API calls
       }
 
+      // ==============================
+      // TRY–CATCH #2: Handle File Uploads/Updates
+      // ==============================
+      if (patientId && ((selectedFiles && selectedFiles.length > 0) || (filesToRemove && filesToRemove.length > 0))) {
+        try {
+          // Check if patient files record exists
+          const hasExistingFiles = existingFiles && existingFiles.length > 0;
+          
+          if (hasExistingFiles && (selectedFiles.length > 0 || filesToRemove.length > 0)) {
+            // Update existing record
+            const fileRecord = patientFilesData?.data;
+            await updatePatientFiles({
+              patient_id: patientId,
+              record_id: fileRecord?.id,
+              files_to_add: selectedFiles,
+              files_to_remove: filesToRemove,
+              user_id: currentUser?.id
+            }).unwrap();
+            
+            if (selectedFiles.length > 0) {
+              toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+            }
+            if (filesToRemove.length > 0) {
+              toast.success(`${filesToRemove.length} file(s) removed successfully!`);
+            }
+            
+            setSelectedFiles([]);
+            setFilesToRemove([]);
+            refetchFiles();
+          } else if (selectedFiles.length > 0) {
+            // Create new record
+            await createPatientFiles({
+              patient_id: patientId,
+              user_id: currentUser?.id,
+              files: selectedFiles
+            }).unwrap();
+            
+            toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+            setSelectedFiles([]);
+            refetchFiles();
+          }
+        } catch (fileErr) {
+          console.error('File upload error:', fileErr);
+          toast.error(fileErr?.data?.message || 'Failed to update files. Proforma was saved successfully.');
+        }
+      }
+
       // ============================================
-      // TRY–CATCH #2: Create ADL if complex decision
+      // TRY–CATCH #3: Create ADL if complex decision
       // ============================================
       // if (formData.doctor_decision === "complex_case") {
       //   try {
@@ -616,7 +682,7 @@ console.log("existingPrescriptionData", existingPrescriptionData);
       
 
       // ======================================
-      // TRY–CATCH #3: Create Bulk Prescriptions
+      // TRY–CATCH #4: Create Bulk Prescriptions
       // ======================================
       if (!existingPrescription && patient.id && proforma.id) {
         try {
@@ -1135,6 +1201,59 @@ console.log("existingPrescriptionData", existingPrescriptionData);
                 </div>
               </div>
 
+              {/* Patient Documents & Files Section */}
+              {patientId && (
+                <div className="space-y-6 pt-6 border-t border-gray-200">
+                  <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                    <div className="p-2.5 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                      <FiFileText className="w-5 h-5 text-purple-600" />
+                    </div>
+                    Patient Documents & Files
+                  </h4>
+
+                  {/* File Upload Component */}
+                  <div className="mb-6">
+                    <FileUpload
+                      files={selectedFiles}
+                      onFilesChange={setSelectedFiles}
+                      maxFiles={20}
+                      maxSizeMB={10}
+                      patientId={patientId}
+                      disabled={!patientId}
+                    />
+                  </div>
+
+                  {/* Existing Files Preview */}
+                  {existingFiles && existingFiles.length > 0 && (
+                    <div className="mt-6">
+                      <h5 className="text-lg font-semibold text-gray-800 mb-4">Existing Files</h5>
+                      <FilePreview
+                        files={existingFiles.filter(file => !filesToRemove.includes(file))}
+                        onDelete={canEditFiles ? (filePath) => {
+                          setFilesToRemove(prev => {
+                            if (!prev.includes(filePath)) {
+                              return [...prev, filePath];
+                            }
+                            return prev;
+                          });
+                        } : undefined}
+                        canDelete={canEditFiles}
+                        baseUrl={import.meta.env.VITE_API_URL || 'http://localhost:2025/api'}
+                      />
+                    </div>
+                  )}
+
+                  {/* Files to be removed indicator */}
+                  {filesToRemove.length > 0 && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        <strong>{filesToRemove.length}</strong> file(s) will be removed when you save.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button
@@ -1147,12 +1266,12 @@ console.log("existingPrescriptionData", existingPrescriptionData);
                 </Button>
                 <Button
                   type="submit"
-                  loading={isUpdating}
-                  disabled={isUpdating}
+                  loading={isUpdating || isUploadingFiles}
+                  disabled={isUpdating || isUploadingFiles}
                   className="bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30"
                 >
                   <FiSave className="w-4 h-4" />
-                  {isUpdating
+                  {isUpdating || isUploadingFiles
                     ? 'Updating...'
                     : isUpdateMode
                       ? 'Update Walk-in Clinical Proforma'

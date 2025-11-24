@@ -871,11 +871,11 @@ const CreatePrescription = ({
               </div>
             </div>
 
-            <div className="overflow-x-auto" style={{ overflowY: 'visible' }}>
+            <div className="overflow-x-auto" style={{ maxHeight: '600px', overflowY: 'auto' }}>
               <table className="min-w-full text-sm" style={{ position: 'relative' }}>
-                <thead className="bg-gradient-to-r from-gray-50 to-slate-50 border-b-2 border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-slate-50 border-b-2 border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left w-12 font-semibold text-gray-700">
+                    <th className="px-4 py-3 text-left w-12 font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
                       <div className="flex items-center gap-1">
                         <span>#</span>
                       </div>
@@ -891,7 +891,7 @@ const CreatePrescription = ({
                         notes: <FiFileText className="w-4 h-4" />
                       };
                       return (
-                        <th key={field.value} className="px-4 py-3 text-left font-semibold text-gray-700">
+                        <th key={field.value} className="px-4 py-3 text-left font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
                           <div className="flex items-center gap-2">
                             {icons[field.value] || <FiFileText className="w-4 h-4" />}
                             <span>{field.label}</span>
@@ -899,13 +899,13 @@ const CreatePrescription = ({
                         </th>
                       );
                     })}
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">
                       <div className="flex items-center gap-2">
                         <FiClock className="w-4 h-4" />
                         <span>When</span>
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center w-24 font-semibold text-gray-700">Action</th>
+                    <th className="px-4 py-3 text-center w-24 font-semibold text-gray-700 bg-gradient-to-r from-gray-50 to-slate-50">Action</th>
                   </tr>
                 </thead>
                 <tbody>

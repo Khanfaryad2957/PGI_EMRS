@@ -486,53 +486,55 @@ const PrescriptionView = () => {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto backdrop-blur-sm bg-white/30 border border-white/40 rounded-xl shadow-lg">
-                <table className="min-w-full text-sm">
-                  <thead className="backdrop-blur-md bg-white/50 border-b border-white/40">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">#</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Medicine</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Dosage</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">When</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Frequency</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Duration</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Qty</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Details</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
-                      {(isJrSr(currentUser?.role) || isAdmin(currentUser?.role)) && (
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="backdrop-blur-sm bg-white/40 divide-y divide-white/30">
-                    {prescriptions.map((prescription, idx) => (
-                      <tr key={idx} className="hover:bg-white/60 transition-colors duration-200">
-                        <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
-                        <td className="px-4 py-3 font-medium">{prescription.medicine || '-'}</td>
-                        <td className="px-4 py-3">{prescription.dosage || '-'}</td>
-                        <td className="px-4 py-3">{prescription.when_to_take || '-'}</td>
-                        <td className="px-4 py-3">{prescription.frequency || '-'}</td>
-                        <td className="px-4 py-3">{prescription.duration || '-'}</td>
-                        <td className="px-4 py-3">{prescription.quantity || '-'}</td>
-                        <td className="px-4 py-3">{prescription.details || '-'}</td>
-                        <td className="px-4 py-3">{prescription.notes || '-'}</td>
+              <div className="p-6">
+                <div className="overflow-x-auto rounded-xl border border-white/40 shadow-lg" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                  <table className="min-w-full text-sm" style={{ position: 'relative' }}>
+                    <thead className="backdrop-blur-md bg-white/50 border-b border-white/40 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">#</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Medicine</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Dosage</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">When</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Frequency</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Qty</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Details</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Notes</th>
                         {(isJrSr(currentUser?.role) || isAdmin(currentUser?.role)) && (
-                          <td className="px-4 py-3">
-                            <Button
-                              onClick={() => navigate(`/prescriptions/edit?clinical_proforma_id=${clinicalProformaId}&patient_id=${actualPatientId}&returnTab=${returnTab || ''}`)}
-                              variant="ghost"
-                              size="sm"
-                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                            >
-                              <FiEdit className="w-4 h-4" />
-                              Edit
-                            </Button>
-                          </td>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider backdrop-blur-md bg-white/50">Actions</th>
                         )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="backdrop-blur-sm bg-white/40 divide-y divide-white/30">
+                      {prescriptions.map((prescription, idx) => (
+                        <tr key={idx} className="hover:bg-white/60 transition-colors duration-200">
+                          <td className="px-4 py-3 text-gray-600">{idx + 1}</td>
+                          <td className="px-4 py-3 font-medium">{prescription.medicine || '-'}</td>
+                          <td className="px-4 py-3">{prescription.dosage || '-'}</td>
+                          <td className="px-4 py-3">{prescription.when_to_take || '-'}</td>
+                          <td className="px-4 py-3">{prescription.frequency || '-'}</td>
+                          <td className="px-4 py-3">{prescription.duration || '-'}</td>
+                          <td className="px-4 py-3">{prescription.quantity || '-'}</td>
+                          <td className="px-4 py-3">{prescription.details || '-'}</td>
+                          <td className="px-4 py-3">{prescription.notes || '-'}</td>
+                          {(isJrSr(currentUser?.role) || isAdmin(currentUser?.role)) && (
+                            <td className="px-4 py-3">
+                              <Button
+                                onClick={() => navigate(`/prescriptions/edit?clinical_proforma_id=${clinicalProformaId}&patient_id=${actualPatientId}&returnTab=${returnTab || ''}`)}
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                              >
+                                <FiEdit className="w-4 h-4" />
+                                Edit
+                              </Button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
             </Card>
