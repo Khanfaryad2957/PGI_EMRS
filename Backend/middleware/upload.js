@@ -57,6 +57,7 @@ const upload = multer({
   }
 });
 
+<<<<<<< HEAD
 // Middleware for multiple file uploads - support both 'files' and 'attachments[]'
 const uploadMultiple = upload.fields([
   { name: 'files', maxCount: 20 },
@@ -64,6 +65,12 @@ const uploadMultiple = upload.fields([
 ]);
 
 // Middleware wrapper to handle errors and normalize file arrays
+=======
+// Middleware for multiple file uploads
+const uploadMultiple = upload.array('files', 20);
+
+// Middleware wrapper to handle errors
+>>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
 const handleUpload = (req, res, next) => {
   uploadMultiple(req, res, (err) => {
     if (err) {
@@ -83,7 +90,11 @@ const handleUpload = (req, res, next) => {
         if (err.code === 'LIMIT_UNEXPECTED_FILE') {
           return res.status(400).json({
             success: false,
+<<<<<<< HEAD
             message: 'Unexpected file field name. Use "files" or "attachments[]" as the field name.'
+=======
+            message: 'Unexpected file field name. Use "files" as the field name.'
+>>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
           });
         }
       }
@@ -92,6 +103,7 @@ const handleUpload = (req, res, next) => {
         message: err.message || 'File upload error'
       });
     }
+<<<<<<< HEAD
     
     // Normalize files - combine files from both field names into req.files array
     if (req.files) {
@@ -105,6 +117,8 @@ const handleUpload = (req, res, next) => {
       req.files = allFiles;
     }
     
+=======
+>>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
     next();
   });
 };

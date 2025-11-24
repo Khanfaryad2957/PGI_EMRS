@@ -2456,6 +2456,7 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                         </Badge>
                       </div>
 
+<<<<<<< HEAD
                       {/* Table format for prescriptions */}
                       <div className="overflow-x-auto rounded-xl border border-white/40 shadow-lg" style={{ maxHeight: '500px', overflowY: 'auto' }}>
                         <table className="min-w-full text-sm" style={{ position: 'relative' }}>
@@ -2488,6 +2489,73 @@ const PatientDetailsView = ({ patient, formData, clinicalData, adlData, outpatie
                             ))}
                           </tbody>
                         </table>
+=======
+                      <div className="space-y-4">
+                        {visitData.prescriptions.map((prescription, idx) => (
+                          <div key={prescription.id || idx} className="relative backdrop-blur-md bg-white/50 border border-white/40 rounded-xl p-4 shadow-md">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-indigo-500/3 rounded-xl"></div>
+                            <div className="relative">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div>
+                                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Medicine</label>
+                                <p className="text-base font-bold text-gray-900 mt-1">{prescription.medicine || 'N/A'}</p>
+                              </div>
+                              {prescription.dosage && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Dosage</label>
+                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.dosage}</p>
+                                </div>
+                              )}
+                              {prescription.when_to_take && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">When to Take</label>
+                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.when_to_take}</p>
+                                </div>
+                              )}
+                              {prescription.frequency && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Frequency</label>
+                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.frequency}</p>
+                                </div>
+                              )}
+                              {prescription.duration && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</label>
+                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.duration}</p>
+                                </div>
+                              )}
+                              {prescription.quantity && (
+                                <div>
+                                  <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quantity</label>
+                                  <p className="text-base font-semibold text-gray-900 mt-1">{prescription.quantity}</p>
+                                </div>
+                              )}
+                            </div>
+                            {(prescription.details || prescription.notes) && (
+                                <div className="mt-4 pt-4 border-t border-white/30 space-y-2">
+                                {prescription.details && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Details</label>
+                                    <p className="text-sm text-gray-900 mt-1">{prescription.details}</p>
+                                  </div>
+                                )}
+                                {prescription.notes && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Notes</label>
+                                    <p className="text-sm text-gray-900 mt-1">{prescription.notes}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {prescription.created_at && (
+                                <div className="mt-3 pt-3 border-t border-white/30">
+                                <p className="text-xs text-gray-500">Prescribed on: {formatDateTime(prescription.created_at)}</p>
+                              </div>
+                            )}
+                            </div>
+                          </div>
+                        ))}
+>>>>>>> d5c68bf584ebb42cbbd2929997cf9d6d0cc76a5d
                       </div>
                     </div>
                   ))}
